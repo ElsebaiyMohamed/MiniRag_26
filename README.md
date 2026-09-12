@@ -53,7 +53,8 @@ sudo apt install libpq-dev gcc python3-dev
 1) Download and install uv from [here](https://docs.astral.sh/uv/getting-started/installation/)
 2) Create a new environment using the following command:
 ```bash
-$ uv python install
+$ uv init
+$ uv python install 3.14t
 ```
 
 ### (Optional) Setup you command line interface for better readability
