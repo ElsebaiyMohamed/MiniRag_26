@@ -39,7 +39,7 @@ This is an educational project where all of the codes where explained (step by s
 
 ## Requirements
 
-- Python 3.10
+- Python 3.14
 
 #### Install Dependencies
 
@@ -48,16 +48,12 @@ sudo apt update
 sudo apt install libpq-dev gcc python3-dev
 ```
 
-#### Install Python using MiniConda
+#### Install Python using uv
 
-1) Download and install MiniConda from [here](https://docs.anaconda.com/free/miniconda/#quick-command-line-install)
+1) Download and install uv from [here](https://docs.astral.sh/uv/getting-started/installation/)
 2) Create a new environment using the following command:
 ```bash
-$ conda create -n mini-rag python=3.10
-```
-3) Activate the environment:
-```bash
-$ conda activate mini-rag
+$ uv python install
 ```
 
 ### (Optional) Setup you command line interface for better readability
@@ -75,7 +71,7 @@ export PS1="\[\033[01;32m\]\u@\h:\w\n\[\033[00m\]\$ "
 ### Install the required packages
 
 ```bash
-$ pip install -r requirements.txt
+$ uv sync
 ```
 
 ### Setup the environment variables
