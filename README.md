@@ -83,6 +83,10 @@ $ cp .env.example .env
 ### Run fastapi using uvicorn 
 
 ```bash
+$ cd src
+```
+
+```bash
 $ uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
