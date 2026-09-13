@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv(".env")
 
-from routes import base
+from src.routes import base
 
 app = FastAPI(title="MiniRag_26", version="0.1", description="Question Answering System")
 
