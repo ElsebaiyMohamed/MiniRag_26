@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     APP_NAME: str
     APP_VERSION: str
     APP_DESCRIPTION: str
+    FILE_ALLOWED_EXTENTIONS: list[str, str]
+    FILE_MAX_SIZE_IN_MB: int
     
     class Config:
         env_file = ".env"
