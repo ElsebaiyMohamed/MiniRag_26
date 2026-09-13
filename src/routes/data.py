@@ -20,9 +20,8 @@ async def upload(project_id: str, file: UploadFile, app_settings: Settings=Depen
                             }
                             
                             )
-        
     
-    
+    project_dir_path = ProjectController().get_project_path(project_id=project_id)
     
     
     
