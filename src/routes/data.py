@@ -28,11 +28,18 @@ async def upload(project_id: str, file: UploadFile, app_settings: Settings=Depen
     project_dir_path = ProjectController().get_project_path(project_id=project_id)
     cleaned_filename = data_contoller.gen_uniqe_filename(file.filename, project_dir_path)
     cleaned_filename = data_contoller.join_path(project_dir_path, cleaned_filename)
-
-    async with aiofiles.open(cleaned_filename, 'wb') as f:
-        while chunk := await file.read(app_settings.FILE_DEAFAULT_CHINK_SIZE):
-            await f.write(chunk)
-            
+    try:
+        async with aiofiles.open(cleaned_filename, 'wb') as f:
+            while chunk := await file.read(app_settings.FILE_DEAFAULT_CHINK_SIZE):
+                await f.write(chunk)
+    except Exception as e:
+        return JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content={
+                    'signal': ResponseSignal.FILE_UPLOAD_FIALED.value
+                }
+                )
+        
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
