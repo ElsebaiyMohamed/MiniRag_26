@@ -1,4 +1,7 @@
 import os
+from random import choices as random_choice
+from string import ascii_lowercase, digits
+
 from helpers import get_settings, Settings
 
 class BaseController:
@@ -13,3 +16,6 @@ class BaseController:
         tenant_dir = os.path.join(assets_dir, 'files')
         os.makedirs(tenant_dir, exist_ok=True)
         return tenant_dir
+    
+    def _gen_rand_str(self, length: int=12):
+        return ''.join(random_choice(ascii_lowercase + digits, k=length))
