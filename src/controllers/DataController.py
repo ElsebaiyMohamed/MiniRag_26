@@ -1,3 +1,4 @@
+import os
 import re
 
 from fastapi import UploadFile
@@ -22,11 +23,19 @@ class DataController(BaseController):
         return True, ResponseSignal.FILE_VALIDATED_SUCCESS.value
         
     def gen_uniqe_filename(self, org_filename, project_path):
+        flage = True
+        i = 1
+        while flage:
+            rand_filename = self._gen_rand_str(length=i)
+            clean_filename = self.__cleaned_filemame(org_filename)
+            clean_filename = rand_filename + '_' + clean_filename
+            if os.path.exists(os.path.join(project_path, clean_filename)):
+                i += 1
+                continue
+            
+            flage = False
         
-        rand_filename = self._gen_rand_str()
-        clean_filename = self.__cleaned_filemame(org_filename)
-        
-        return rand_filename + '_' + clean_filename
+        return clean_filename
     
     def __cleaned_filemame(self, filename: str):
         return re.sub(r'[^\w.]', '', filename.strip()).replace(' ', '_')
