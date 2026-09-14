@@ -11,11 +11,14 @@ class BaseController:
         self.tenant_dir = self.__make_data_vault()
         
     def __make_data_vault(self):
-        assets_dir = os.path.join(self.base_dir, 'assets')
+        assets_dir = self.join_path(self.base_dir, 'assets')
         os.makedirs(assets_dir, exist_ok=True)
-        tenant_dir = os.path.join(assets_dir, 'files')
+        tenant_dir = self.join_path(assets_dir, 'files')
         os.makedirs(tenant_dir, exist_ok=True)
         return tenant_dir
     
     def _gen_rand_str(self, length: int=12):
         return ''.join(random_choice(ascii_lowercase + digits, k=length))
+    
+    def join_path(self, prefix, suffix):
+        return os.path.join(prefix, suffix)
