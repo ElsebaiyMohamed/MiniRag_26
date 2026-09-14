@@ -29,7 +29,7 @@ class DataController(BaseController):
             rand_filename = self._gen_rand_str(length=i)
             clean_filename = self.__cleaned_filemame(org_filename)
             clean_filename = rand_filename + '_' + clean_filename
-            if os.path.exists(os.path.join(project_path, clean_filename)):
+            if os.path.exists(self.join_path(project_path, clean_filename)):
                 i += 1
                 continue
             
