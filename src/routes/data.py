@@ -1,11 +1,14 @@
-import aiofiles
+import logging
 
+import aiofiles
 from fastapi import FastAPI, APIRouter, Depends, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from helpers import Settings, get_settings
 from controllers import DataController, ProjectController
 from models import ResponseSignal
+
+log_it = logging.getLogger('uvicorn.error')
 
 data_router = APIRouter(prefix="/api/v1/data",
                         tags=["v1", "data"]
@@ -33,6 +36,7 @@ async def upload(project_id: str, file: UploadFile, app_settings: Settings=Depen
             while chunk := await file.read(app_settings.FILE_DEAFAULT_CHINK_SIZE):
                 await f.write(chunk)
     except Exception as e:
+        log_it.erorr(f'Error while uploading file: \n {e}')
         return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={
