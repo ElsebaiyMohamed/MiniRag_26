@@ -5,7 +5,7 @@ from fastapi import FastAPI, APIRouter, Depends, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from helpers import Settings, get_settings
-from controllers import DataController, ProjectController
+from controllers import DataController, ProjectController, ProcessController
 from models import ResponseSignal, ProcessRequest
 
 log_it = logging.getLogger('uvicorn.error')
@@ -43,6 +43,7 @@ async def upload(project_id: str, file: UploadFile, app_settings: Settings=Depen
                     'signal': ResponseSignal.FILE_UPLOAD_FIALED.value
                 }
                 )
+
         
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -52,12 +53,14 @@ async def upload(project_id: str, file: UploadFile, app_settings: Settings=Depen
         } 
     )
 
-@data_router.post('process/{project_id}')
+@data_router.post('/process/{project_id}')
 async def process_endpoint(project_id: str, process_request: ProcessRequest):
-    
+    Processor_controller = ProcessController(project_id=project_id)
+    file_content = Processor_controller.get_file_content(process_request.file_id)
     return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
-                'file_id': process_request.file_id
+                'file_id': process_request.file_id,
+                'file_content': str(file_content)
             } 
         )
