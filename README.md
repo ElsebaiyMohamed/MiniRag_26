@@ -39,7 +39,7 @@ This is an educational project where all of the codes where explained (step by s
 
 ## Requirements
 
-- Python 3.14
+- Python 3.13.14
 
 #### Install Dependencies
 
@@ -54,7 +54,7 @@ sudo apt install libpq-dev gcc python3-dev
 2) Create a new environment using the following command:
 ```bash
 $ uv init
-$ uv python install 3.14t
+$ uv python install 3.13.14
 ```
 
 ### (Optional) Setup you command line interface for better readability
