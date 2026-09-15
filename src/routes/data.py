@@ -36,7 +36,7 @@ async def upload(project_id: str, file: UploadFile, app_settings: Settings=Depen
             while chunk := await file.read(app_settings.FILE_DEAFAULT_CHINK_SIZE):
                 await f.write(chunk)
     except Exception as e:
-        log_it.erorr(f'Error while uploading file: \n {e}')
+        log_it.error(f'Error while uploading file: \n {e}')
         return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={
