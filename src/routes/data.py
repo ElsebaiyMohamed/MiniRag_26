@@ -29,10 +29,10 @@ async def upload(project_id: str, file: UploadFile, app_settings: Settings=Depen
                             )
     
     project_dir_path = ProjectController().get_project_path(project_id=project_id)
-    cleaned_filename = data_contoller.gen_uniqe_filename(file.filename, project_dir_path)
-    cleaned_filename = data_contoller.join_path(project_dir_path, cleaned_filename)
+    file_id = data_contoller.gen_uniqe_filename(file.filename, project_dir_path)
+    file_path = data_contoller.join_path(project_dir_path, file_id)
     try:
-        async with aiofiles.open(cleaned_filename, 'wb') as f:
+        async with aiofiles.open(file_path, 'wb') as f:
             while chunk := await file.read(app_settings.FILE_DEAFAULT_CHINK_SIZE):
                 await f.write(chunk)
     except Exception as e:
@@ -48,7 +48,7 @@ async def upload(project_id: str, file: UploadFile, app_settings: Settings=Depen
         status_code=status.HTTP_200_OK,
         content={
             'signal': ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-            'file_id': cleaned_filename
+            'file_id': file_id
         } 
     )
 
