@@ -1,6 +1,8 @@
 import os
 
 from langchain_community.document_loaders import TextLoader, PyMuPDFLoader 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 
 from .BaseController import BaseController
 from .ProjectController import ProjectController
@@ -31,4 +33,12 @@ class ProcessController(BaseController):
     def get_file_content(self, file_id: str):
         loader = self._get_file_loader(file_id=file_id)
         return loader.load()
+    
+    def process_file_content(self, file_content: list, chunk_size: int=100, overlap_size: int=20):
+        text_spliter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap_size, length_function=len)
         
+        file_text = [t.page_content for t in file_content]
+        file_metadat = [t.metadata for t in file_content]
+        
+        chunks = text_spliter.create_documents(file_text, metadatas=file_metadat)
+        return chunks

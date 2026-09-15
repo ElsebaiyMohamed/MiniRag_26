@@ -55,12 +55,24 @@ async def upload(project_id: str, file: UploadFile, app_settings: Settings=Depen
 
 @data_router.post('/process/{project_id}')
 async def process_endpoint(project_id: str, process_request: ProcessRequest):
-    Processor_controller = ProcessController(project_id=project_id)
-    file_content = Processor_controller.get_file_content(process_request.file_id)
+    processor_controller = ProcessController(project_id=project_id)
+    file_content = processor_controller.get_file_content(process_request.file_id)
+    file_chunks = processor_controller.process_file_content(file_content=file_content,
+                                                            chunk_size=process_request.chunk_size, 
+                                                            overlap_size=process_request.overlap_size)
+    
+    if file_chunks is None or not file_chunks:
+        return JSONResponse(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    content={
+                        'file_id': process_request.file_id,
+                        'signal': ResponseSignal.PROCESSING_FIALD.values
+                    } 
+                )
     return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
                 'file_id': process_request.file_id,
-                'file_content': str(file_content)
+                'file_chunks': str(file_chunks)
             } 
         )
