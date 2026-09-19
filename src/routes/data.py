@@ -63,7 +63,7 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
     processor_controller = ProcessController(project_id=project_id)
     project_model = ProjectDataModel.create_instance(db_client=request.app.db_client)
     project = await project_model.get_project_or_create_one(project_id=project_id)
-    chunk_model = ChunkDataModel(db_client=request.app.db_client)
+    chunk_model = ChunkDataModel.create_instance(db_client=request.app.db_client)
 
     
         
