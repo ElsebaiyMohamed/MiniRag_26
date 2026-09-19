@@ -6,7 +6,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from .BaseController import BaseController
 from .ProjectController import ProjectController
-from models import ProcessingEnum
+from models.enums import ProcessingEnum
 
 
 

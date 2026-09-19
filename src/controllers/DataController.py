@@ -3,7 +3,7 @@ import re
 
 from fastapi import UploadFile
 from .BaseController import BaseController
-from models import ResponseSignal
+from models.enums import ResponseSignal
 
 
 class DataController(BaseController):

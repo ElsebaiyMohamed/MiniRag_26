@@ -3,7 +3,7 @@ from pymongo import InsertOne
 
 from .BaseDataModel import BaseDataModel
 from .db_schemas import Asset
-from .enums.DataBaseEnum import DataBaseEnum
+from .enums import DataBaseEnum
 
 
 class AssetDataModel(BaseDataModel):

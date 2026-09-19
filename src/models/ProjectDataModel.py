@@ -1,8 +1,7 @@
-import motor
 
 from .BaseDataModel import BaseDataModel
-from .db_schemas.project import Project
-from .enums.DataBaseEnum import DataBaseEnum
+from .db_schemas import Project
+from .enums import DataBaseEnum
 
 
 class ProjectDataModel(BaseDataModel):
