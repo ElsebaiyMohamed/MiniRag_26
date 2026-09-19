@@ -10,7 +10,7 @@ This is an educational project where all of the codes where explained (step by s
 
 - Python 3.13.14
 
-#### Install Dependencies
+### Install Dependencies
 
 ```bash
 sudo apt update
@@ -19,11 +19,12 @@ sudo apt install libpq-dev gcc python3-dev
 
 #### Install Python using uv
 
-1) Download and install uv from [here](https://docs.astral.sh/uv/getting-started/installation/)
+1) [Download and install uv](https://docs.astral.sh/uv/getting-started/installation/)
 2) Create a new environment using the following command:
+
 ```bash
-$ uv init
-$ uv python install 3.13.14
+uv init
+uv python install 3.13.14
 ```
 
 ### (Optional) Setup you command line interface for better readability
@@ -41,28 +42,29 @@ export PS1="\[\033[01;32m\]\u@\h:\w\n\[\033[00m\]\$ "
 ### Install the required packages
 
 ```bash
-$ uv sync
+uv sync
 ```
 
 ### Setup the environment variables
 
 ```bash
-$ cp .env.example .env
-```
-### Run fastapi using uvicorn 
-
-```bash
-$ cd src
+cp .env.example .env
 ```
 
+### Run fastapi using uvicorn
+
 ```bash
-$ uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd src
+```
+
+```bash
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Run Alembic Migration
 
 ```bash
-$ alembic upgrade head
+alembic upgrade head
 ```
 
 Set your environment variables in the `.env` file. Like `OPENAI_API_KEY` value.
@@ -70,54 +72,51 @@ Set your environment variables in the `.env` file. Like `OPENAI_API_KEY` value.
 ## Run Docker Compose Services
 
 ```bash
-$ cd docker
-$ cp .env.example .env
+cd docker
+cp .env.example .env
 ```
 
 - update `.env` with your credentials
 
-
-
 ```bash
-$ cd docker
-$ sudo docker compose up -d
+cd docker
+sudo docker compose up -d
 ```
 
 ## Access Services
 
-- **FastAPI**: http://localhost:8000
-- **Flower Dashboard**: http://localhost:5555 (admin/password from env)
-- **Grafana**: http://localhost:3000
-- **Prometheus**: http://localhost:9090
+- **FastAPI**: <http://localhost:8000>
+- **Flower Dashboard**: <http://localhost:5555> (admin/password from env)
+- **Grafana**: <http://localhost:3000>
+- **Prometheus**: <http://localhost:9090>
 
 ## Run the FastAPI server (Development Mode)
 
 ```bash
-$ uvicorn main:app --reload --host 0.0.0.0 --port 5000
+uvicorn main:app --reload --host 0.0.0.0 --port 5000
 ```
 
-# Celery (Development Mode)
+## Celery (Development Mode)
 
 For development, you can run Celery services manually instead of using Docker:
 
 To Run the **Celery worker**, you need to run the following command in a separate terminal:
 
 ```bash
-$ python -m celery -A celery_app worker --queues=default,file_processing,data_indexing --loglevel=info
+python -m celery -A celery_app worker --queues=default,file_processing,data_indexing --loglevel=info
 ```
 
 To run the **Beat scheduler**, you can run the following command in a separate terminal:
 
 ```bash
-$ python -m celery -A celery_app beat --loglevel=info
+python -m celery -A celery_app beat --loglevel=info
 ```
 
 To Run **Flower Dashboard**, you can run the following command in a separate terminal:
 
 ```bash
-$ python -m celery -A celery_app flower --conf=flowerconfig.py
+python -m celery -A celery_app flower --conf=flowerconfig.py
 ```
-
 
 open your browser and go to `http://localhost:5555` to see the dashboard.
 
