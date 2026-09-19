@@ -6,9 +6,10 @@ from fastapi.responses import JSONResponse
 
 from helpers import Settings, get_settings
 from controllers import DataController, ProjectController, ProcessController
-from models import ResponseSignal, ProcessRequest
-from models import ProjectDataModel, ChunkDataModel 
-from models.db_schemas import DataChunk
+from models.enums import ResponseSignal, AssetType
+from models.schemas import ProcessRequest
+from models import ProjectDataModel, ChunkDataModel, AssetDataModel 
+from models.db_schemas import DataChunk, Asset
 
 
 log_it = logging.getLogger('uvicorn.error')
@@ -48,12 +49,20 @@ async def upload(request: Request, project_id: str, file: UploadFile, app_settin
                 }
                 )
 
-        
+    asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
+    asset_resource = Asset(
+        asset_project_id=project.id,
+        asset_type=AssetType.FILE.value,
+        asset_name=file_id,
+        asset_size= file.size
+    )
+    asset_record = await asset_model.create_asset(asset_resource)
+    
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
             'signal': ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-            'file_id': file_id
+            'file_id': str(asset_record.id)
         } 
     )
 
