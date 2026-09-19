@@ -29,7 +29,7 @@ async def upload(request: Request, project_id: str, file: UploadFile, app_settin
                             }
                             
                             )
-    project_model = ProjectDataModel(db_client=request.app.db_client)
+    project_model = ProjectDataModel.create_instance(db_client=request.app.db_client)
     project = await project_model.get_project_or_create_one(project_id=project_id)
     
     project_dir_path = ProjectController().get_project_path(project_id=project_id)
@@ -61,7 +61,7 @@ async def upload(request: Request, project_id: str, file: UploadFile, app_settin
 async def process_endpoint(request: Request, project_id: str, process_request: ProcessRequest):
     
     processor_controller = ProcessController(project_id=project_id)
-    project_model = ProjectDataModel(db_client=request.app.db_client)
+    project_model = ProjectDataModel.create_instance(db_client=request.app.db_client)
     project = await project_model.get_project_or_create_one(project_id=project_id)
     chunk_model = ChunkDataModel(db_client=request.app.db_client)
 
