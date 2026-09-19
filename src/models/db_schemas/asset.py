@@ -8,7 +8,7 @@ from bson.objectid import ObjectId
 
 class Asset(BaseModel):
     id: Optional[ObjectId] = Field(None, alias='_id')
-    asset_project_id: ObjectId = Field(..., min_length=1)
+    asset_project_id: ObjectId
     asset_type: str = Field(..., min_length=1)
     asset_name: str = Field(..., min_length=1)
     asset_size: int = Field(ge=0, default=None)

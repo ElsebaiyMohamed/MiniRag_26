@@ -30,8 +30,8 @@ class AssetDataModel(BaseDataModel):
                 )    
     async def create_asset(self, asset: Asset):
         result = await self.collection.insert_one(asset.model_dump(by_alias=True, exclude_unset=True)) 
-        asset._id = result.inserted_id
-        return Asset
+        asset.id = result.inserted_id
+        return asset
     
     async def get_asset(self, asset_id: str):
         result = await self.collection.find_one({'_id': ObjectId(asset_id)})
