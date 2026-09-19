@@ -7,7 +7,9 @@ from fastapi.responses import JSONResponse
 from helpers import Settings, get_settings
 from controllers import DataController, ProjectController, ProcessController
 from models import ResponseSignal, ProcessRequest
-from models import ProjectDataModel 
+from models import ProjectDataModel, ChunkDataModel 
+from models.db_schemas import DataChunk
+
 
 log_it = logging.getLogger('uvicorn.error')
 
@@ -56,8 +58,15 @@ async def upload(request: Request, project_id: str, file: UploadFile, app_settin
     )
 
 @data_router.post('/process/{project_id}')
-async def process_endpoint(project_id: str, process_request: ProcessRequest):
+async def process_endpoint(request: Request, project_id: str, process_request: ProcessRequest):
+    
     processor_controller = ProcessController(project_id=project_id)
+    project_model = ProjectDataModel(db_client=request.app.db_client)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+    chunk_model = ChunkDataModel(db_client=request.app.db_client)
+
+    
+        
     file_content = processor_controller.get_file_content(process_request.file_id)
     file_chunks = processor_controller.process_file_content(file_content=file_content,
                                                             chunk_size=process_request.chunk_size, 
@@ -71,10 +80,28 @@ async def process_endpoint(project_id: str, process_request: ProcessRequest):
                         'signal': ResponseSignal.PROCESSING_FIALD.values
                     } 
                 )
+    file_chunks_record = [DataChunk(
+                                chunk_text=chunk.page_content,
+                                chunk_metadata=chunk.metadata,
+                                chunk_order= i+1,
+                                chunk_project_id=project.id    
+                            ) 
+                            for i, chunk in enumerate(file_chunks)
+                        ]
+    
+    if process_request.do_reset: 
+        no_deleted = await chunk_model.delete_chunks_by_project_id(project_id=project.id)
+    no_of_records = await chunk_model.create_many_chunks(chunks=file_chunks_record)
+    
+    
+    
+    
+    
     return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content={
+            content={ 
+                'signal': ResponseSignal.PROCESSING_SUCCESS.value, 
                 'file_id': process_request.file_id,
-                'file_chunks': str(file_chunks)
+                'no_records': no_of_records
             } 
         )
