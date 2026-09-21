@@ -22,3 +22,6 @@ class BaseController:
     
     def join_path(self, prefix, suffix):
         return os.path.join(prefix, suffix)
+    
+    def file_exist_on_path(self, file_path) -> bool:
+        return os.path.exists(file_path)
