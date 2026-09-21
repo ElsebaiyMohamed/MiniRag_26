@@ -8,3 +8,4 @@ class ResponseSignal(Enum):
     FILE_UPLOAD_SUCCESS = 'file upload successed'
     PROCESSING_FIALD = 'file chuncking failed'
     PROCESSING_SUCCESS = 'file chuncking success'
+    NO_FILES_ERROR = 'project is empty'

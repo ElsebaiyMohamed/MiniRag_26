@@ -75,33 +75,58 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
     chunk_model = await ChunkDataModel.create_instance(db_client=request.app.db_client)
 
     
-        
-    file_content = processor_controller.get_file_content(process_request.file_id)
-    file_chunks = processor_controller.process_file_content(file_content=file_content,
-                                                            chunk_size=process_request.chunk_size, 
-                                                            overlap_size=process_request.overlap_size)
+    project_file_ids = []
+    if process_request.file_id is not None:
+        project_file_ids = [process_request.file_id]
+    else:
+        asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
     
-    if file_chunks is None or not file_chunks:
+        project_files = await asset_model.get_all_project_assets(
+            asset_project_id=project.id,
+            asset_type=AssetType.FILE.value
+        )
+        project_file_ids = [
+            record['asset_name'] for record in project_files
+        ]
+    
+    if not project_file_ids:
         return JSONResponse(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    content={
-                        'file_id': process_request.file_id,
-                        'signal': ResponseSignal.PROCESSING_FIALD.values
-                    } 
-                )
-    file_chunks_record = [DataChunk(
-                                chunk_text=chunk.page_content,
-                                chunk_metadata=chunk.metadata,
-                                chunk_order= i+1,
-                                chunk_project_id=project.id    
-                            ) 
-                            for i, chunk in enumerate(file_chunks)
-                        ]
-    
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            content={
+                                'signal': ResponseSignal.NO_FILES_ERROR.value
+                            } 
+                        )
     if process_request.do_reset: 
         no_deleted = await chunk_model.delete_chunks_by_project_id(project_id=project.id)
-    no_of_records = await chunk_model.create_many_chunks(chunks=file_chunks_record)
-    
+        
+    no_of_records = 0
+    no_files = len(project_file_ids)
+    for file_id in project_file_ids:
+        file_content = processor_controller.get_file_content(file_id)
+        file_chunks = processor_controller.process_file_content(file_content=file_content,
+                                                                chunk_size=process_request.chunk_size, 
+                                                                overlap_size=process_request.overlap_size)
+        
+        if file_chunks is None or not file_chunks:
+            return JSONResponse(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        content={
+                            'file_id': file_id,
+                            'signal': ResponseSignal.PROCESSING_FIALD.values
+                        } 
+                    )
+        file_chunks_record = [DataChunk(
+                                    chunk_text=chunk.page_content,
+                                    chunk_metadata=chunk.metadata,
+                                    chunk_order= i+1,
+                                    chunk_project_id=project.id    
+                                ) 
+                                for i, chunk in enumerate(file_chunks)
+                            ]
+        
+        
+        no_of_records += await chunk_model.create_many_chunks(chunks=file_chunks_record)
+        
     
     
     
@@ -110,7 +135,7 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
             status_code=status.HTTP_200_OK,
             content={ 
                 'signal': ResponseSignal.PROCESSING_SUCCESS.value, 
-                'file_id': process_request.file_id,
+                'no_files': no_files,
                 'no_records': no_of_records
             } 
         )
