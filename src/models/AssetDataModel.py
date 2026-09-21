@@ -33,12 +33,19 @@ class AssetDataModel(BaseDataModel):
         asset.id = result.inserted_id
         return asset
     
-    async def get_asset(self, asset_id: str):
+    async def get_asset_by_id(self, asset_id: str):
         result = await self.collection.find_one({'_id': ObjectId(asset_id)})
         if result is None: 
             return None
         return Asset(**result)
-        
+    async def get_asset_by_name(self, asset_project_id: str, asset_name: str):
+        result = await self.collection.find_one({
+                        'asset_project_id': ObjectId(asset_project_id) if isinstance(asset_project_id, str) else asset_project_id,
+                        'asset_name': asset_name
+                    })
+        if result is None: 
+            return None
+        return Asset(**result)
         
     async def create_many_assets(self, assets: list, batch_size: int=100):
         for i in range(0, len(assets), batch_size):
