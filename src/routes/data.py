@@ -100,9 +100,15 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
         no_deleted = await chunk_model.delete_chunks_by_project_id(project_id=project.id)
         
     no_of_records = 0
-    no_files = len(project_file_ids)
+    total_no_files = len(project_file_ids)
+    faild_files = 0
     for file_id in project_file_ids:
         file_content = processor_controller.get_file_content(file_id)
+        if file_content is None:
+            log_it.error(f'SKIP: File Name: {file_id} not exist')
+            faild_files += 1
+            continue
+        
         file_chunks = processor_controller.process_file_content(file_content=file_content,
                                                                 chunk_size=process_request.chunk_size, 
                                                                 overlap_size=process_request.overlap_size)
@@ -135,7 +141,8 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
             status_code=status.HTTP_200_OK,
             content={ 
                 'signal': ResponseSignal.PROCESSING_SUCCESS.value, 
-                'no_files': no_files,
+                'no_files': total_no_files,
+                'no_files_success': total_no_files - faild_files,
                 'no_records': no_of_records
             } 
         )
