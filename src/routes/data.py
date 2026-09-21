@@ -75,19 +75,16 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
     chunk_model = await ChunkDataModel.create_instance(db_client=request.app.db_client)
 
     
-    project_file_ids = []
-    if process_request.file_id is not None:
-        project_file_ids = [process_request.file_id]
-    else:
-        asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
-    
-        project_files = await asset_model.get_all_project_assets(
-            asset_project_id=project.id,
-            asset_type=AssetType.FILE.value
-        )
-        project_file_ids = [
-            record['asset_name'] for record in project_files
-        ]
+
+    asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
+
+    project_files = await asset_model.get_all_project_assets(
+        asset_project_id=project.id,
+        asset_type=AssetType.FILE.value
+    )
+    project_file_ids = {
+        record.id: record.asset_name for record in project_files
+    }
     
     if not project_file_ids:
         return JSONResponse(
@@ -102,7 +99,7 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
     no_of_records = 0
     total_no_files = len(project_file_ids)
     faild_files = 0
-    for file_id in project_file_ids:
+    for asset_id, file_id in project_file_ids.items():
         file_content = processor_controller.get_file_content(file_id)
         if file_content is None:
             log_it.error(f'SKIP: File Name: {file_id} not exist')
@@ -125,7 +122,8 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
                                     chunk_text=chunk.page_content,
                                     chunk_metadata=chunk.metadata,
                                     chunk_order= i+1,
-                                    chunk_project_id=project.id    
+                                    chunk_project_id=project.id,
+                                    chunk_asset_id=asset_id    
                                 ) 
                                 for i, chunk in enumerate(file_chunks)
                             ]
