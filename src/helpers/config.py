@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     FILE_DEAFAULT_CHINK_SIZE: int
     MONGODB_URL: str
     MONGODB_DATABASE: str
+    OPENAI_API_KEY: str
     
     class Config:
         env_file = ".env"
