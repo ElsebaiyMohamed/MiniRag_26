@@ -9,12 +9,12 @@ from models.enums import CohereEnum, DocumentTypeEnum
 
 class CohereProvider(LLMInterface):
     def __init__(self, api_key: str, default_max_char: int=1000, 
-                default_output_max_char: int=1000, default_generation_temperature: float=0.1):
+                default_output_max_tokens: int=1000, default_generation_temperature: float=0.1):
         super().__init__()
         
         self.api_key = api_key
         self.default_max_char = default_max_char
-        self.default_max_output_tokens = default_output_max_char
+        self.default_max_output_tokens = default_output_max_tokens
         self.default_generation_temperature = default_generation_temperature
         self.generation_model_id = None
         self.embedding_model_id = None
