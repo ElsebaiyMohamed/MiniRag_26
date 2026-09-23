@@ -10,7 +10,19 @@ class Settings(BaseSettings):
     FILE_DEAFAULT_CHINK_SIZE: int
     MONGODB_URL: str
     MONGODB_DATABASE: str
+    
     OPENAI_API_KEY: str
+    OPENAI_API_URL: str
+    COHERE_API_KEY: str
+    GENERATION_BACKEND: str
+    EMBEDDING_BACKEND: str
+    
+    GENERATION_MODEL_ID: str=None
+    EMBEDDING_MODEL_ID: str=None
+    EMBEDDING_MODEL_SIZE: int=None
+    INPUT_DEFAULT_MAX_CHAR: int=None
+    GENERATION_DEFAULT_MAX_TOKENS: int=None
+    GENERATION_DEFAULT_MAX_TEMPRATURE: float=None
     
     class Config:
         env_file = ".env"
