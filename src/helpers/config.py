@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL_ID: str=None
     EMBEDDING_MODEL_SIZE: int=None
     INPUT_DEFAULT_MAX_CHAR: int=None
-    GENERATION_DEFAULT_MAX_TOKENS: int=None
-    GENERATION_DEFAULT_MAX_TEMPRATURE: float=None
+    DEAFAULT_MAX_OUTPUT_TOKENS: int=None
+    GENERATION_DEFAULT_TEMPERATURE: float=None
     
     class Config:
         env_file = ".env"
