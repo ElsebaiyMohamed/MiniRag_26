@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     
     VECTORDB_BACKEND: str=""
     VECTOR_DB_FILE_PATH: str=""
-    VECTOR_DBDISTANCE_METRIC: str=''
+    VECTOR_DB_DISTANCE_METRIC: str=''
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
