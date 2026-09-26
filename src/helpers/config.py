@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     DEAFAULT_MAX_OUTPUT_TOKENS: int=None
     GENERATION_DEFAULT_TEMPERATURE: float=None
     
+    VECTORDB_BACKEND: str=""
+    VECTOR_DB_FILE_PATH: str=""
+    VECTOR_DBDISTANCE_METRIC: str=''
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
