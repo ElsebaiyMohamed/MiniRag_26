@@ -1,14 +1,12 @@
 import logging
 
-from fastapi import FastAPI, APIRouter, Depends, UploadFile, status, Request
+from fastapi import FastAPI, APIRouter, Depends, status, Request
 from fastapi.responses import JSONResponse
 
-from helpers import Settings, get_settings
-from controllers import DataController, ProjectController, NLPController
-from models.enums import ResponseSignal, AssetType
+from controllers import NLPController
+from models.enums import ResponseSignal
 from models.schemas import PushRequest
-from models import ProjectDataModel, ChunkDataModel, AssetDataModel 
-from models.db_schemas import DataChunk, Asset
+from models import ProjectDataModel, ChunkDataModel 
 
 
 log_it = logging.getLogger('uvicorn.error')
