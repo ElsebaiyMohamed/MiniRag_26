@@ -54,7 +54,8 @@ class QdrantDB(VectorDBInterface):
             self.logger.error(f"Can't insert new record to non existed collection {collection_name}")
             return False
         record = [
-                models.Record(
+                models.PointStruct(
+                    id=record_id,
                     vector=vector,
                     payload={
                         'text': text,
@@ -77,24 +78,26 @@ class QdrantDB(VectorDBInterface):
             batch_text = texts[i:batch_end]
             batch_vectors = vectors[i:batch_end]
             batch_metadatas = metadatas[i:batch_end]
+            batch_record_ids = record_ids[i:batch_end]
             batch_records = [
-                models.Record(
-                                        vector=batch_vectors[j],
-                                        payload={
-                                            'text': batch_text[j],
-                                            'metadata': batch_metadatas[j]
-                                        }
-                                    )
+                models.PointStruct(
+                    id=batch_record_ids[j],
+                    vector=batch_vectors[j],
+                    payload={
+                        'text': batch_text[j],
+                        'metadata': batch_metadatas[j]
+                    }
+                )
                 for j in range(len(batch_text))
             ]
             _ = self._add_records(collection_name, batch_records)
 
-    def _add_records(self, collection_name: str, records: models.Record):
+    def _add_records(self, collection_name: str, records: models.PointStruct):
         try:
-            _ = self.cilent.upload_records(
+            _ = self.client.upload_points(
                     collection_name=collection_name,
-                    records=records
-                )
+                    points=records
+                ) 
             return True
         except Exception as e:
             self.logger.error(f"Error while inserting at collection {collection_name} \n {e}")
