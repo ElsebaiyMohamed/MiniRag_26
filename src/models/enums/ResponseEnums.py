@@ -9,3 +9,6 @@ class ResponseSignal(Enum):
     PROCESSING_FIALD = 'file chuncking failed'
     PROCESSING_SUCCESS = 'file chuncking success'
     NO_FILES_ERROR = 'project is empty'
+    PROJECT_NOT_FOUND = 'project not found'
+    INSERT_INTO_VECTORDB_ERROR = 'failed to insert into vector database'
+    INSERT_INTO_VECTOR_DATABASE_SUCCESS= 'insert into vector database success'
