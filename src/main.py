@@ -6,6 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from routes import base, data
 from helpers import get_settings
 from stores.llm import LLMProviderFactory
+from stores.vectordb import VectorDBProviderFactory
 
     
 @asynccontextmanager
@@ -22,9 +23,15 @@ async def lifespan(app: FastAPI):
     app.embedding_client = llm_factory.create(provider=settings.EMBEDDING_BACKEND)
     app.embedding_client.set_embedding_model(model_id=settings.EMBEDDING_MODEL_ID, embedding_size=settings.EMBEDDING_MODEL_SIZE)
     
+    vectordb_provider_factory = VectorDBProviderFactory(settings)
+    app.vectordb_client = vectordb_provider_factory.create(
+        provider=settings.VECTORDB_BACKEND
+    )
+    app.vectordb_client.connect()
     yield  # The application runs while paused here
     
     # --- SHUTDOWN LOGIC ---
+    app.vectordb_client.disconnect()
     app.mongo_conn.close()
 
 app = FastAPI(
