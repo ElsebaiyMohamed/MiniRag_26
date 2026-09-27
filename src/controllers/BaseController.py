@@ -33,6 +33,6 @@ class BaseController:
     def file_exist_on_path(self, file_path) -> bool:
         return os.path.exists(file_path)
     def get_database_path(self, db_name: str):
-        db_path = self.join(self.db_dir, db_name)
+        db_path = self.join_path(self.db_dir, db_name)
         os.makedirs(db_path, exist_ok=True)
         return db_path
