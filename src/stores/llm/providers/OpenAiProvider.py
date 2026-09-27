@@ -14,7 +14,7 @@ class OpenAiProvider(LLMInterface):
         super().__init__()
         
         self.api_key = api_key
-        self.api_url = api_url
+        self.api_url = api_url if api_url else None
         self.default_max_char = default_max_char
         self.default_max_output_tokens = default_output_max_tokens
         self.default_generation_temperature = default_generation_temperature
@@ -68,8 +68,20 @@ class OpenAiProvider(LLMInterface):
             self.logger.error('unable to get embeddings from provider')
             return None
         return response.data[0].embedding 
-    
-    
+    def batch_embed_text(self, prompt: str, document_type: str=None, *args, **kwargs):
+        if self.client is None:
+            self.logger.error("OpenAi client was not set")
+            return None
+        if self.embedding_model_id is None:
+            self.logger.error("Embedding model for OpenAi not set")
+            return None
+        response = self.client.embeddings.create(model=self.embedding_model_id, input=prompt)
+        
+        if response is None or response.data is None or len(response.data) == 0 or response.data[0].embedding is None:
+            self.logger.error('unable to get embeddings from provider')
+            return None
+        return response.data.embedding 
+
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
         return {
             'role': role,

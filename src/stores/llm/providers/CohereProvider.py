@@ -78,8 +78,30 @@ class CohereProvider(LLMInterface):
             self.logger.error('unable to get embeddings from provider')
             return None
         return response.embeddings.float[0]
-    
-    
+    def batch_embed_text(self, prompt: str, document_type: str=None, *args, **kwargs):
+            if self.client is None:
+                self.logger.error("Cohere client was not set")
+                return None
+            if self.embedding_model_id is None:
+                self.logger.error("Embedding model for cohere not set")
+                return None
+            input_type = CohereEnum.DOCUMENT.value 
+            if document_type == DocumentTypeEnum.QUERY.value:
+                input_type = CohereEnum.QUERY.value
+            texts = [self.process_text(t) for t in prompt]
+            response = self.client.embed(
+                model=self.embedding_model_id,
+                texts=texts,
+                input_type=input_type,
+                embedding_types=['float']
+            )
+            
+            if response is None or response.embeddings is None or not response.embeddings.float:
+                self.logger.error('unable to get embeddings from provider')
+                return None
+            return response.embeddings.float
+        
+
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
         return {
             'role': role,
