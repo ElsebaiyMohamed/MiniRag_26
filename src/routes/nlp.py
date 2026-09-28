@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from controllers import NLPController
 from models.enums import ResponseSignal
-from models.schemas import PushRequest
+from models.schemas import PushRequest, SearchRequest
 from models import ProjectDataModel, ChunkDataModel 
 
 
@@ -126,3 +126,54 @@ async def gert_project_info(request: Request, project_id: str):
                 'collection_info': collection_info
             } 
         )
+
+
+
+@nlp_router.post('/index/search/{project_id}')
+async def gert_project_info(request: Request, project_id: str, search_request: SearchRequest):
+    
+    project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
+    
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+    
+
+    if not project:
+        return JSONResponse(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    content={
+                        'project_id': project_id,
+                        'signal': ResponseSignal.PROJECT_NOT_FOUND.values
+                    } 
+                )
+
+    
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client, 
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client
+    )
+    
+    result = nlp_controller.search_vector_db_collection(
+        project=project, 
+        text=search_request.text,
+        limit=search_request.limit
+    )
+    if result:
+        result = json.load(
+            json.dump(result, default=lambda x: x.__dict__)
+        )
+        
+        return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={ 
+                    'signal': ResponseSignal.VECTORDB_SEARCH_SUCCESS.value, 
+                    'result': result
+                } 
+            )
+    return JSONResponse(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    content={ 
+                        'signal': ResponseSignal.VECTORDB_SEARCH_ERROR.value, 
+                    } 
+                )
+        
