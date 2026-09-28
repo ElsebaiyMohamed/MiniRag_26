@@ -1,4 +1,6 @@
 import logging
+import json
+
 
 from fastapi import FastAPI, APIRouter, Depends, status, Request
 from fastapi.responses import JSONResponse
@@ -79,5 +81,48 @@ async def index_project(request: Request, project_id: str, push_request: PushReq
             status_code=status.HTTP_200_OK,
             content={ 
                 'signal': ResponseSignal.INSERT_INTO_VECTOR_DATABASE_SUCCESS.value, 
+            } 
+        )
+
+
+@nlp_router.get('/index/info/{project_id}')
+async def gert_project_info(request: Request, project_id: str):
+    
+    project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
+    
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+    
+    
+    
+    
+    if not project:
+        return JSONResponse(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    content={
+                        'project_id': project_id,
+                        'signal': ResponseSignal.PROJECT_NOT_FOUND.values
+                    } 
+                )
+    
+    
+    
+    
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client, 
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client
+    )
+    
+    collection_info = nlp_controller.get_vectordb_collection_info(project=project)
+    
+    collection_info = json.load(
+        json.dump(collection_info, default=lambda x: x.__dict__)
+    )
+    
+    return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={ 
+                'signal': ResponseSignal.VECTORDB_COLLECTION_INFO_RETRIVED.value, 
+                'collection_info': collection_info
             } 
         )
