@@ -66,12 +66,12 @@ class CohereProvider(LLMInterface):
         input_type = CohereEnum.DOCUMENT.value 
         if document_type == DocumentTypeEnum.QUERY.value:
             input_type = CohereEnum.QUERY.value
-        
         response = self.client.embed(
             model=self.embedding_model_id,
             texts=[self.process_text(prompt)],
             input_type=input_type,
-            embedding_types=['float']
+            embedding_types=['float'],
+            batching=False
         )
         
         if response is None or response.embeddings is None or not response.embeddings.float:
@@ -93,7 +93,8 @@ class CohereProvider(LLMInterface):
                 model=self.embedding_model_id,
                 texts=texts,
                 input_type=input_type,
-                embedding_types=['float']
+                embedding_types=['float'],
+                batching=False
             )
             
             if response is None or response.embeddings is None or not response.embeddings.float:
