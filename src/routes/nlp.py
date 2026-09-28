@@ -88,7 +88,7 @@ async def index_project(request: Request, project_id: str, push_request: PushReq
 
 
 @nlp_router.get('/index/info/{project_id}')
-async def gert_project_info(request: Request, project_id: str):
+async def get_project_info(request: Request, project_id: str):
     
     project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
     
@@ -132,7 +132,7 @@ async def gert_project_info(request: Request, project_id: str):
 
 
 @nlp_router.post('/index/search/{project_id}')
-async def gert_project_info(request: Request, project_id: str, search_request: SearchRequest):
+async def index_search(request: Request, project_id: str, search_request: SearchRequest):
     
     project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
     
@@ -161,15 +161,12 @@ async def gert_project_info(request: Request, project_id: str, search_request: S
         limit=search_request.limit
     )
     if result:
-        result = json.loads(
-            json.dumps(result, default=lambda x: x.__dict__)
-        )
         
         return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content={ 
                     'signal': ResponseSignal.VECTORDB_SEARCH_SUCCESS.value, 
-                    'result': result
+                    'result': [r.dict() for r in result]
                 } 
             )
     return JSONResponse(
