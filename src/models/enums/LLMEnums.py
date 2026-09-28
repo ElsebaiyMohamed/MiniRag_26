@@ -15,7 +15,7 @@ class CohereEnum(Enum):
     ASSISTANT = 'CHATBOT'
 
     DOCUMENT = 'search_document'
-    QUERY = 'serach_query'
+    QUERY = 'search_query'
 class DocumentTypeEnum(Enum):
     DOCUMENT = 'document'
     QUERY = 'query'
