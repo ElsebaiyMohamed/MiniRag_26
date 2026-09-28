@@ -55,10 +55,12 @@ async def index_project(request: Request, project_id: str, push_request: PushReq
     
     while has_records:
         page_chunks = await chunk_model.get_project_chunks(project_id=project.id, page_no=page_no)
-        if len(chunks):
+
+        if len(page_chunks):
             page_no += 1
         if not page_chunks or len(page_chunks) == 0:
             has_records = False
+            break
         # chunks.extend(page_chunks)
         
         is_inserted = nlp_controller.index2vectordb(
@@ -115,8 +117,8 @@ async def gert_project_info(request: Request, project_id: str):
     
     collection_info = nlp_controller.get_vectordb_collection_info(project=project)
     
-    collection_info = json.load(
-        json.dump(collection_info, default=lambda x: x.__dict__)
+    collection_info = json.loads(
+        json.dumps(collection_info, default=lambda x: x.__dict__)
     )
     
     return JSONResponse(
@@ -159,8 +161,8 @@ async def gert_project_info(request: Request, project_id: str, search_request: S
         limit=search_request.limit
     )
     if result:
-        result = json.load(
-            json.dump(result, default=lambda x: x.__dict__)
+        result = json.loads(
+            json.dumps(result, default=lambda x: x.__dict__)
         )
         
         return JSONResponse(
