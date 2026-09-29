@@ -19,7 +19,7 @@ class CohereProvider(LLMInterface):
         self.generation_model_id = None
         self.embedding_model_id = None
         self.embedding_size = None
-        
+        self.enum = CohereEnum
         self.client = cohere.Client(api_key=self.api_key)
         self.logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class CohereProvider(LLMInterface):
         temprature = temprature if temprature is not None else self.default_generation_temperature
         chat_history: list = kwargs.get('chat_history', [])
         
-        message = self.construct_prompt(prompt=prompt, role=CohereEnum.USER.value)
+        message = self.construct_prompt(prompt=prompt, role=self.enum.USER.value)
         
         response = self.client.chat(
             model=self.generation_model_id,

@@ -21,6 +21,7 @@ class OpenAiProvider(LLMInterface):
         self.generation_model_id = None
         self.embedding_model_id = None
         self.embedding_size = None
+        self.enum = OpenAIEnum
         self.client = OpenAI(api_key=self.api_key, base_url=self.api_url)
         self.logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class OpenAiProvider(LLMInterface):
         max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_max_output_tokens
         temprature = temprature if temprature is not None else self.default_generation_temperature
         chat_history: list = kwargs.get('chat_history', [])
-        chat_history.append(self.construct_prompt(prompt=prompt, role=OpenAIEnum.USER.value))
+        chat_history.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
         
         response = self.client.chat.completions.create(
             model=self.generation_model_id,
