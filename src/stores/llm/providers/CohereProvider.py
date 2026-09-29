@@ -20,7 +20,7 @@ class CohereProvider(LLMInterface):
         self.embedding_model_id = None
         self.embedding_size = None
         self.enum = CohereEnum
-        self.client = cohere.Client(api_key=self.api_key)
+        self.client = cohere.ClientV2(api_key=self.api_key)
         self.logger = logging.getLogger(__name__)
 
     def set_generation_model(self, model_id: str):
@@ -41,20 +41,19 @@ class CohereProvider(LLMInterface):
         temprature = temprature if temprature is not None else self.default_generation_temperature
         chat_history: list = kwargs.get('chat_history', [])
         
-        message = self.construct_prompt(prompt=prompt, role=self.enum.USER.value)
+        messages = chat_history.copy() if chat_history else []
+        messages.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
         
         response = self.client.chat(
             model=self.generation_model_id,
-            chat_history=chat_history,
-            message=message,
+            messages=messages,
             max_tokens=max_output_tokens,
             temperature=temprature
         )
-        
-        if response is None or response.text:
+        if response is None or not response.message:
             self.logger.error('unable to get response from provider')
             return None
-        return response.text
+        return response.message.content[0].text
 
     def embed_text(self, prompt: str, document_type: str=None, *args, **kwargs):
         if self.client is None:
@@ -67,11 +66,10 @@ class CohereProvider(LLMInterface):
         if document_type == DocumentTypeEnum.QUERY.value:
             input_type = CohereEnum.QUERY.value
         response = self.client.embed(
-            model=self.embedding_model_id,
+            model=self.embedding_model_id, 
             texts=[self.process_text(prompt)],
             input_type=input_type,
             embedding_types=['float'],
-            batching=False
         )
         
         if response is None or response.embeddings is None or not response.embeddings.float:
@@ -94,7 +92,6 @@ class CohereProvider(LLMInterface):
                 texts=texts,
                 input_type=input_type,
                 embedding_types=['float'],
-                batching=False
             )
             
             if response is None or response.embeddings is None or not response.embeddings.float:
@@ -106,7 +103,7 @@ class CohereProvider(LLMInterface):
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
         return {
             'role': role,
-            'text': self.process_text(prompt)
+            'content': self.process_text(prompt)
         }
     def process_text(self, prompot: str):
         return prompot[:self.default_max_char].strip()
