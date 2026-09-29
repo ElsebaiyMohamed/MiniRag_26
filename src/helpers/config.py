@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     VECTORDB_BACKEND: str=""
     VECTOR_DB_FILE_PATH: str=""
     VECTOR_DB_DISTANCE_METRIC: str=''
+    # ========================= Template Configs =========================
+    PRIMARY_LANG: str = "ar"
+    DEFAULT_LANG: str = "en"
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
