@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter, Depends
 from helpers import Settings, get_settings
 
 
-base_router = APIRouter(prefix="/api/v1",
+base_router = APIRouter(
                         tags=["v1"]
                         )
 
