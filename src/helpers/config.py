@@ -5,12 +5,20 @@ class Settings(BaseSettings):
     APP_NAME: str
     APP_VERSION: str
     APP_DESCRIPTION: str
+    
     FILE_ALLOWED_EXTENTIONS: list
     FILE_MAX_SIZE_IN_MB: int
     FILE_DEAFAULT_CHINK_SIZE: int
+    
     MONGODB_URL: str
     MONGODB_DATABASE: str
     
+    POSTGRES_USERNAME: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_HOST: str
+    POSTGRES_PORT: int
+    POSTGRES_MAIN_DATABASE: str
+
     OPENAI_API_KEY: str
     OPENAI_API_URL: str
     COHERE_API_KEY: str
