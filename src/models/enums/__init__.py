@@ -1,6 +1,6 @@
 from .ResponseEnums import ResponseSignal
 from .ProcessingEnums import ProcessingEnum
-from .DataBaseEnums import DataBaseEnum
+from .DataBaseEnums import AppDataBase, DataBaseEnum
 from .AssetTypeEnums import AssetType
 from .LLMEnums import LLMEnum, OpenAIEnum, CohereEnum
 from .LLMEnums import DocumentTypeEnum
