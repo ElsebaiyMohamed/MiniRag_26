@@ -2,7 +2,7 @@ from bson.objectid import ObjectId
 from pymongo import InsertOne
 
 from .BaseDataModel import BaseDataModel
-from .db_schemas import DataChunk
+from .db_schemas.mongo import DataChunk
 from .enums import DataBaseEnum
 
 

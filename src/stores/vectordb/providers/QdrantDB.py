@@ -4,7 +4,7 @@ from qdrant_client import QdrantClient, models
 
 from ..VectorDBInterface import VectorDBInterface
 from models.enums import DistanceMethodEnums
-from models.db_schemas import RetrievedDocument
+from models.db_schemas.mongo import RetrievedDocument
 
 class QdrantDB(VectorDBInterface):
     def __init__(self, db_path: str, distance_method: str) -> None:

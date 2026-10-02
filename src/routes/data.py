@@ -9,7 +9,7 @@ from controllers import DataController, ProjectController, ProcessController
 from models.enums import ResponseSignal, AssetType
 from models.schemas import ProcessRequest
 from models import ProjectDataModel, ChunkDataModel, AssetDataModel 
-from models.db_schemas import DataChunk, Asset
+from models.db_schemas.mongo import DataChunk, Asset
 
 
 log_it = logging.getLogger('uvicorn.error')

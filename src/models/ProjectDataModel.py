@@ -1,6 +1,6 @@
 
 from .BaseDataModel import BaseDataModel
-from .db_schemas import Project
+from .db_schemas.mongo import Project
 from .enums import DataBaseEnum
 
 

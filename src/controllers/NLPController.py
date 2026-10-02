@@ -2,7 +2,7 @@ from typing import List
 import uuid
 
 from .BaseController import BaseController
-from models.db_schemas import Project, DataChunk
+from models.db_schemas.mongo import Project, DataChunk
 from models.enums import DocumentTypeEnum
 
 
