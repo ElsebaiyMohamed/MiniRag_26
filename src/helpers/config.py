@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     FILE_MAX_SIZE_IN_MB: int
     FILE_DEAFAULT_CHINK_SIZE: int
     
+    MAIN_DATABASE: str
+    
     MONGODB_URL: str
     MONGODB_DATABASE: str
     
