@@ -6,3 +6,6 @@ class ProcessRequest(BaseModel):
     overlap_size: Optional[int] = 20
     do_reset: Optional[int] = 0
     
+class RetrievedDocument(BaseModel):
+    text: str
+    score: float
