@@ -11,7 +11,7 @@ from .base import SQLAlcemyBase
 class DataChunk(SQLAlcemyBase):
     __tablename__ = 'chunks'
     
-    chunk_id = Column(Integer, primary_ket=True, autoincrement=True)
+    chunk_id = Column(Integer, primary_key=True, autoincrement=True)
     chunk_uuid = Column(PG_UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False) 
     chunk_text = Column(String, nullable=False) 
     chunk_metadata = Column(JSONB, nullable=True) 
