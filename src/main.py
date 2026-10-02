@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
         app.mongo_conn = AsyncIOMotorClient(settings.MONGODB_URL)
         app.db_client = app.mongo_conn[settings.MONGODB_DATABASE]
     elif settings.MAIN_DATABASE == AppDataBase.POSTGRES.value:
-        postgres_conn = f'postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}:{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}'
+        postgres_conn = f'postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}'
         app.db_engine = create_async_engine(postgres_conn)
         app.db_client = sessionmaker(
             bind=app.db_engine,
