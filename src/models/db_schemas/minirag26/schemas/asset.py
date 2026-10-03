@@ -17,11 +17,13 @@ class Asset(SQLAlcemyBase):
     asset_name = Column(String, nullable=False) 
     asset_size = Column(Integer, nullable=False) 
     asset_config = Column(JSONB, nullable=True) 
-    asset_project_id = Column(Integer, ForeignKey('projects.project_id'), autoincrement=True)
+    
+    asset_project_id = Column(Integer, ForeignKey('projects.project_id'), nullable=False)
     asset_pushed_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
         
-    
     project = relationship("Project", back_populates='assets')
+    
+    chunks = relationship("DataChunk", back_populates='asset')
 
     __table_args__ = (
         Index('ix_asset_project_id', asset_project_id),
