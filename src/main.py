@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
     
     # --- SHUTDOWN LOGIC ---
 
-    app.db_engine.dispose()
+    await app.db_engine.dispose()
 
     app.vectordb_client.disconnect()
     
