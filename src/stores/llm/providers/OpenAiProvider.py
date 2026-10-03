@@ -88,5 +88,6 @@ class OpenAiProvider(LLMInterface):
             'role': role,
             'content': self.process_text(prompt)
         }
-    def process_text(self, prompot: str):
-        return prompot[:self.default_max_char].strip()
+    def process_text(self, prompt: str):
+        # return prompt[:self.default_max_char].strip()
+        return prompt
