@@ -1,8 +1,8 @@
-"""init commit
+"""initial_clean_schema
 
-Revision ID: 5959aff89a6a
+Revision ID: 4838e49c6f23
 Revises: 
-Create Date: 2026-10-03 01:51:23.823555
+Create Date: 2026-10-03 05:27:33.669165
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '5959aff89a6a'
+revision: str = '4838e49c6f23'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,7 +36,7 @@ def upgrade() -> None:
     sa.Column('asset_name', sa.String(), nullable=False),
     sa.Column('asset_size', sa.Integer(), nullable=False),
     sa.Column('asset_config', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('asset_project_id', sa.Integer(), autoincrement=True, nullable=True),
+    sa.Column('asset_project_id', sa.Integer(), nullable=False),
     sa.Column('asset_pushed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['asset_project_id'], ['projects.project_id'], ),
     sa.PrimaryKeyConstraint('asset_id'),
@@ -49,11 +49,11 @@ def upgrade() -> None:
     sa.Column('chunk_text', sa.String(), nullable=False),
     sa.Column('chunk_metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('chunk_order', sa.Integer(), nullable=False),
-    sa.Column('chunk_project_id', sa.Integer(), autoincrement=True, nullable=True),
-    sa.Column('chunk_asset_id', sa.Integer(), autoincrement=True, nullable=True),
+    sa.Column('chunk_project_id', sa.Integer(), nullable=False),
+    sa.Column('chunk_asset_id', sa.Integer(), nullable=False),
     sa.Column('chunk_pushed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['chunk_asset_id'], ['projects.project_id'], ),
-    sa.ForeignKeyConstraint(['chunk_project_id'], ['assets.asset_id'], ),
+    sa.ForeignKeyConstraint(['chunk_asset_id'], ['assets.asset_id'], ),
+    sa.ForeignKeyConstraint(['chunk_project_id'], ['projects.project_id'], ),
     sa.PrimaryKeyConstraint('chunk_id'),
     sa.UniqueConstraint('chunk_uuid')
     )
