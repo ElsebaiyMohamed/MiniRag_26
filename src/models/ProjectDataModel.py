@@ -1,4 +1,4 @@
-from sqlalchemy.future import select
+from sqlalchemy import select
 from sqlalchemy import func
 
 from .BaseDataModel import BaseDataModel
@@ -28,9 +28,9 @@ class ProjectDataModel(BaseDataModel):
         async with self.db_client() as session:
             async with session.begin():
                 query = select(Project).where(Project.project_id==project_id)
-                project = await session.excute(query).scalar_one_or_none()
+                project = (await session.execute(query)).scalar_one_or_none()
                 if project is None:
-                    project = self.create_project(project=Project(project_id=project_id))
+                    project = await self.create_project(project=Project(project_id=project_id))
             
                 return project
 
@@ -38,7 +38,7 @@ class ProjectDataModel(BaseDataModel):
     async def get_all_projects(self, page: int=1, page_size: int=10):
         async with self.db_client() as session:
             async with session.begin():
-                total_documents = await session.excute(select(
+                total_documents = await session.execute(select(
                     func.count(Project.project_id)
                 )).scalar_one()
                 
@@ -47,6 +47,6 @@ class ProjectDataModel(BaseDataModel):
                     total_pages += 1
                 
                 query = select(Project).offset((page - 1) * page_size).limit(page_size)
-                projects = await session.excute(query).scalars().all()
+                projects = await session.execute(query).scalars().all()
                 
                 return projects, total_pages  
