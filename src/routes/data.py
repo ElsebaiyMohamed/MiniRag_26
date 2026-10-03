@@ -9,7 +9,7 @@ from controllers import DataController, ProjectController, ProcessController
 from models.enums import ResponseSignal, AssetType
 from models.schemas import ProcessRequest
 from models import ProjectDataModel, ChunkDataModel, AssetDataModel 
-from models.db_schemas.mongo import DataChunk, Asset
+from models.db_schemas import DataChunk, Asset
 
 
 log_it = logging.getLogger('uvicorn.error')
@@ -19,7 +19,7 @@ data_router = APIRouter(prefix="/api/v1/data",
                         )
 
 @data_router.post("/upload/{project_id}")
-async def upload(request: Request, project_id: str, file: UploadFile, app_settings: Settings=Depends(get_settings)):
+async def upload(request: Request, project_id: int, file: UploadFile, app_settings: Settings=Depends(get_settings)):
     data_contoller = DataController()
     is_valid, signal = data_contoller.validate(file)  
 
@@ -67,7 +67,7 @@ async def upload(request: Request, project_id: str, file: UploadFile, app_settin
     )
 
 @data_router.post('/process/{project_id}')
-async def process_endpoint(request: Request, project_id: str, process_request: ProcessRequest):
+async def process_endpoint(request: Request, project_id: int, process_request: ProcessRequest):
     
     processor_controller = ProcessController(project_id=project_id)
     project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)

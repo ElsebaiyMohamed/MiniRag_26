@@ -2,7 +2,7 @@ from typing import List
 import uuid
 
 from .BaseController import BaseController
-from models.db_schemas.mongo import Project, DataChunk
+from models.db_schemas import Project, DataChunk
 from models.enums import DocumentTypeEnum
 
 
@@ -15,7 +15,7 @@ class NLPController(BaseController):
         self.embedding_client = embedding_client
         self.template_parser = template_parser
         
-    def create_collection_name(self, project_id: str):
+    def create_collection_name(self, project_id: int):
         return f'collection_{project_id}'.strip()
     
     def reset_vectordb_collection(self, project: Project):
