@@ -1,9 +1,5 @@
 from enum import Enum
 
-class AppDataBase(Enum):
-    MONGO = 'mongo'
-    POSTGRES = 'postgres'
-
 
 class DataBaseEnum(Enum):
     COLLECTION_PROJECT_NAME = 'projects'
