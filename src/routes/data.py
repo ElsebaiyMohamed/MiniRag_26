@@ -19,7 +19,7 @@ data_router = APIRouter(prefix="/api/v1/data",
                         )
 
 @data_router.post("/upload/{project_id}")
-async def upload(request: Request, project_id: str, file: UploadFile, app_settings: Settings=Depends(get_settings)):
+async def upload(request: Request, project_id: int, file: UploadFile, app_settings: Settings=Depends(get_settings)):
     data_contoller = DataController()
     is_valid, signal = data_contoller.validate(file)  
 
@@ -51,7 +51,7 @@ async def upload(request: Request, project_id: str, file: UploadFile, app_settin
 
     asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
     asset_resource = Asset(
-        asset_project_id=project.id,
+        asset_project_id=project.project_id,
         asset_type=AssetType.FILE.value,
         asset_name=file_id,
         asset_size= file.size
@@ -62,12 +62,12 @@ async def upload(request: Request, project_id: str, file: UploadFile, app_settin
         status_code=status.HTTP_200_OK,
         content={
             'signal': ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-            'file_id': str(asset_record.id)
+            'file_id': str(asset_record.asset_id)
         } 
     )
 
 @data_router.post('/process/{project_id}')
-async def process_endpoint(request: Request, project_id: str, process_request: ProcessRequest):
+async def process_endpoint(request: Request, project_id: int, process_request: ProcessRequest):
     
     processor_controller = ProcessController(project_id=project_id)
     project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
@@ -79,11 +79,11 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
     asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
 
     project_files = await asset_model.get_all_project_assets(
-        asset_project_id=project.id,
+        asset_project_id=project.project_id,
         asset_type=AssetType.FILE.value
     )
     project_file_ids = {
-        record.id: record.asset_name for record in project_files
+        record.asset_id: record.asset_name for record in project_files
     }
     
     if not project_file_ids:
@@ -122,7 +122,7 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
                                     chunk_text=chunk.page_content,
                                     chunk_metadata=chunk.metadata,
                                     chunk_order= i+1,
-                                    chunk_project_id=project.id,
+                                    chunk_project_id=project.project_id,
                                     chunk_asset_id=asset_id    
                                 ) 
                                 for i, chunk in enumerate(file_chunks)
