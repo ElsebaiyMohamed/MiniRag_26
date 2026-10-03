@@ -1,17 +1,4 @@
 services:
-  mongodb:
-    image: mongo:noble
-    container_name: mongodb
-    ports:
-      - "27007:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-    volumes:
-      - mongodata:/data/db
-    networks:
-      - bakend
-    restart: always
 
   pgvector:
     image: pgvector/pgvector:0.8.7-pg18-trixie
@@ -30,5 +17,4 @@ services:
 networks:
   bakend:
 volumes:
-  mongodata:
   pgvector_data:
