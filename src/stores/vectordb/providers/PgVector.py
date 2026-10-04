@@ -242,7 +242,7 @@ class PgVector(VectorDBInterface):
         return True
     
 
-    async def insert_many(self, collection_name: str, texts: list, vectors: list, metadata: list = None, record_ids: list = None, batch_size: int = 50):
+    async def insert_many(self, collection_name: str, texts: list, vectors: list, metadatas: list = None, record_ids: list = None, batch_size: int = 50):
         if not collection_name.startswith(self.pgvector_table_prefix):
             collection_name = self.get_pg_collection_name(collection_name=collection_name)
         
@@ -255,15 +255,15 @@ class PgVector(VectorDBInterface):
             self.logger.error(f"Invalid data items for collection: {collection_name}")
             return False
         
-        if not metadata or len(metadata) == 0:
-            metadata = [None] * len(texts)
+        if not metadatas or len(metadatas) == 0:
+            metadatas = [None] * len(texts)
         
         async with self.db_client() as session:
             async with session.begin():
                 for i in range(0, len(texts), batch_size):
                     batch_texts = texts[i:i+batch_size]
                     batch_vectors = vectors[i:i + batch_size]
-                    batch_metadata = metadata[i:i + batch_size]
+                    batch_metadata = metadatas[i:i + batch_size]
                     batch_record_ids = record_ids[i:i + batch_size]
 
                     values = []
