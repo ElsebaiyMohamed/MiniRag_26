@@ -29,7 +29,7 @@ class NLPController(BaseController):
     
     async def index2vectordb(self, project: Project, chunks: List[DataChunk], do_reset: bool=False):
         collection_name = self.create_collection_name(project.project_id)
-        chunk_ids = [str(c.chunk_uuid) for c in chunks]
+        chunk_ids = [c.chunk_id for c in chunks]
         chunk_texts = [c.chunk_text for c in chunks]
         chunk_metadatas = [c.chunk_metadata for c in chunks]
         
