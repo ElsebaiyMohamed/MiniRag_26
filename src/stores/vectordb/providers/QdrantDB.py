@@ -7,9 +7,9 @@ from models.enums import DistanceMethodEnums
 from models.schemas import RetrievedDocument
 
 class QdrantDB(VectorDBInterface):
-    def __init__(self, db_path: str, distance_method: str) -> None:
+    def __init__(self, db_client, default_vector_size: int = 786, distance_method: str = None, index_threshold: int=None) -> None:
         self.client: QdrantClient= None
-        self.db_path = db_path
+        self.db_client = db_client
         
         if distance_method == DistanceMethodEnums.COSIENE.value:
             self.distance_method = models.Distance.COSINE
@@ -18,24 +18,24 @@ class QdrantDB(VectorDBInterface):
         else: 
             self.distance_method = None
             
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger('uvicorn')
         
-    def connect(self):
-        self.client = QdrantClient(path=self.db_path)
-    def disconnect(self):
+    async def connect(self):
+        self.client = QdrantClient(path=self.db_client)
+    async def disconnect(self):
         self.client = None
-    def is_collection_existed(self, collection_name: str) -> bool:
+    async def is_collection_existed(self, collection_name: str) -> bool:
         return self.client.collection_exists(collection_name=collection_name)
-    def list_all_coleections(self) -> list:
+    async def list_all_coleections(self) -> list:
         return self.client.get_collections()
-    def get_collection_info(self, collection_name: str) -> dict:
+    async def get_collection_info(self, collection_name: str) -> dict:
         return self.client.get_collection(collection_name=collection_name)
-    def delete_collection(self, collection_name: str):
+    async def delete_collection(self, collection_name: str):
         if self.is_collection_existed(collection_name=collection_name):
             self.client.delete_collection(collection_name=collection_name)
             return True
         return False
-    def create_collection(self, collection_name: str, embedding_size: int, do_reset: bool = False) -> bool:
+    async def create_collection(self, collection_name: str, embedding_size: int, do_reset: bool = False) -> bool:
         if do_reset:
             _ = self.delete_collection(collection_name=collection_name)
         
@@ -49,7 +49,7 @@ class QdrantDB(VectorDBInterface):
             )
             return True
         return False
-    def insert_one(self, collection_name: str, text: str, vector: list, metadata: dict = None, record_id: str = None):
+    async def insert_one(self, collection_name: str, text: str, vector: list, metadata: dict = None, record_id: str = None):
         if not self.is_collection_existed(collection_name=collection_name):
             self.logger.error(f"Can't insert new record to non existed collection {collection_name}")
             return False
@@ -63,9 +63,9 @@ class QdrantDB(VectorDBInterface):
                     }
                 )
             ]
-        _ = self._add_records(collection_name, record)
+        _ = await self._add_records(collection_name, record)
         return True
-    def insert_many(self, collection_name: str, texts: list, vectors: list, metadatas: list = None,
+    async def insert_many(self, collection_name: str, texts: list, vectors: list, metadatas: list = None,
                     record_ids: list = None, batch_size: int = 50):
         
         if not self.is_collection_existed(collection_name=collection_name):
@@ -90,9 +90,9 @@ class QdrantDB(VectorDBInterface):
                 )
                 for j in range(len(batch_text))
             ]
-            _ = self._add_records(collection_name, batch_records)
+            _ = await self._add_records(collection_name, batch_records)
 
-    def _add_records(self, collection_name: str, records: models.PointStruct):
+    async def _add_records(self, collection_name: str, records: models.PointStruct):
         try:
             _ = self.client.upload_points(
                     collection_name=collection_name,
@@ -103,7 +103,7 @@ class QdrantDB(VectorDBInterface):
             self.logger.error(f"Error while inserting at collection {collection_name} \n {e}")
             return False
 
-    def search_by_vector(self, collection_name: str, vector: list, limit: int=5) :
+    async def search_by_vector(self, collection_name: str, vector: list, limit: int=5) :
         results =  self.client.query_points(
                 collection_name=collection_name,
                 query=vector, 
