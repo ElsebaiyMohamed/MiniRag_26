@@ -47,8 +47,8 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
     )
     
 
-    # if push_request.do_reset:
-    #     nlp_controller.reset_vectordb_collection(project)
+    if push_request.do_reset:
+        await nlp_controller.reset_vectordb_collection(project)
     has_records = True
     page_no = 1
     chunks = []
@@ -66,7 +66,7 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
         is_inserted = await nlp_controller.index2vectordb(
             project=project,
             chunks=page_chunks,
-            do_reset=push_request.do_reset
+            do_reset=False
         )
 
     if not is_inserted:
