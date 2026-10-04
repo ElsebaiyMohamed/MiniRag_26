@@ -52,4 +52,4 @@ class ChunkDataModel(BaseDataModel):
                 result = await session.execute(stmt)
             await session.commit()
         
-        return result.rowcount()
+        return result.rowcount

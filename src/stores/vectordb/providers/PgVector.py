@@ -140,7 +140,7 @@ class PgVector(VectorDBInterface):
                             f'{PgVectorTableSchemaEnums.VECTOR.value} vector({embedding_size}), '
                             f'{PgVectorTableSchemaEnums.METADATA.value} jsonb DEFAULT \'{{}}\', '
                             f'{PgVectorTableSchemaEnums.CHUNK_ID.value} integer, '
-                            f'FOREIGN KEY ({PgVectorTableSchemaEnums.CHUNK_ID.value}) REFERENCES chunks(chunk_id)'
+                            f'FOREIGN KEY ({PgVectorTableSchemaEnums.CHUNK_ID.value}) REFERENCES chunks(chunk_id) ON DELETE CASCADE'
                         ')'
                     )
                     await session.execute(create_sql)

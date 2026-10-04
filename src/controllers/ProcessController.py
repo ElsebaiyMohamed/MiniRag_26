@@ -1,4 +1,6 @@
 import os
+from typing import List
+from dataclasses import dataclass
 
 from langchain_community.document_loaders import TextLoader, PyMuPDFLoader 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -8,7 +10,10 @@ from .BaseController import BaseController
 from .ProjectController import ProjectController
 from models.enums import ProcessingEnum
 
-
+@dataclass
+class Document:
+    page_content: str
+    metadata: dict
 
 
 class ProcessController(BaseController):
@@ -40,10 +45,39 @@ class ProcessController(BaseController):
         return None
     
     def process_file_content(self, file_content: list, chunk_size: int=100, overlap_size: int=20):
-        text_spliter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap_size, length_function=len)
+        # text_spliter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap_size, length_function=len)
         
         file_text = [t.page_content for t in file_content]
-        file_metadat = [t.metadata for t in file_content]
+        file_metadata = [t.metadata for t in file_content]
         
-        chunks = text_spliter.create_documents(file_text, metadatas=file_metadat)
+        # chunks = text_spliter.create_documents(file_text, metadatas=file_metadata)
+        chunks = self.simple_text_spliter(file_text, file_metadata, chunk_size=chunk_size)
+        return chunks
+
+    def simple_text_spliter(self, pages: List[str], metadatas: List[dict], chunk_size: int, spliter_tag: str='\n'):
+        chunks = []
+        chunk_text = ''
+        # page_no = set()
+        for page, page_metadata in zip(pages, metadatas):
+            page_lines = [l.strip() for l in page.split(spliter_tag) if len(l.strip()) >1]
+            # page_no.add(page_metadata['page'])
+            for i in range(len(page_lines)):
+                line = page_lines[i]
+                chunk_text = chunk_text + spliter_tag + line
+                if len(chunk_text) > chunk_size:
+                    
+                    # page_metadata['page'] = ', '.join(list(page_no))
+                    chunks.append(Document(
+                        page_content=chunk_text.strip(),
+                        metadata=page_metadata
+                    ))
+                    # page_no = set()
+                    chunk_text = ''
+        if chunk_text:
+            chunks.append(
+                Document(
+                    page_content=chunk_text.strip(),
+                    metadata=page_metadata
+                )
+            )
         return chunks
