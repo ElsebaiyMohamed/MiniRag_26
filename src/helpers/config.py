@@ -22,7 +22,8 @@ class Settings(BaseSettings):
     VECTORDB_BACKEND: str=""
     VECTOR_DB_FILE_PATH: str=""
     VECTOR_DB_DISTANCE_METRIC: str=''
-
+    VECTOR_DB_PGVEC_INDEX_THRESHOLD: int
+    
     OPENAI_API_KEY: str
     OPENAI_API_URL: str
     COHERE_API_KEY: str
