@@ -1,3 +1,4 @@
+from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -17,6 +18,11 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
     POSTGRES_MAIN_DATABASE: str
 
+    VECTORDB_BACKEND_LITERAL: List[str] = None
+    VECTORDB_BACKEND: str=""
+    VECTOR_DB_FILE_PATH: str=""
+    VECTOR_DB_DISTANCE_METRIC: str=''
+
     OPENAI_API_KEY: str
     OPENAI_API_URL: str
     COHERE_API_KEY: str
@@ -30,9 +36,7 @@ class Settings(BaseSettings):
     DEAFAULT_MAX_OUTPUT_TOKENS: int=None
     GENERATION_DEFAULT_TEMPERATURE: float=None
     
-    VECTORDB_BACKEND: str=""
-    VECTOR_DB_FILE_PATH: str=""
-    VECTOR_DB_DISTANCE_METRIC: str=''
+
     # ========================= Template Configs =========================
     PRIMARY_LANG: str = "ar"
     DEFAULT_LANG: str = "en"
