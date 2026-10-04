@@ -5,12 +5,12 @@ from typing import List
 from sqlalchemy.sql import text as sql_text
 
 from ..VectorDBInterface import VectorDBInterface
-from models.enums import ( VectorDBEnums, DistanceMethodEnums, PgVectorTableSchemaEnums, 
+from models.enums import ( DistanceMethodEnums, PgVectorTableSchemaEnums, 
                         PgVectorDistanceMethodEnums, PgVectorIndexEnums)
 from models.schemas import RetrievedDocument
 
 
-class PGVectorProvider(VectorDBInterface):
+class PgVector(VectorDBInterface):
 
     def __init__(self, db_client, default_vector_size: int = 786, distance_method: str = None, index_threshold: int=100):
         
