@@ -94,7 +94,7 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
                             } 
                         )
     if process_request.do_reset: 
-        no_deleted = await chunk_model.delete_chunks_by_project_id(project_id=project.id)
+        no_deleted = await chunk_model.delete_chunks_by_project_id(project_id=project.project_id)
         
     no_of_records = 0
     total_no_files = len(project_file_ids)
