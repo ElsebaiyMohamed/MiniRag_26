@@ -14,7 +14,7 @@ class VectorDBInterface(ABC):
     def is_collection_existed(self, collection_name: str) -> bool:
         raise NotImplementedError
     @abstractmethod
-    def list_all_coleections(self) -> list:
+    def list_all_collections(self) -> list:
         raise NotImplementedError
     @abstractmethod
     def get_collection_info(self, collection_name: str) -> dict:
