@@ -47,8 +47,8 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
     )
     
 
-    if push_request.do_reset:
-        nlp_controller.reset_vectordb_collection(project)
+    # if push_request.do_reset:
+    #     nlp_controller.reset_vectordb_collection(project)
     has_records = True
     page_no = 1
     chunks = []
@@ -63,10 +63,10 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
             break
         # chunks.extend(page_chunks)
         
-        is_inserted = nlp_controller.index2vectordb(
+        is_inserted = await nlp_controller.index2vectordb(
             project=project,
             chunks=page_chunks,
-            do_reset=False
+            do_reset=push_request.do_reset
         )
 
     if not is_inserted:
@@ -115,7 +115,7 @@ async def get_project_info(request: Request, project_id: int):
         embedding_client=request.app.embedding_client
     )
     
-    collection_info = nlp_controller.get_vectordb_collection_info(project=project)
+    collection_info = await nlp_controller.get_vectordb_collection_info(project=project)
     
     collection_info = json.loads(
         json.dumps(collection_info, default=lambda x: x.__dict__)
@@ -155,7 +155,7 @@ async def index_search(request: Request, project_id: int, search_request: Search
         embedding_client=request.app.embedding_client,
     )
     
-    result = nlp_controller.search_vector_db_collection(
+    result = await nlp_controller.search_vector_db_collection(
         project=project, 
         text=search_request.text,
         limit=search_request.limit
@@ -203,7 +203,7 @@ async def index_answer(request: Request, project_id: int, search_request: Search
         template_parser=request.app.template_parser
     )
     
-    answer, full_prompt, chat_history = nlp_controller.answer_rag_question(
+    answer, full_prompt, chat_history = await nlp_controller.answer_rag_question(
         project=project, 
         query=search_request.text,
         limit=search_request.limit
