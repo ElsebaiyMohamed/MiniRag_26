@@ -26,7 +26,7 @@ class QdrantDB(VectorDBInterface):
         self.client = None
     async def is_collection_existed(self, collection_name: str) -> bool:
         return self.client.collection_exists(collection_name=collection_name)
-    async def list_all_coleections(self) -> list:
+    async def list_all_collections(self) -> list:
         return self.client.get_collections()
     async def get_collection_info(self, collection_name: str) -> dict:
         return self.client.get_collection(collection_name=collection_name)
