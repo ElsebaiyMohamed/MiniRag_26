@@ -15,10 +15,10 @@ class PgVectorTableSchemaEnums(Enum):
     _PREFIX = 'pgvector'
     
 class DistanceMethodEnums(Enum):
-    COSIENE = 'cosine'
+    COSINE = 'cosine'
     DOT = 'dot'
 class PgVectorDistanceMethodEnums(Enum):
-    COSIENE = 'vector_cosine_ops'
+    COSINE = 'vector_cosine_ops'
     DOT = 'vector_12_ops'
 
 class PgVectorIndexEnums(Enum):
