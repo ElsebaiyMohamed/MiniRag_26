@@ -20,6 +20,20 @@ services:
       retries: 5
       start_period: 30s
 
+  # PostgreSQL Exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    container_name: postgres-exporter
+    ports:
+      - "9187:9187"
+    env_files:
+      - ./envv/.env.postgresexporter
+    depends_on:
+      - pgvector
+    restart: always
+
+
+
 
 
 networks:

@@ -1,3 +1,3 @@
-envv/.env.postgres
-!envv/.env.example*
+envv/.env*
+!envv/.env.example.*
 
