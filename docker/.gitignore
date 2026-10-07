@@ -1,2 +1,3 @@
-mongodata
-.env
+envv/.env.postgres
+!envv/.env.example*
+

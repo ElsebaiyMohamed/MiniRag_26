@@ -1,5 +1,6 @@
 services:
 
+# PostgreSQL (pgvector)
   pgvector:
     image: pgvector/pgvector:0.8.7-pg18-trixie
     container_name: pgvector
@@ -7,8 +8,8 @@ services:
       - "5433:5432"
     volumes:
       - pgvector_data:/var/lib/postgresql
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    env_file:
+      - ./envv/.env.postgres
     networks:
       - bakend
     restart: always
