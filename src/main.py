@@ -9,7 +9,8 @@ from helpers import get_settings
 from stores.llm import LLMProviderFactory
 from stores.vectordb import VectorDBProviderFactory
 from stores.llm.templates import TemplateParser
-    
+from utils.metrics import setup_metrics   
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- STARTUP LOGIC ---
@@ -55,6 +56,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+setup_metrics(app)
 
 app.include_router(base.base_router)
 app.include_router(data.data_router)
