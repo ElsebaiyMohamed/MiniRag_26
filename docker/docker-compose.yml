@@ -30,6 +30,8 @@ services:
       - ./envv/.env.postgresexporter
     depends_on:
       - pgvector
+    networks:
+      - bakend
     restart: always
 
   # Qdrant
@@ -41,7 +43,28 @@ services:
       - "5334:5334"
     volumes:
       - qdrant_data:/qdrant/storage
+    networks:
+      - bakend
     restart: always
+  
+
+  prometheus:
+    image: prom/prometheus:v3.13.4
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - bakend
+    command: 
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    
 
 
 
@@ -51,3 +74,5 @@ networks:
 volumes:
   pgvector_data:
   qdrant_data:
+  prometheus_data:
+  
