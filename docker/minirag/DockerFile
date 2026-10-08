@@ -7,24 +7,25 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-RUN apk add --no-cache gcc musl-dev linux-headers libffi-dev libpq-dev
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libavif-dev pkg-config \
-    libjpeg-dev \
-    gcc unzip zip \
+RUN apk add --no-cache \
+    build-base \
+    gcc \
+    musl-dev \
+    linux-headers \
+    libffi-dev \
+    postgresql-dev \
+    pkgconfig \
+    libavif-dev \
+    jpeg-dev \
+    unzip \
+    zip \
     python3-dev \
     libxml2-dev \
-    libxslt1-dev \
-    libffi-dev \
+    libxslt-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=src/uv.lock,target=uv.lock \
-    --mount=type=bind,source=src/pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
 
 COPY uv.lock pyproject.toml ./
 
@@ -33,15 +34,16 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY src/ .
 
-RUN makdir -p /app/docker/models/db_schemas/minirag26
+
 
 COPY docker/minirag/alembic.ini /app/docker/models/db_schemas/minirag26/alembic.ini
+COPY src/models/db_schemas/minirag26/alembic /app/docker/models/db_schemas/minirag26/alembic
+COPY docker/minirag/entrypoint.sh ./entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
-COPY docker/minirag/entrypoint.sh /entrypoint.sh
+ENV PYTHONPATH="/app:/app/models/db_schemas/minirag26"
 
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT [ "/entrypoint.sh" ]
+ENTRYPOINT [ "/app/entrypoint.sh" ]
 
 EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

@@ -2,7 +2,7 @@ from types import CoroutineType
 from typing import Any
 
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from fastapi import FastAPI, Request, Response, RequestResponseEndpoint
+from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 import time
 
@@ -15,7 +15,7 @@ REQUEST_LATENCY = Histogram(
 )
 
 class PromethuesMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(self, request: Request, call_next) -> Response:
         start_time = time.time()
         response = await call_next(request)
         duration = time.time() - start_time
