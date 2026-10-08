@@ -9,7 +9,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - fast_api_data: /app/assets
+      - fast_api_data:/app/assets
     env_file:
       - ./envv/.env.app
     networks:

@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     DEFAULT_LANG: str = "en"
     
     class Config:
-        env_file = ".env"
+        env_file = ".env.app"
         env_file_encoding = "utf-8"
         case_sensitive = True
         
