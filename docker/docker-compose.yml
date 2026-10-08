@@ -8,6 +8,8 @@ services:
     container_name: fastapi
     ports:
       - "8000:8000"
+    volumes:
+      - fast_api_data: /app/assets
     env_file:
       - ./envv/.env.app
     networks:
@@ -144,9 +146,11 @@ services:
 
 networks:
   bakend:
+    driver: bridge
 volumes:
   pgvector_data:
   qdrant_data:
   prometheus_data:
   grafana_data:
+  fast_api_data:
 
