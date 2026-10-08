@@ -62,7 +62,7 @@ async def upload(request: Request, project_id: int, file: UploadFile, app_settin
         status_code=status.HTTP_200_OK,
         content={
             'signal': ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-            'file_id': str(asset_record.asset_id)
+            'file_id': str(asset_record.asset_name)
         } 
     )
 
