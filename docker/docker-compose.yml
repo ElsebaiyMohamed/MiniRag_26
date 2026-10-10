@@ -1,20 +1,156 @@
 services:
 
-  pgvector:
-    image: pgvector/pgvector:0.8.7-pg18-trixie
-    container_name: pgvector
+  # FastApi
+  fastapi:
+    build:
+      context: ..
+      dockerfile: docker/minirag/DockerFile
+    container_name: fastapi
     ports:
-      - "5433:5432"
+      - "8000:8000"
     volumes:
-      - pgvector_data:/var/lib/postgresql
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - fast_api_data:/app/assets
+    env_file:
+      - ./envv/.env.app
+    networks:
+      - bakend
+
+    restart: always
+    depends_on:
+      pgvector: 
+        condition: service_healthy
+    
+
+  # Nginx Service
+  nginx:
+    image: nginx:1.30.5
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - fastapi
     networks:
       - bakend
     restart: always
 
 
+
+
+# PostgreSQL (pgvector)
+  pgvector:
+    image: pgvector/pgvector:0.8.7-pg18-trixie
+    container_name: pgvector
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgvector_data:/var/lib/postgresql
+    env_file:
+      - ./envv/.env.postgres
+    networks:
+      - bakend
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+  # PostgreSQL Exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    container_name: postgres-exporter
+    ports:
+      - "9187:9187"
+    env_file:
+      - ./envv/.env.postgresexporter
+    depends_on:
+      - pgvector
+    networks:
+      - bakend
+    restart: always
+
+  # Qdrant
+  qdrant:
+    image: qdrant/qdrant:v1.19
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "5334:5334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - bakend
+    restart: always
+  
+  # Promethues
+  prometheus:
+    image: prom/prometheus:v3.13.4
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./promethues/promethues.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - bakend
+    command: 
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+  
+  # Grafana
+  grafana:
+    image: grafana/grafana:13.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    env_file:
+      - ./envv/.env.grafana
+    networks:
+      - bakend
+    depends_on:
+      - prometheus
+    restart: always
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command: 
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - bakend
+    restart: always
+
+
+
+
+
+
+
 networks:
   bakend:
+    driver: bridge
 volumes:
   pgvector_data:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:
+  fast_api_data:
+

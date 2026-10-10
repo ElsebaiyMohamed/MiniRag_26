@@ -1,0 +1,49 @@
+FROM ghcr.io/astral-sh/uv:python3.14-alpine
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
+
+RUN apk add --no-cache \
+    build-base \
+    gcc \
+    musl-dev \
+    linux-headers \
+    libffi-dev \
+    postgresql-dev \
+    pkgconfig \
+    libavif-dev \
+    jpeg-dev \
+    unzip \
+    zip \
+    python3-dev \
+    libxml2-dev \
+    libxslt-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+
+
+COPY uv.lock pyproject.toml ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+COPY src/ .
+
+
+
+COPY docker/minirag/alembic.ini /app/docker/models/db_schemas/minirag26/alembic.ini
+COPY src/models/db_schemas/minirag26/alembic /app/docker/models/db_schemas/minirag26/alembic
+COPY docker/minirag/entrypoint.sh ./entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+ENV PYTHONPATH="/app:/app/models/db_schemas/minirag26"
+
+ENTRYPOINT [ "/app/entrypoint.sh" ]
+
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

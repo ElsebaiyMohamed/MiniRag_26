@@ -1,2 +1,4 @@
-mongodata
-.env
+envv/.env*
+!envv/.env.example.*
+
+minirag/alembic.ini
