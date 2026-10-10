@@ -21,7 +21,7 @@ Create your environment files from the examples:
 
 ```bash
 # Create all required .env files from examples
-cd docker/env
+cd docker/envv
 cp .env.example.app .env.app
 cp .env.example.postgres .env.postgres
 cp .env.example.grafana .env.grafana
