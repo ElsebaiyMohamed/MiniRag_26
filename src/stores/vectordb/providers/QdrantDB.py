@@ -75,7 +75,10 @@ class QdrantDB(VectorDBInterface):
         
         if not await self.is_collection_existed(collection_name=collection_name):
             self.logger.error(f"Can't insert new record to non existed collection {collection_name}")
-            return False
+            return {
+                        'success': 0,
+                        'failed': len(vectors)
+                    }
         if metadatas is None:
             metadatas = [None] *  len(vectors)
         status = []

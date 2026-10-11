@@ -252,11 +252,17 @@ class PgVector(VectorDBInterface):
         is_collection_existed = await self.is_collection_existed(collection_name=collection_name)
         if not is_collection_existed:
             self.logger.error(f"Can not insert new records to non-existed collection: {collection_name}")
-            return False
+            return {
+            'success': 0,
+            'failed': len(vectors)
+        }
         
         if len(vectors) != len(record_ids):
             self.logger.error(f"Invalid data items for collection: {collection_name}")
-            return False
+            return {
+                        'success': 0,
+                        'failed': len(vectors)
+                    }
         
         if not metadatas or len(metadatas) == 0:
             metadatas = [None] * len(texts)
@@ -288,11 +294,12 @@ class PgVector(VectorDBInterface):
                                 f'VALUES (:text, :vector, :metadata, :chunk_id)')
                 try:
                     async with session.begin():
-                        batch_status = await session.execute(batch_insert_sql, values)
+                        await session.execute(batch_insert_sql, values)
+                        batch_status = [True] * len(values)
                         status.extend(batch_status)
                 except SQLAlchemyError  as e:
                     self.logger.error(f'failed when insert some records into pgvector with error code: {e}')
-                    batch_status = [False] * len(_text)
+                    batch_status = [False] * len(values)
                     status.extend(batch_status)
 
         await self.create_vector_index(collection_name=collection_name)
