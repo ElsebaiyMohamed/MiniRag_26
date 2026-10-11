@@ -33,7 +33,7 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
                         'project_id': project_id,
-                        'signal': ResponseSignal.PROJECT_NOT_FOUND.values
+                        'signal': ResponseSignal.PROJECT_NOT_FOUND.value
                     } 
                 )
     
@@ -102,7 +102,7 @@ async def get_project_info(request: Request, project_id: int):
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
                         'project_id': project_id,
-                        'signal': ResponseSignal.PROJECT_NOT_FOUND.values
+                        'signal': ResponseSignal.PROJECT_NOT_FOUND.value
                     } 
                 )
     
@@ -144,7 +144,7 @@ async def index_search(request: Request, project_id: int, search_request: Search
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
                         'project_id': project_id,
-                        'signal': ResponseSignal.PROJECT_NOT_FOUND.values
+                        'signal': ResponseSignal.PROJECT_NOT_FOUND.value
                     } 
                 )
 
@@ -191,7 +191,7 @@ async def index_answer(request: Request, project_id: int, search_request: Search
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
                         'project_id': project_id,
-                        'signal': ResponseSignal.PROJECT_NOT_FOUND.values
+                        'signal': ResponseSignal.PROJECT_NOT_FOUND.value
                     } 
                 )
 
