@@ -3,6 +3,7 @@ import logging
 from typing import List
 
 from sqlalchemy.sql import text as sql_text
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..VectorDBInterface import VectorDBInterface
 from models.enums import ( DistanceMethodEnums, PgVectorTableSchemaEnums, 
@@ -23,6 +24,8 @@ class PgVector(VectorDBInterface):
             distance_method = PgVectorDistanceMethodEnums.COSINE.value
         elif distance_method == DistanceMethodEnums.DOT.value:
             distance_method = PgVectorDistanceMethodEnums.DOT.value
+        else:
+            distance_method = PgVectorDistanceMethodEnums.COSINE.value
 
         self.pgvector_table_prefix = PgVectorTableSchemaEnums._PREFIX.value
         self.distance_method = distance_method
@@ -249,47 +252,63 @@ class PgVector(VectorDBInterface):
         is_collection_existed = await self.is_collection_existed(collection_name=collection_name)
         if not is_collection_existed:
             self.logger.error(f"Can not insert new records to non-existed collection: {collection_name}")
-            return False
+            return {
+            'success': 0,
+            'failed': len(vectors)
+        }
         
         if len(vectors) != len(record_ids):
             self.logger.error(f"Invalid data items for collection: {collection_name}")
-            return False
+            return {
+                        'success': 0,
+                        'failed': len(vectors)
+                    }
         
         if not metadatas or len(metadatas) == 0:
             metadatas = [None] * len(texts)
-        
+        status = []
         async with self.db_client() as session:
-            async with session.begin():
-                for i in range(0, len(texts), batch_size):
-                    batch_texts = texts[i:i+batch_size]
-                    batch_vectors = vectors[i:i + batch_size]
-                    batch_metadata = metadatas[i:i + batch_size]
-                    batch_record_ids = record_ids[i:i + batch_size]
+            for i in range(0, len(texts), batch_size):
+                batch_texts = texts[i:i+batch_size]
+                batch_vectors = vectors[i:i + batch_size]
+                batch_metadata = metadatas[i:i + batch_size]
+                batch_record_ids = record_ids[i:i + batch_size]
 
-                    values = []
+                values = []
 
-                    for _text, _vector, _metadata, _record_id in zip(batch_texts, batch_vectors, batch_metadata, batch_record_ids):
-                        
-                        metadata_json = json.dumps(_metadata, ensure_ascii=False) if _metadata is not None else "{}"
-                        values.append({
-                            'text': _text,
-                            'vector': "[" + ",".join([ str(v) for v in _vector ]) + "]",
-                            'metadata': metadata_json,
-                            'chunk_id': _record_id
-                        })
+                for _text, _vector, _metadata, _record_id in zip(batch_texts, batch_vectors, batch_metadata, batch_record_ids):
                     
-                    batch_insert_sql = sql_text(f'INSERT INTO {collection_name} '
-                                    f'({PgVectorTableSchemaEnums.TEXT.value}, '
-                                    f'{PgVectorTableSchemaEnums.VECTOR.value}, '
-                                    f'{PgVectorTableSchemaEnums.METADATA.value}, '
-                                    f'{PgVectorTableSchemaEnums.CHUNK_ID.value}) '
-                                    f'VALUES (:text, :vector, :metadata, :chunk_id)')
-                    
-                    await session.execute(batch_insert_sql, values)
+                    metadata_json = json.dumps(_metadata, ensure_ascii=False) if _metadata is not None else "{}"
+                    values.append({
+                        'text': _text,
+                        'vector': "[" + ",".join([ str(v) for v in _vector ]) + "]",
+                        'metadata': metadata_json,
+                        'chunk_id': _record_id
+                    })
+                
+                batch_insert_sql = sql_text(f'INSERT INTO {collection_name} '
+                                f'({PgVectorTableSchemaEnums.TEXT.value}, '
+                                f'{PgVectorTableSchemaEnums.VECTOR.value}, '
+                                f'{PgVectorTableSchemaEnums.METADATA.value}, '
+                                f'{PgVectorTableSchemaEnums.CHUNK_ID.value}) '
+                                f'VALUES (:text, :vector, :metadata, :chunk_id)')
+                try:
+                    async with session.begin():
+                        await session.execute(batch_insert_sql, values)
+                        batch_status = [True] * len(values)
+                        status.extend(batch_status)
+                except SQLAlchemyError  as e:
+                    self.logger.error(f'failed when insert some records into pgvector with error code: {e}')
+                    batch_status = [False] * len(values)
+                    status.extend(batch_status)
 
         await self.create_vector_index(collection_name=collection_name)
 
-        return True
+                    
+        return {
+            'success': status.count(True),
+            'failed': status.count(False)
+        }
     
     async def search_by_vector(self, collection_name: str, vector: list, limit: int):
         if not collection_name.startswith(self.pgvector_table_prefix):
