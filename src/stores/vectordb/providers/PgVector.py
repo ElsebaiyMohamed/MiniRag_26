@@ -24,6 +24,8 @@ class PgVector(VectorDBInterface):
             distance_method = PgVectorDistanceMethodEnums.COSINE.value
         elif distance_method == DistanceMethodEnums.DOT.value:
             distance_method = PgVectorDistanceMethodEnums.DOT.value
+        else:
+            distance_method = PgVectorDistanceMethodEnums.COSINE.value
 
         self.pgvector_table_prefix = PgVectorTableSchemaEnums._PREFIX.value
         self.distance_method = distance_method

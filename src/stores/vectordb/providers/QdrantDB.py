@@ -16,7 +16,7 @@ class QdrantDB(VectorDBInterface):
         elif distance_method == DistanceMethodEnums.DOT.value:
             self.distance_method = models.Distance.DOT
         else: 
-            self.distance_method = None
+            self.distance_method =  models.Distance.COSINE
             
         self.logger = logging.getLogger('uvicorn')
         
