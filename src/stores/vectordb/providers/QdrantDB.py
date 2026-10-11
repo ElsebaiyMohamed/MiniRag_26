@@ -67,8 +67,9 @@ class QdrantDB(VectorDBInterface):
                     }
                 )
             ]
-        _ = await self._add_records(collection_name, record)
-        return True
+        status = await self._add_records(collection_name, record)
+        return status[0]
+    
     async def insert_many(self, collection_name: str, texts: list, vectors: list, metadatas: list = None,
                     record_ids: list = None, batch_size: int = 50):
         
@@ -77,6 +78,7 @@ class QdrantDB(VectorDBInterface):
             return False
         if metadatas is None:
             metadatas = [None] *  len(vectors)
+        status = []
         for i in range(0, len(vectors), batch_size):
             batch_end = i + batch_size
             batch_text = texts[i:batch_end]
@@ -94,7 +96,13 @@ class QdrantDB(VectorDBInterface):
                 )
                 for j in range(len(batch_text))
             ]
-            _ = await self._add_records(collection_name, batch_records)
+            batch_status = await self._add_records(collection_name, batch_records)
+            status.extend(batch_status)
+            
+        return {
+            'success': status.count(True),
+            'failed': status.count(False)
+        }
 
     async def _add_records(self, collection_name: str, records: models.PointStruct):
         try:
@@ -102,10 +110,10 @@ class QdrantDB(VectorDBInterface):
                     collection_name=collection_name,
                     points=records
                 ) 
-            return True
+            return [True] * len(records)
         except Exception as e:
             self.logger.error(f"Error while inserting at collection {collection_name} \n {e}")
-            return False
+            return [False] * len(records)
 
     async def search_by_vector(self, collection_name: str, vector: list, limit: int=5) :
         results =  self.client.query_points(
