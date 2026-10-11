@@ -115,7 +115,7 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
                         status_code=status.HTTP_400_BAD_REQUEST,
                         content={
                             'file_id': file_id,
-                            'signal': ResponseSignal.PROCESSING_FAILD.value
+                            'signal': ResponseSignal.PROCESSING_FAILED.value
                         } 
                     )
         file_chunks_record = [DataChunk(
