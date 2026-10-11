@@ -41,7 +41,7 @@ class OpenAiProvider(LLMInterface):
             return None
         max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_max_output_tokens
         temprature = temprature if temprature is not None else self.default_generation_temperature
-        chat_history: list = kwargs.get('chat_history', [])
+        chat_history: list = list(kwargs.get('chat_history', []))
         chat_history.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
         
         response = self.client.chat.completions.create(
@@ -54,7 +54,7 @@ class OpenAiProvider(LLMInterface):
         if response is None or response.choices is None or len(response.choices) == 0 or response.choices[0].message is None:
             self.logger.error('unable to get response from provider')
             return None
-        return response.choices[0].message['content']
+        return response.choices[0].message.content
 
     def embed_text(self, prompt: str, document_type: str=None, *args, **kwargs):
         if self.client is None:
@@ -81,7 +81,7 @@ class OpenAiProvider(LLMInterface):
         if response is None or response.data is None or len(response.data) == 0 or response.data[0].embedding is None:
             self.logger.error('unable to get embeddings from provider')
             return None
-        return response.data.embedding 
+        return [d.embedding for d in response.data] 
 
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
         return {
