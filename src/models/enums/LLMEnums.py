@@ -7,7 +7,7 @@ class LLMEnum(Enum):
 class OpenAIEnum(Enum):
     SYSTEM = 'system'
     USER = 'user'
-    ASSISTANT = 'assitant'
+    ASSISTANT = 'assistant'
 
 class CohereEnum(Enum):
     SYSTEM = 'system'
