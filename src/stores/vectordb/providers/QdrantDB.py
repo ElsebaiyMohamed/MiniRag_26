@@ -11,7 +11,7 @@ class QdrantDB(VectorDBInterface):
         self.client: QdrantClient= None
         self.db_client = db_client
         
-        if distance_method == DistanceMethodEnums.COSIENE.value:
+        if distance_method == DistanceMethodEnums.COSINE.value:
             self.distance_method = models.Distance.COSINE
         elif distance_method == DistanceMethodEnums.DOT.value:
             self.distance_method = models.Distance.DOT
