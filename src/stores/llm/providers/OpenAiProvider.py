@@ -41,7 +41,7 @@ class OpenAiProvider(LLMInterface):
             return None
         max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_max_output_tokens
         temprature = temprature if temprature is not None else self.default_generation_temperature
-        chat_history: list = kwargs.get('chat_history', [])
+        chat_history: list = list(kwargs.get('chat_history', []))
         chat_history.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
         
         response = self.client.chat.completions.create(
