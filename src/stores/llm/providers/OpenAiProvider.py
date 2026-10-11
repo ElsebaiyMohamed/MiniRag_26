@@ -81,7 +81,7 @@ class OpenAiProvider(LLMInterface):
         if response is None or response.data is None or len(response.data) == 0 or response.data[0].embedding is None:
             self.logger.error('unable to get embeddings from provider')
             return None
-        return response.data.embedding 
+        return [d.embedding for d in response.data] 
 
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
         return {
