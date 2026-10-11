@@ -26,20 +26,24 @@ class QdrantDB(VectorDBInterface):
         self.client = None
     async def is_collection_existed(self, collection_name: str) -> bool:
         return self.client.collection_exists(collection_name=collection_name)
+    
     async def list_all_collections(self) -> list:
         return self.client.get_collections()
+    
     async def get_collection_info(self, collection_name: str) -> dict:
         return self.client.get_collection(collection_name=collection_name)
+    
     async def delete_collection(self, collection_name: str):
-        if self.is_collection_existed(collection_name=collection_name):
+        if await self.is_collection_existed(collection_name=collection_name):
             self.client.delete_collection(collection_name=collection_name)
             return True
         return False
+    
     async def create_collection(self, collection_name: str, embedding_size: int, do_reset: bool = False) -> bool:
         if do_reset:
-            _ = self.delete_collection(collection_name=collection_name)
+            _ = await self.delete_collection(collection_name=collection_name)
         
-        if not self.is_collection_existed(collection_name=collection_name):
+        if not await self.is_collection_existed(collection_name=collection_name):
             self.client.create_collection(
                 collection_name=collection_name, 
                 vectors_config=models.VectorParams(
@@ -50,7 +54,7 @@ class QdrantDB(VectorDBInterface):
             return True
         return False
     async def insert_one(self, collection_name: str, text: str, vector: list, metadata: dict = None, record_id: str = None):
-        if not self.is_collection_existed(collection_name=collection_name):
+        if not await self.is_collection_existed(collection_name=collection_name):
             self.logger.error(f"Can't insert new record to non existed collection {collection_name}")
             return False
         record = [
@@ -68,7 +72,7 @@ class QdrantDB(VectorDBInterface):
     async def insert_many(self, collection_name: str, texts: list, vectors: list, metadatas: list = None,
                     record_ids: list = None, batch_size: int = 50):
         
-        if not self.is_collection_existed(collection_name=collection_name):
+        if not await self.is_collection_existed(collection_name=collection_name):
             self.logger.error(f"Can't insert new record to non existed collection {collection_name}")
             return False
         if metadatas is None:
