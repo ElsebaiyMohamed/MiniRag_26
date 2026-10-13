@@ -24,15 +24,19 @@ class ProjectDataModel(BaseDataModel):
             
         return project
     
-    async def get_project_or_create_one(self, project_id: int):
+    async def get_project(self, project_id: int):
         async with self.db_client() as session:
-            async with session.begin():
-                query = select(Project).where(Project.project_id==project_id)
-                project = (await session.execute(query)).scalar_one_or_none()
-                if project is None:
+            query = select(Project).where(Project.project_id==project_id)
+            project = (await session.execute(query)).scalar_one_or_none()
+        return project if project is not None else None
+    
+    async def get_project_or_create_one(self, project_id: int):
+        project = await self.get_project(project_id=project_id)
+        if project is None:
+            async with self.db_client() as session:
+                async with session.begin():
                     project = await self.create_project(project=Project(project_id=project_id))
-            
-                return project
+        return project
 
     
     async def get_all_projects(self, page: int=1, page_size: int=10):
