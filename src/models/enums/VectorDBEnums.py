@@ -19,8 +19,11 @@ class DistanceMethodEnums(Enum):
     DOT = 'dot'
 class PgVectorDistanceMethodEnums(Enum):
     COSINE = 'vector_cosine_ops'
-    DOT = 'vector_12_ops'
-
+    DOT = 'vector_ip_ops'
+class PgVectorOperatorEnums(Enum):            # query operator
+    COSINE = '<=>'
+    DOT = '<#>'
+    
 class PgVectorIndexEnums(Enum):
     HNSW = 'hnsw'
     IVFFLAT = 'ivfflat'

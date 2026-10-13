@@ -6,7 +6,7 @@ from sqlalchemy.sql import text as sql_text
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..VectorDBInterface import VectorDBInterface
-from models.enums import ( DistanceMethodEnums, PgVectorTableSchemaEnums, 
+from models.enums import ( DistanceMethodEnums, PgVectorTableSchemaEnums, PgVectorOperatorEnums,
                         PgVectorDistanceMethodEnums, PgVectorIndexEnums)
 from models.schemas import RetrievedDocument
 
@@ -20,15 +20,18 @@ class PgVector(VectorDBInterface):
         
         self.index_threshold = index_threshold
 
-        if distance_method == DistanceMethodEnums.COSINE.value:
-            distance_method = PgVectorDistanceMethodEnums.COSINE.value
-        elif distance_method == DistanceMethodEnums.DOT.value:
-            distance_method = PgVectorDistanceMethodEnums.DOT.value
-        else:
-            distance_method = PgVectorDistanceMethodEnums.COSINE.value
+        if distance_method == DistanceMethodEnums.DOT.value:
+            self.distance_method = PgVectorDistanceMethodEnums.DOT.value
+            self.distance_operator = PgVectorOperatorEnums.DOT.value
+            self.score_template = '(-1 * {d})'
+        elif distance_method == DistanceMethodEnums.COSINE.value:
+            self.distance_method = PgVectorDistanceMethodEnums.COSINE.value
+            self.distance_operator = PgVectorOperatorEnums.COSINE.value
+            self.score_template = '(1 - {d})'
+        else: 
+            raise ValueError(f"Unsupported VECTOR_DB_DISTANCE_METRIC '{distance_method}'. Use 'cosine' or 'dot'.")
 
         self.pgvector_table_prefix = PgVectorTableSchemaEnums._PREFIX.value
-        self.distance_method = distance_method
 
         self.logger = logging.getLogger("uvicorn")
         self.default_index_name = lambda collection_name: f"{collection_name}_vector_idx"
@@ -59,21 +62,22 @@ class PgVector(VectorDBInterface):
         if not collection_name.startswith(self.pgvector_table_prefix):
             collection_name = self.get_pg_collection_name(collection_name=collection_name)
             
-        record = None
+        flag = False
         async with self.db_client() as session:
             async with session.begin():
                 list_tbl = sql_text(f'SELECT * FROM pg_tables WHERE tablename = :collection_name')
                 results = await session.execute(list_tbl, {"collection_name": collection_name})
                 record = results.scalar_one_or_none()
-
-        return record
+                flag = False if record is None else True
+        return flag
     
     async def list_all_collections(self) -> List:
         records = []
         async with self.db_client() as session:
             async with session.begin():
-                list_tbl = sql_text('SELECT tablename FROM pg_tables WHERE tablename LIKE :prefix')
-                results = await session.execute(list_tbl, {"prefix": self.pgvector_table_prefix})
+                list_tbl = sql_text(r"SELECT tablename FROM pg_tables WHERE tablename LIKE :prefix ESCAPE '\'")
+                pattern = f"{self.pgvector_table_prefix}\\_%"   # -> pgvector\_%
+                results = await session.execute(list_tbl, {"prefix": pattern})
                 records = results.scalars().all()
         
         return records
@@ -320,13 +324,19 @@ class PgVector(VectorDBInterface):
         vector = "[" + ",".join([ str(v) for v in vector ]) + "]"
         async with self.db_client() as session:
             async with session.begin():
-                search_sql = sql_text(f'SELECT {PgVectorTableSchemaEnums.TEXT.value} as text, 1 - ({PgVectorTableSchemaEnums.VECTOR.value} <=> :vector) as score'
-                                    f' FROM {collection_name}'
-                                    ' ORDER BY score DESC '
-                                    f'LIMIT {limit}'
-                                    )
+                vec = PgVectorTableSchemaEnums.VECTOR.value
+                txt = PgVectorTableSchemaEnums.TEXT.value
+                distance = f'({vec} {self.distance_operator} :vector)'
+                score = self.score_template.format(d=distance)
+
+                search_sql = sql_text(
+                    f'SELECT {txt} AS text, {score} AS score '
+                    f'FROM {collection_name} '
+                    f'ORDER BY {vec} {self.distance_operator} :vector '
+                    'LIMIT :limit'
+                )
+                result = await session.execute(search_sql, {"vector": vector, "limit": limit})
                 
-                result = await session.execute(search_sql, {"vector": vector})
 
                 records = result.fetchall()
 
