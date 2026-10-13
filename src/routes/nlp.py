@@ -23,12 +23,9 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
     project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
     chunk_model = await ChunkDataModel.create_instance(db_client=request.app.db_client)
     
-    project = await project_model.get_project_or_create_one(project_id=project_id)
+    project = await project_model.get_project(project_id=project_id)
     
-    
-    
-    
-    if not project:
+    if project is None:
         return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
@@ -36,8 +33,6 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
                         'signal': ResponseSignal.PROJECT_NOT_FOUND.value
                     } 
                 )
-    
-    
     
     
     nlp_controller = NLPController(
@@ -51,30 +46,35 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
         await nlp_controller.reset_vectordb_collection(project)
     has_records = True
     page_no = 1
-    chunks = []
+    chunks_insertion_status = {
+            'success': 0,
+            'failed': 0
+        }
     
     while has_records:
         page_chunks = await chunk_model.get_project_chunks(project_id=project.project_id, page_no=page_no)
 
-        if len(page_chunks):
-            page_no += 1
+        
         if not page_chunks or len(page_chunks) == 0:
             has_records = False
             break
-        # chunks.extend(page_chunks)
+        page_no += 1
         
-        is_inserted = await nlp_controller.index2vectordb(
+        insertion_status = await nlp_controller.index2vectordb(
             project=project,
             chunks=page_chunks,
             do_reset=False
         )
+        chunks_insertion_status = {key: chunks_insertion_status[key] + insertion_status[key] for key in chunks_insertion_status.keys()}
 
-    if not is_inserted:
+    if chunks_insertion_status['success'] == 0:
         log_it.error(ResponseSignal.INSERT_INTO_VECTORDB_ERROR.value)
+        _ = await nlp_controller.reset_vectordb_collection(project=project)
         return JSONResponse(
                             status_code=status.HTTP_400_BAD_REQUEST,
                             content={
-                                'signal': ResponseSignal.INSERT_INTO_VECTORDB_ERROR.value
+                                'signal': ResponseSignal.INSERT_INTO_VECTORDB_ERROR.value,
+                                'insertion_status': chunks_insertion_status
                             } 
                         )
 
@@ -83,6 +83,7 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
             status_code=status.HTTP_200_OK,
             content={ 
                 'signal': ResponseSignal.INSERT_INTO_VECTOR_DATABASE_SUCCESS.value, 
+                'insertion_status': chunks_insertion_status
             } 
         )
 
