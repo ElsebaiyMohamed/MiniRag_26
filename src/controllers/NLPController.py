@@ -38,6 +38,11 @@ class NLPController(BaseController):
                 document_type=DocumentTypeEnum.DOCUMENT.value,
             )
 
+        if vectors is None:
+            return {
+            'success': 0,
+            'failed': len(chunk_texts)
+        }
         
         await self.vectordb_client.create_collection(
             collection_name=collection_name,
