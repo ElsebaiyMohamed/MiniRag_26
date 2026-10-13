@@ -72,8 +72,9 @@ class PgVector(VectorDBInterface):
         records = []
         async with self.db_client() as session:
             async with session.begin():
-                list_tbl = sql_text('SELECT tablename FROM pg_tables WHERE tablename LIKE :prefix')
-                results = await session.execute(list_tbl, {"prefix": self.pgvector_table_prefix})
+                list_tbl = sql_text(r"SELECT tablename FROM pg_tables WHERE tablename LIKE :prefix ESCAPE '\'")
+                pattern = f"{self.pgvector_table_prefix}\\_%"   # -> pgvector\_%
+                results = await session.execute(list_tbl, {"prefix": pattern})
                 records = results.scalars().all()
         
         return records
