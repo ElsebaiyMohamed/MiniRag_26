@@ -25,7 +25,7 @@ cd docker/envv
 cp .env.example.app .env.app
 cp .env.example.postgres .env.postgres
 cp .env.example.grafana .env.grafana
-cp .env.example.postgres-exporter .env.postgres-exporter
+cp .env.example.postgresexporter .env.postgresexporter
 
 # Setup the Alembic configuration for the FastAPI application
 cd ..
