@@ -45,14 +45,14 @@ class NLPController(BaseController):
             do_reset=do_reset
         )
         
-        await self.vectordb_client.insert_many(
+        insertion_status: dict = await self.vectordb_client.insert_many(
             collection_name=collection_name, 
             texts=chunk_texts, 
             metadatas=chunk_metadatas, 
             vectors=vectors,
             record_ids=chunk_ids
         )
-        return True
+        return insertion_status
     
     async def search_vector_db_collection(self, project: Project, text: str, limit: int = 10):
         collection_name = self.create_collection_name(project.project_id)
