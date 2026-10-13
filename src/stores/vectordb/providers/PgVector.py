@@ -59,14 +59,14 @@ class PgVector(VectorDBInterface):
         if not collection_name.startswith(self.pgvector_table_prefix):
             collection_name = self.get_pg_collection_name(collection_name=collection_name)
             
-        record = None
+        flag = False
         async with self.db_client() as session:
             async with session.begin():
                 list_tbl = sql_text(f'SELECT * FROM pg_tables WHERE tablename = :collection_name')
                 results = await session.execute(list_tbl, {"collection_name": collection_name})
                 record = results.scalar_one_or_none()
-
-        return record
+                flag = False if record is None else True
+        return flag
     
     async def list_all_collections(self) -> List:
         records = []
