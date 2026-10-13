@@ -144,10 +144,10 @@ async def index_search(request: Request, project_id: int, search_request: Search
     
     project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
     
-    project = await project_model.get_project_or_create_one(project_id=project_id)
+    project = await project_model.get_project(project_id=project_id)
     
 
-    if not project:
+    if project is None:
         return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
@@ -191,10 +191,10 @@ async def index_answer(request: Request, project_id: int, search_request: Search
     
     project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
     
-    project = await project_model.get_project_or_create_one(project_id=project_id)
+    project = await project_model.get_project(project_id=project_id)
     
 
-    if not project:
+    if project is None:
         return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
