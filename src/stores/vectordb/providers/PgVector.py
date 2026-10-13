@@ -29,7 +29,7 @@ class PgVector(VectorDBInterface):
             self.distance_operator = PgVectorOperatorEnums.COSINE.value
             self.score_template = '(1 - {d})'
         else: 
-            raise Exception("No distance metric was choosen for vector database ")
+            raise ValueError(f"Unsupported VECTOR_DB_DISTANCE_METRIC '{distance_method}'. Use 'cosine' or 'dot'.")
 
         self.pgvector_table_prefix = PgVectorTableSchemaEnums._PREFIX.value
 
