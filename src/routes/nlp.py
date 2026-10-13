@@ -93,12 +93,12 @@ async def get_project_info(request: Request, project_id: int):
     
     project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
     
-    project = await project_model.get_project_or_create_one(project_id=project_id)
+    project = await project_model.get_project(project_id=project_id)
     
     
     
     
-    if not project:
+    if project is None:
         return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
@@ -117,7 +117,14 @@ async def get_project_info(request: Request, project_id: int):
     )
     
     collection_info = await nlp_controller.get_vectordb_collection_info(project=project)
-    
+    if collection_info is None:
+        log_it.error(ResponseSignal.VECTORDB_COLLECTION_INFO_NOT_FOUND.value)
+        return JSONResponse(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            content={
+                                'signal': ResponseSignal.VECTORDB_COLLECTION_INFO_NOT_FOUND.value,
+                            } 
+                        )
     collection_info = json.loads(
         json.dumps(collection_info, default=lambda x: x.__dict__)
     )
