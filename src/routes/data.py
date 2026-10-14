@@ -34,7 +34,7 @@ async def upload(request: Request, project_id: int, file: UploadFile, app_settin
     project = await project_model.get_project_or_create_one(project_id=project_id)
     
     project_dir_path = ProjectController().get_project_path(project_id=project_id)
-    file_id = data_contoller.__cleaned_filemame(file.filename, project_dir_path)
+    file_id = data_contoller.gen_unique_filename(file.filename, project_dir_path)
     file_path = data_contoller.join_path(project_dir_path, file_id)
     try:
         async with aiofiles.open(file_path, 'wb') as f:
