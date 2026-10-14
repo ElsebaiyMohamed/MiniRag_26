@@ -26,7 +26,7 @@ class ChunkDataModel(BaseDataModel):
     async def get_chunk(self, chunk_id: int):
         async with self.db_client() as session:
                 query = select(DataChunk).where(DataChunk.chunk_id==chunk_id)
-                chunk = await session.execute(query).scalar_one_or_none()
+                chunk =( await session.execute(query)).scalar_one_or_none()
                 return chunk
 
     async def create_many_chunks(self, chunks: list, batch_size: int=100):

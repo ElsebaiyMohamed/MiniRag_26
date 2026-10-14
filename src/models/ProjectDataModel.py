@@ -42,15 +42,13 @@ class ProjectDataModel(BaseDataModel):
     async def get_all_projects(self, page: int=1, page_size: int=10):
         async with self.db_client() as session:
             async with session.begin():
-                total_documents = await session.execute(select(
-                    func.count(Project.project_id)
-                )).scalar_one()
+                total_documents = (await session.execute(select(func.count(Project.project_id)))).scalar_one()
                 
                 total_pages = total_documents // total_pages
                 if total_documents % page_size > 0:
                     total_pages += 1
                 
                 query = select(Project).offset((page - 1) * page_size).limit(page_size)
-                projects = await session.execute(query).scalars().all()
+                projects = (await session.execute(query)).scalars().all()
                 
                 return projects, total_pages  
