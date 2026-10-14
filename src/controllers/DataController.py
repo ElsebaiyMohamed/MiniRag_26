@@ -22,7 +22,7 @@ class DataController(BaseController):
         
         return True, ResponseSignal.FILE_VALIDATED_SUCCESS.value
         
-    def gen_uniqe_filename(self, org_filename, project_path):
+    def __cleaned_filemame(self, org_filename, project_path):
         flage = True
         i = 1
         while flage:

@@ -87,7 +87,7 @@ services:
       - bakend
     restart: always
   
-  # Promethues
+  # prometheus
   prometheus:
     image: prom/prometheus:v3.13.4
     container_name: prometheus
@@ -95,7 +95,7 @@ services:
       - "9090:9090"
     volumes:
       - prometheus_data:/prometheus
-      - ./promethues/promethues.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - bakend
     command: 

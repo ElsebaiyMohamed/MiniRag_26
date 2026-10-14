@@ -88,7 +88,7 @@ class AcmeProvider(LLMInterface):
         self.embedding_size = embedding_size
 
     def generate_text(self, prompt: str, max_output_tokens: int = None,
-                      temprature: float = None, *args, **kwargs):
+                      temperature: float = None, *args, **kwargs):
         chat_history = kwargs.get('chat_history', [])
         messages = chat_history.copy()
         messages.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))

@@ -4,10 +4,10 @@ from sqlalchemy import Column, Integer, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship  
 
-from .base import SQLAlcemyBase
+from .base import SQLAlchemyBase
 
 
-class Project(SQLAlcemyBase):
+class Project(SQLAlchemyBase):
     __tablename__ = 'projects'
     
     project_id = Column(Integer, primary_key=True, autoincrement=True)

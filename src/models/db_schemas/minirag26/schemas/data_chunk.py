@@ -5,10 +5,10 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy import Index
 
-from .base import SQLAlcemyBase
+from .base import SQLAlchemyBase
 
 
-class DataChunk(SQLAlcemyBase):
+class DataChunk(SQLAlchemyBase):
     __tablename__ = 'chunks'
     
     chunk_id = Column(Integer, primary_key=True, autoincrement=True)

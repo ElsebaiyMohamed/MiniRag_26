@@ -30,7 +30,7 @@ class CohereProvider(LLMInterface):
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
-    def generate_text(self, prompt: str, max_output_tokens: int=None, temprature: float=None, *args, **kwargs):
+    def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
         if self.client is None:
             self.logger.error("Cohere client was not set")
             return None
@@ -38,7 +38,7 @@ class CohereProvider(LLMInterface):
             self.logger.error("Generation model for Cohere not set")
             return None
         max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_max_output_tokens
-        temprature = temprature if temprature is not None else self.default_generation_temperature
+        temperature = temperature if temperature is not None else self.default_generation_temperature
         chat_history: list = kwargs.get('chat_history', [])
         
         messages = chat_history.copy() if chat_history else []
@@ -48,7 +48,7 @@ class CohereProvider(LLMInterface):
             model=self.generation_model_id,
             messages=messages,
             max_tokens=max_output_tokens,
-            temperature=temprature
+            temperature=temperature
         )
         if response is None or not response.message:
             self.logger.error('unable to get response from provider')
