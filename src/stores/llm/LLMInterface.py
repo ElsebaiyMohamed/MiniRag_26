@@ -13,7 +13,7 @@ class LLMInterface(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def generate_text(self, prompt: str, max_output_tokens: int=None, temprature: float=None, *args, **kwargs):
+    def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
         raise NotImplementedError
     
     @abstractmethod

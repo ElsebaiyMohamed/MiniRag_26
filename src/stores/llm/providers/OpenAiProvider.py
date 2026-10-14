@@ -32,7 +32,7 @@ class OpenAiProvider(LLMInterface):
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
-    def generate_text(self, prompt: str, max_output_tokens: int=None, temprature: float=None, *args, **kwargs):
+    def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
         if self.client is None:
             self.logger.error("OpenAi client was not set")
             return None
@@ -40,7 +40,7 @@ class OpenAiProvider(LLMInterface):
             self.logger.error("Generation model for OpenAi not set")
             return None
         max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_max_output_tokens
-        temprature = temprature if temprature is not None else self.default_generation_temperature
+        temperature = temperature if temperature is not None else self.default_generation_temperature
         chat_history: list = list(kwargs.get('chat_history', []))
         chat_history.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
         
@@ -48,7 +48,7 @@ class OpenAiProvider(LLMInterface):
             model=self.generation_model_id,
             messages=chat_history,
             max_tokens=max_output_tokens,
-            temperature=temprature
+            temperature=temperature
         )
         
         if response is None or response.choices is None or len(response.choices) == 0 or response.choices[0].message is None:

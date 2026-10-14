@@ -1,4 +1,4 @@
-from .base import SQLAlcemyBase
+from .base import SQLAlchemyBase
 from .project import Project
 from .data_chunk import DataChunk
 from .asset import Asset

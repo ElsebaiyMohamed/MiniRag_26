@@ -1,7 +1,7 @@
 [project]
 name = "minirag-26"
 version = "0.1.0"
-description = "Add your description here"
+description = "Question Answering System"
 readme = "README.md"
 requires-python = ">=3.13.14"
 dependencies = [

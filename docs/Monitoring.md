@@ -20,7 +20,7 @@ In production, do not publish these ports. See [Deployment](deployment.md#monito
 
 ## What Prometheus scrapes
 
-Defined in `docker/promethues/promethues.yml`. The scrape and evaluation interval is 15 seconds.
+Defined in `docker/prometheus/prometheus.yml`. The scrape and evaluation interval is 15 seconds.
 
 | Job | Target | Path | What you get |
 |---|---|---|---|
@@ -28,7 +28,7 @@ Defined in `docker/promethues/promethues.yml`. The scrape and evaluation interva
 | `node-exporter` | `node-exporter:9100` | `/metrics` | Host CPU, memory, disk, network |
 | `postgres` | `postgres-exporter:9187` | `/metrics` | PostgreSQL connections, transactions, table and database stats |
 | `qdrant` | `qdrant:6333` | `/metrics` | Metrics of the Qdrant service |
-| `promethues` | `localhost:9090` | `/metrics` | Prometheus' own health (the job name keeps its current spelling) |
+| `prometheus` | `localhost:9090` | `/metrics` | Prometheus' own health |
 
 Targets use Docker service names, so they resolve only inside the Compose network. Check their state at http://localhost:9090/targets.
 

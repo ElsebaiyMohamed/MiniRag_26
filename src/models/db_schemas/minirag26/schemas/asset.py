@@ -5,10 +5,10 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy import Index
 
-from .base import SQLAlcemyBase
+from .base import SQLAlchemyBase
 
 
-class Asset(SQLAlcemyBase):
+class Asset(SQLAlchemyBase):
     __tablename__ = 'assets'
     
     asset_id = Column(Integer, primary_key=True, autoincrement=True)
