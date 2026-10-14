@@ -18,7 +18,7 @@ The repository ships only `*.example` files. Real files hold secrets and are git
 | `src/models/db_schemas/minirag26/alembic.ini` | `alembic.ini.example` (same folder) | Alembic, local development |
 | `docker/minirag/alembic.ini` | `docker/minirag/alembic.example.ini` | Alembic inside the Docker image |
 
-For local development, `.env.app` is read from the current working directory, so start the API from `src/`.
+For local development, `.env.app` is read from the current directory, so start from `src/`. It’s now always `src/.env.app`.
 
 ### Database credentials must match everywhere
 
@@ -72,7 +72,7 @@ If you run behind the bundled Nginx, its own upload limit also applies. See [Dep
 | `VECTORDB_BACKEND` | yes | `PGVECTOR` or `QDRANT`. Any other value fails at startup |
 | `VECTORDB_BACKEND_LITERAL` | no | Informational list of valid backends. The application does not read it |
 | `VECTOR_DB_FILE_PATH` | for `QDRANT` | Folder name for embedded Qdrant data, stored under `src/assets/vector_database/`. Ignored for `PGVECTOR` |
-| `VECTOR_DB_DISTANCE_METRIC` | yes | `cosine` is the supported choice |
+| `VECTOR_DB_DISTANCE_METRIC` | yes | optional (default `cosine`), and `dot` is supported. |
 | `VECTOR_DB_PGVEC_INDEX_THRESHOLD` | yes | Minimum number of rows in a collection before an HNSW index is created on it. Below the threshold, searches scan exactly |
 
 ### LLM providers
@@ -81,7 +81,7 @@ If you run behind the bundled Nginx, its own upload limit also applies. See [Dep
 |---|---|---|
 | `GENERATION_BACKEND` | yes | Provider used for answers: `COHERE` or `OPENAI` |
 | `EMBEDDING_BACKEND` | yes | Provider used for embeddings: `COHERE` or `OPENAI`. May differ from `GENERATION_BACKEND` |
-| `COHERE_API_KEY` | yes (may be empty) | Cohere key. Must be present even when Cohere is unused |
+| `COHERE_API_KEY` | yes (may be empty) | Cohere key. Must be present only if using Cohere as BACKEND |
 | `OPENAI_API_KEY` | yes (may be empty) | Key for OpenAI or any OpenAI-compatible server. For Ollama use any non-empty value |
 | `OPENAI_API_URL` | yes (may be empty) | Base URL of an OpenAI-compatible API. Empty means the official OpenAI endpoint |
 | `GENERATION_MODEL_ID` | yes in practice | Model used for answers |
@@ -97,7 +97,7 @@ The `*_BACKEND` values are the uppercase names of the provider enum, so `COHERE`
 
 | Variable | Required | Description |
 |---|---|---|
-| `PRIMARY_LANG` | no (default `ar`) | Prompt template language, one of the folders in `src/stores/llm/templates/locales/` (`en`, `ar`) |
+| `PRIMARY_LANG` | no (default `en`) | Prompt template language, one of the folders in `src/stores/llm/templates/locales/` (`en`, `ar`) |
 | `DEFAULT_LANG` | no (default `en`) | Fallback when `PRIMARY_LANG` has no folder or a missing template |
 
 The templates also instruct the model to answer in the language of the question, so `PRIMARY_LANG` mostly affects the instructions the model sees, not the reply language.
