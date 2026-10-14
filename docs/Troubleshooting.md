@@ -36,8 +36,6 @@ Then set `sqlalchemy.url` inside it. See [Configuration](configuration.md#config
 
 ### API fails at startup with `ValidationError: Field required`
 
-**Cause:** a required setting is missing, or the env file was not found. In local development `.env.app` is read from the current directory.
-
 **Fix:** run `uvicorn` from `src/`, and compare your `.env.app` against `src/.env.example`. All keys must exist. Keys for unused providers (such as `COHERE_API_KEY`) may be empty strings but must be present.
 
 ### API fails at startup right after the vector database step
