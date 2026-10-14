@@ -28,14 +28,14 @@ class AssetDataModel(BaseDataModel):
     async def get_asset_by_id(self, asset_id: int):
         async with self.db_client() as session:
                 query = select(Asset).where(Asset.asset_id==asset_id)
-                asset = await session.execute(query).scalar_one_or_none()
+                asset = (await session.execute(query)).scalar_one_or_none()
                 return asset
             
     async def get_asset_by_name(self, asset_project_id: int, asset_name: str):
         async with self.db_client() as session:
                 query = select(Asset).where(Asset.asset_project_id==asset_project_id,
                                             Asset.asset_name == asset_name)
-                asset = await session.execute(query).scalar_one_or_none()
+                asset = (await session.execute(query)).scalar_one_or_none()
                 return asset
         
     async def create_many_assets(self, assets: list, batch_size: int=100):

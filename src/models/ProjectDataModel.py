@@ -28,29 +28,21 @@ class ProjectDataModel(BaseDataModel):
         async with self.db_client() as session:
             query = select(Project).where(Project.project_id==project_id)
             project = (await session.execute(query)).scalar_one_or_none()
-        return project if project is not None else None
+        return project
     
     async def get_project_or_create_one(self, project_id: int):
         project = await self.get_project(project_id=project_id)
         if project is None:
-            async with self.db_client() as session:
-                async with session.begin():
-                    project = await self.create_project(project=Project(project_id=project_id))
+            project = await self.create_project(project=Project(project_id=project_id))
         return project
 
     
     async def get_all_projects(self, page: int=1, page_size: int=10):
         async with self.db_client() as session:
             async with session.begin():
-                total_documents = await session.execute(select(
-                    func.count(Project.project_id)
-                )).scalar_one()
-                
-                total_pages = total_documents // total_pages
-                if total_documents % page_size > 0:
-                    total_pages += 1
-                
-                query = select(Project).offset((page - 1) * page_size).limit(page_size)
-                projects = await session.execute(query).scalars().all()
-                
+                total_documents = (await session.execute(select(func.count(Project.project_id)))).scalar_one()
+                page_size = max(page_size, 1)
+                total_pages = (total_documents + page_size - 1) // page_size
+                query = (select(Project).order_by(Project.project_id).offset((page - 1) * page_size).limit(page_size))
+                projects = (await session.execute(query)).scalars().all()
                 return projects, total_pages  
