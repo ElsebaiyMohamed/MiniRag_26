@@ -41,7 +41,7 @@ class ProjectDataModel(BaseDataModel):
         async with self.db_client() as session:
             async with session.begin():
                 total_documents = (await session.execute(select(func.count(Project.project_id)))).scalar_one()
-                
+                page_size = max(page_size, 1)
                 total_pages = (total_documents + page_size - 1) // page_size
                 query = (select(Project).order_by(Project.project_id).offset((page - 1) * page_size).limit(page_size))
                 projects = (await session.execute(query)).scalars().all()
