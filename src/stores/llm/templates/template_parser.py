@@ -19,6 +19,7 @@ class TemplateParser:
     def get(self, group: str, key: str, vars: dict | None = None):
         if not group or not key:
             return None
+        vars = vars or {}
         
         group_path = os.path.join(self.current_path, "locales", self.language, f"{group}.py" )
         targeted_language = self.language
@@ -36,4 +37,6 @@ class TemplateParser:
             return None
         
         key_attribute = getattr(module, key, None)
+        if key_attribute is None:
+            return None
         return key_attribute.substitute(vars)
