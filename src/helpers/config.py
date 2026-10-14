@@ -59,6 +59,8 @@ class Settings(BaseSettings):
         if "COHERE" in backends and not self.COHERE_API_KEY:
             raise ValueError("COHERE_API_KEY is required when a backend is COHERE")
         return self
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
