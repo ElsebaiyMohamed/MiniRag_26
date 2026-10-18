@@ -1,51 +1,53 @@
 import logging
+from typing import List
 
 from qdrant_client import QdrantClient, models
 
-from ..VectorDBInterface import VectorDBInterface
 from models.enums import DistanceMethodEnums
 from models.schemas import RetrievedDocument
+from ..VectorDBInterface import VectorDBInterface
+
 
 class QdrantDB(VectorDBInterface):
     def __init__(self, db_client, default_vector_size: int = 786, distance_method: str = None, index_threshold: int=None) -> None:
         self.client: QdrantClient= None
         self.db_client = db_client
-        
+
         if distance_method == DistanceMethodEnums.COSINE.value:
             self.distance_method = models.Distance.COSINE
         elif distance_method == DistanceMethodEnums.DOT.value:
             self.distance_method = models.Distance.DOT
-        else: 
+        else:
             self.distance_method =  models.Distance.COSINE
-            
+
         self.logger = logging.getLogger('uvicorn')
-        
+
     async def connect(self):
         self.client = QdrantClient(path=self.db_client)
     async def disconnect(self):
         self.client = None
     async def is_collection_existed(self, collection_name: str) -> bool:
         return self.client.collection_exists(collection_name=collection_name)
-    
+
     async def list_all_collections(self) -> list:
         return self.client.get_collections()
-    
+
     async def get_collection_info(self, collection_name: str) -> dict:
         return self.client.get_collection(collection_name=collection_name)
-    
+
     async def delete_collection(self, collection_name: str):
         if await self.is_collection_existed(collection_name=collection_name):
             self.client.delete_collection(collection_name=collection_name)
             return True
         return False
-    
+
     async def create_collection(self, collection_name: str, embedding_size: int, do_reset: bool = False) -> bool:
         if do_reset:
             _ = await self.delete_collection(collection_name=collection_name)
-        
+
         if not await self.is_collection_existed(collection_name=collection_name):
             self.client.create_collection(
-                collection_name=collection_name, 
+                collection_name=collection_name,
                 vectors_config=models.VectorParams(
                     size=embedding_size,
                     distance=self.distance_method
@@ -69,10 +71,10 @@ class QdrantDB(VectorDBInterface):
             ]
         status = await self._add_records(collection_name, record)
         return status[0]
-    
+
     async def insert_many(self, collection_name: str, texts: list, vectors: list, metadatas: list = None,
                     record_ids: list = None, batch_size: int = 50):
-        
+
         if not await self.is_collection_existed(collection_name=collection_name):
             self.logger.error(f"Can't insert new record to non existed collection {collection_name}")
             return {
@@ -101,27 +103,29 @@ class QdrantDB(VectorDBInterface):
             ]
             batch_status = await self._add_records(collection_name, batch_records)
             status.extend(batch_status)
-            
+
         return {
             'success': status.count(True),
             'failed': status.count(False)
         }
 
-    async def _add_records(self, collection_name: str, records: models.PointStruct):
+    async def _add_records(self, collection_name: str, records: List[
+        models.PointStruct]):
         try:
-            _ = self.client.upload_points(
-                    collection_name=collection_name,
-                    points=records
-                ) 
+            self.client.upload_points(
+                collection_name=collection_name,
+                points=records
+            )
             return [True] * len(records)
         except Exception as e:
             self.logger.error(f"Error while inserting at collection {collection_name} \n {e}")
             return [False] * len(records)
 
-    async def search_by_vector(self, collection_name: str, vector: list, limit: int=5) :
+    async def search_by_vector(self, collection_name: str, vector: List,
+                               limit: int=10) :
         results =  self.client.query_points(
                 collection_name=collection_name,
-                query=vector, 
+                query=vector,
                 limit=limit
             )
 
