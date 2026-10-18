@@ -226,7 +226,7 @@ Behavior the controllers depend on:
 | `create_collection(name, embedding_size, do_reset)` | If `do_reset` is true, drop first. Create only if missing. Return `True` when created, `False` when it already existed |
 | `delete_collection(name)` | Used by reset. Must be safe when the collection does not exist |
 | `get_collection_info(name)` | Return something JSON-serializable. The info route serializes it |
-| `insert_many(...)` | `record_ids` are the Postgres `chunk_id` values, one per vector. Return `True` on success, `False` on failure |
+| `insert_many(...)` | `record_ids` are the Postgres `chunk_id` values, one per vector. Return `{'success': n, 'failed': m}` |
 | `search_by_vector(name, vector, limit)` | Return a list of `RetrievedDocument(text=..., score=...)` sorted best first, where a higher score is better. Return `False` or `None` when the collection is missing |
 
 Collection names are `collection_{project_id}`, one per project. Keep projects isolated from each other.
