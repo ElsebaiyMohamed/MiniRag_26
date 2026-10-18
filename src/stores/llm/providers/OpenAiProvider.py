@@ -1,18 +1,17 @@
 import logging
+from typing import Union, List
 
 from openai import OpenAI
 
-
-from ..LLMInterface import LLMInterface
 from models.enums import OpenAIEnum
-
+from ..LLMInterface import LLMInterface
 
 
 class OpenAiProvider(LLMInterface):
-    def __init__(self, api_key: str, api_url: str= None, default_max_char: int=1000, 
+    def __init__(self, api_key: str, api_url: str= None, default_max_char: int=1000,
                 default_output_max_tokens: int=1000, default_generation_temperature: float=0.1):
         super().__init__()
-        
+
         self.api_key = api_key
         self.api_url = api_url if api_url else None
         self.default_max_char = default_max_char
@@ -43,45 +42,39 @@ class OpenAiProvider(LLMInterface):
         temperature = temperature if temperature is not None else self.default_generation_temperature
         chat_history: list = list(kwargs.get('chat_history', []))
         chat_history.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
-        
+
         response = self.client.chat.completions.create(
             model=self.generation_model_id,
             messages=chat_history,
             max_tokens=max_output_tokens,
             temperature=temperature
         )
-        
+
         if response is None or response.choices is None or len(response.choices) == 0 or response.choices[0].message is None:
             self.logger.error('unable to get response from provider')
             return None
         return response.choices[0].message.content
 
-    def embed_text(self, prompt: str, document_type: str=None, *args, **kwargs):
+
+    def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
         if self.client is None:
             self.logger.error("OpenAi client was not set")
             return None
         if self.embedding_model_id is None:
             self.logger.error("Embedding model for OpenAi not set")
             return None
-        response = self.client.embeddings.create(model=self.embedding_model_id, input=prompt)
-        
+        if isinstance(prompts, str):
+            texts = [self.process_text(prompts)]
+        else:
+            texts = [self.process_text(t) for t in prompts]
+        response = self.client.embeddings.create(model=self.embedding_model_id, input=texts)
+
         if response is None or response.data is None or len(response.data) == 0 or response.data[0].embedding is None:
             self.logger.error('unable to get embeddings from provider')
             return None
-        return response.data[0].embedding 
-    def batch_embed_text(self, prompt: str, document_type: str=None, *args, **kwargs):
-        if self.client is None:
-            self.logger.error("OpenAi client was not set")
-            return None
-        if self.embedding_model_id is None:
-            self.logger.error("Embedding model for OpenAi not set")
-            return None
-        response = self.client.embeddings.create(model=self.embedding_model_id, input=prompt)
-        
-        if response is None or response.data is None or len(response.data) == 0 or response.data[0].embedding is None:
-            self.logger.error('unable to get embeddings from provider')
-            return None
-        return [d.embedding for d in response.data] 
+        if len(texts) == 1:
+            return response.data[0].embedding
+        return [d.embedding for d in response.data]
 
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
         return {

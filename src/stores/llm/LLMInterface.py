@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+from typing import Union, List
 
 
 class LLMInterface(ABC):
@@ -17,7 +17,7 @@ class LLMInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def embed_text(self, prompt: str, document_type: str=None, *args, **kwargs):
+    def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
         raise NotImplementedError
 
     @abstractmethod

@@ -117,15 +117,13 @@ The contract the controllers rely on:
 | `set_generation_model(model_id)` | Store the model name. Called once at startup |
 | `set_embedding_model(model_id, embedding_size)` | Store the model name and its dimension. Called with both arguments at startup |
 | `generate_text(prompt, ..., chat_history=[...])` | Return the answer as a plain `str`. Return `None` on any failure. Prefer copying `chat_history` rather than mutating it |
-| `embed_text(prompt, document_type)` | Return one `list[float]`. `document_type` is `DocumentTypeEnum.DOCUMENT` when indexing and `QUERY` when searching |
-| `batch_embed_text(prompt, document_type)` | Return one vector per input string, in the same order. Used by indexing |
+| `embed_text(prompt, document_type)` | Return `list[float]` or `list[list[float], list[float], ...]`. `document_type` is `DocumentTypeEnum.DOCUMENT` when indexing and `QUERY` when searching |
 | `construct_prompt(prompt, role)` | Return a message dict in your API's format |
 | `enum` attribute | An enum with `SYSTEM`, `USER`, `ASSISTANT` values used to build `chat_history` |
 | `embedding_size` attribute | Read by indexing to create the collection |
 
 Notes:
 
-- `batch_embed_text` is required by `NLPController.index2vectordb` but is not declared in `LLMInterface`. Implement it anyway, and consider adding it to the interface when you contribute.
 - If your embedding model treats queries and documents differently (as Cohere does with `input_type`), map `document_type` accordingly. If it does not, ignore the argument.
 - Log the real error and return `None`. Routes turn a falsy result into a clean `4xx` signal.
 
