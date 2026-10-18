@@ -63,18 +63,18 @@ class OpenAiProvider(LLMInterface):
         if self.embedding_model_id is None:
             self.logger.error("Embedding model for OpenAi not set")
             return None
-        if isinstance(prompts, str):
-            texts = [self.process_text(prompts)]
-        else:
-            texts = [self.process_text(t) for t in prompts]
-        response = self.client.embeddings.create(model=self.embedding_model_id, input=texts)
+        single = isinstance(prompts, str)
+        texts = [self.process_text(prompts)] if single else [self.process_text(t) for t
+                                                             in prompts]
+        response = self.client.embeddings.create(model=self.embedding_model_id,
+                                                 input=texts)
+
 
         if response is None or response.data is None or len(response.data) == 0 or response.data[0].embedding is None:
             self.logger.error('unable to get embeddings from provider')
             return None
-        if len(texts) == 1:
-            return response.data[0].embedding
-        return [d.embedding for d in response.data]
+        vectors = [d.embedding for d in response.data]
+        return vectors[0] if single else vectors
 
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
         return {

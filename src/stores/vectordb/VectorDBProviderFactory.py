@@ -26,4 +26,4 @@ class VectorDBProviderFactory:
                 index_threshold=self.config.VECTOR_DB_PGVEC_INDEX_THRESHOLD
             )
         raise ValueError(
-            f"Unsupported LLM provider '{provider}'. Supported: QDRANT, PGVECTOR")
+            f"Unsupported VectorDB provider '{provider}'. Supported: QDRANT, PGVECTOR")

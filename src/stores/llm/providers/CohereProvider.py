@@ -66,10 +66,9 @@ class CohereProvider(LLMInterface):
             input_type = CohereEnum.DOCUMENT.value
             if document_type == DocumentTypeEnum.QUERY.value:
                 input_type = CohereEnum.QUERY.value
-            if isinstance(prompts, str):
-                texts = [self.process_text(prompts)]
-            else:
-                texts = [self.process_text(t) for t in prompts]
+            single = isinstance(prompts, str)
+            texts = [self.process_text(prompts)] if single else [self.process_text(t)
+                                                                 for t in prompts]
 
             response = self.client.embed(
                 model=self.embedding_model_id,
@@ -81,9 +80,8 @@ class CohereProvider(LLMInterface):
             if response is None or response.embeddings is None or not response.embeddings.float:
                 self.logger.error('unable to get embeddings from provider')
                 return None
-            if len(texts) == 1:
-                return response.embeddings.float[0]
-            return response.embeddings.float
+            vectors = response.embeddings.float
+            return vectors[0] if single else vectors
 
 
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):

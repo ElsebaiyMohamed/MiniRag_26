@@ -1,3 +1,5 @@
+from typing import Listfrom typing import Union
+
 # Adding a provider
 
 MiniRag_26 talks to language models and vector databases through interfaces and factories, so adding a new one touches a small, predictable set of files. This guide covers:
@@ -59,6 +61,7 @@ Create `src/stores/llm/providers/AcmeProvider.py`:
 
 ```python
 import logging
+from typing import Union, List
 
 from ..LLMInterface import LLMInterface
 from models.enums import AcmeEnum, DocumentTypeEnum
@@ -95,13 +98,12 @@ class AcmeProvider(LLMInterface):
         # call your API; return the answer text, or None on failure
         ...
 
-    def embed_text(self, prompt: str, document_type: str = None, *args, **kwargs):
-        # return one vector (list of floats), or None on failure
+    def embed_text(self, prompts: Union[List, str], document_type: str = None, *args, 
+                   **kwargs):
+        # return one vector (list of floats) or list of vectors for many inputs, or 
+        None on failure
         ...
 
-    def batch_embed_text(self, prompt: list, document_type: str = None, *args, **kwargs):
-        # prompt is a list of strings; return a list of vectors, or None on failure
-        ...
 
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
         return {'role': role, 'content': self.process_text(prompt)}

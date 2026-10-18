@@ -61,8 +61,7 @@ class NLPController(BaseController):
     async def search_vector_db_collection(self, project: Project, text: str, limit: int = 10):
         collection_name = self.create_collection_name(project.project_id)
         vector = self.embedding_client.embed_text(
-                    collection_name=collection_name,
-                    prompt=text,
+                    prompts=text,
                     document_type=DocumentTypeEnum.QUERY.value
                 )
         if not vector or len(vector) == 0:
