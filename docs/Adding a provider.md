@@ -1,3 +1,5 @@
+from typing import Listfrom typing import Union
+
 # Adding a provider
 
 MiniRag_26 talks to language models and vector databases through interfaces and factories, so adding a new one touches a small, predictable set of files. This guide covers:
@@ -59,6 +61,7 @@ Create `src/stores/llm/providers/AcmeProvider.py`:
 
 ```python
 import logging
+from typing import Union, List
 
 from ..LLMInterface import LLMInterface
 from models.enums import AcmeEnum, DocumentTypeEnum
@@ -95,13 +98,12 @@ class AcmeProvider(LLMInterface):
         # call your API; return the answer text, or None on failure
         ...
 
-    def embed_text(self, prompt: str, document_type: str = None, *args, **kwargs):
-        # return one vector (list of floats), or None on failure
+    def embed_text(self, prompts: Union[List, str], document_type: str = None, *args, 
+                   **kwargs):
+        # return one vector (list of floats) or list of vectors for many inputs, or 
+        None on failure
         ...
 
-    def batch_embed_text(self, prompt: list, document_type: str = None, *args, **kwargs):
-        # prompt is a list of strings; return a list of vectors, or None on failure
-        ...
 
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
         return {'role': role, 'content': self.process_text(prompt)}
@@ -117,15 +119,13 @@ The contract the controllers rely on:
 | `set_generation_model(model_id)` | Store the model name. Called once at startup |
 | `set_embedding_model(model_id, embedding_size)` | Store the model name and its dimension. Called with both arguments at startup |
 | `generate_text(prompt, ..., chat_history=[...])` | Return the answer as a plain `str`. Return `None` on any failure. Prefer copying `chat_history` rather than mutating it |
-| `embed_text(prompt, document_type)` | Return one `list[float]`. `document_type` is `DocumentTypeEnum.DOCUMENT` when indexing and `QUERY` when searching |
-| `batch_embed_text(prompt, document_type)` | Return one vector per input string, in the same order. Used by indexing |
+| `embed_text(prompt, document_type)` | Return `list[float]` or `list[list[float], list[float], ...]`. `document_type` is `DocumentTypeEnum.DOCUMENT` when indexing and `QUERY` when searching |
 | `construct_prompt(prompt, role)` | Return a message dict in your API's format |
 | `enum` attribute | An enum with `SYSTEM`, `USER`, `ASSISTANT` values used to build `chat_history` |
 | `embedding_size` attribute | Read by indexing to create the collection |
 
 Notes:
 
-- `batch_embed_text` is required by `NLPController.index2vectordb` but is not declared in `LLMInterface`. Implement it anyway, and consider adding it to the interface when you contribute.
 - If your embedding model treats queries and documents differently (as Cohere does with `input_type`), map `document_type` accordingly. If it does not, ignore the argument.
 - Log the real error and return `None`. Routes turn a falsy result into a clean `4xx` signal.
 
@@ -228,7 +228,7 @@ Behavior the controllers depend on:
 | `create_collection(name, embedding_size, do_reset)` | If `do_reset` is true, drop first. Create only if missing. Return `True` when created, `False` when it already existed |
 | `delete_collection(name)` | Used by reset. Must be safe when the collection does not exist |
 | `get_collection_info(name)` | Return something JSON-serializable. The info route serializes it |
-| `insert_many(...)` | `record_ids` are the Postgres `chunk_id` values, one per vector. Return `True` on success, `False` on failure |
+| `insert_many(...)` | `record_ids` are the Postgres `chunk_id` values, one per vector. Return `{'success': n, 'failed': m}` |
 | `search_by_vector(name, vector, limit)` | Return a list of `RetrievedDocument(text=..., score=...)` sorted best first, where a higher score is better. Return `False` or `None` when the collection is missing |
 
 Collection names are `collection_{project_id}`, one per project. Keep projects isolated from each other.

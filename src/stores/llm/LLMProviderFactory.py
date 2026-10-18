@@ -1,3 +1,4 @@
+from helpers import Settings
 from models.enums import LLMEnum
 from .providers import OpenAiProvider, CohereProvider
 
@@ -5,7 +6,7 @@ from .providers import OpenAiProvider, CohereProvider
 
 
 class LLMProviderFactory:
-    def __init__(self, config: dict):
+    def __init__(self, config: Settings):
         self.config = config
     def create(self, provider: str):
         if provider == LLMEnum.OPENAI.value:
@@ -24,4 +25,5 @@ class LLMProviderFactory:
                 default_generation_temperature=self.config.GENERATION_DEFAULT_TEMPERATURE
             )
         else:
-            return None
+            raise ValueError(
+                f"Unsupported LLM provider '{provider}'. Supported: OPENAI, COHERE")

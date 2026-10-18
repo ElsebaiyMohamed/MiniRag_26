@@ -44,6 +44,11 @@ Then set `sqlalchemy.url` inside it. See [Configuration](configuration.md#config
 
 **Fix:** set `VECTORDB_BACKEND` exactly to `PGVECTOR` or `QDRANT` (uppercase).
 
+**Cause:** `GENERATION_BACKEND` is empty or not one of `OPENAI` or `COHERE`, so no 
+llms store could be created.
+
+**Fix:** set `GENERATION_BACKEND` exactly to `OPENAI` or `COHERE` (uppercase).
+
 ### `alembic upgrade head` fails with `No module named 'schemas'`
 
 **Cause:** Alembic was run from the wrong folder. Its `env.py` imports `schemas` relative to the migrations folder.

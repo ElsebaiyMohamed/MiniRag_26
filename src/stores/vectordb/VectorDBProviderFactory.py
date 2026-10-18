@@ -1,10 +1,9 @@
 
 from sqlalchemy.orm import sessionmaker
 
-from models.enums import VectorDBEnums
 from controllers import BaseController
+from models.enums import VectorDBEnums
 from .providers import QdrantDB, PgVector
-
 
 
 class VectorDBProviderFactory:
@@ -18,7 +17,7 @@ class VectorDBProviderFactory:
                 db_client=self.base_controller.get_database_path(self.config.VECTOR_DB_FILE_PATH),
                 distance_method=self.config.VECTOR_DB_DISTANCE_METRIC
             )
-        
+
         if provider == VectorDBEnums.PGVECTOR.value:
             return PgVector(
                 db_client=self.db_client,
@@ -26,4 +25,5 @@ class VectorDBProviderFactory:
                 default_vector_size=self.config.EMBEDDING_MODEL_SIZE,
                 index_threshold=self.config.VECTOR_DB_PGVEC_INDEX_THRESHOLD
             )
-        return None
+        raise ValueError(
+            f"Unsupported VectorDB provider '{provider}'. Supported: QDRANT, PGVECTOR")
