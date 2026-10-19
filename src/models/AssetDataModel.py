@@ -46,12 +46,23 @@ class AssetDataModel(BaseDataModel):
 
         return len(assets)
 
-    async def get_all_project_assets(self, asset_project_id: int, asset_type: str):
-        async with self.db_client() as session:
-            stmt = select(Asset).where(Asset.asset_project_id == asset_project_id, Asset.asset_type == asset_type)
+    async def get_all_project_assets(self, asset_project_id: int, asset_type: str,
+                                    asset_status: int=None):
+        async with (self.db_client() as session):
+            if asset_status is None:
+                stmt = select(Asset).where(
+                    Asset.asset_project_id == asset_project_id,
+                    Asset.asset_type == asset_type,
+                )
+            else:
+                stmt = select(Asset).where(
+                    Asset.asset_project_id == asset_project_id,
+                                Asset.asset_type == asset_type,
+                                Asset.asset_status==asset_status
+                )
             result = await session.execute(stmt)
             records = result.scalars().all()
-            return records
+            return records if records else False
 
     async def set_asset_status(self, asset_id: int, status: int):
         async with self.db_client() as session:
