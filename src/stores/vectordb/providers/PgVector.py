@@ -129,6 +129,26 @@ class PgVector(VectorDBInterface):
 
         return True
 
+    async def delete_embeddings_by_asset_id(self, collection_name: str,
+                                            asset_id: int) -> int:
+
+        if not collection_name.startswith(self.pgvector_table_prefix):
+            collection_name = self.get_pg_collection_name(
+                collection_name=collection_name)
+
+        # Map enum schema keys safely
+        asset_id_id_col = PgVectorTableSchemaEnums.ASSET_ID.value
+
+        async with self.db_client() as session:
+            async with session.begin():
+                stmt = sql_text(f"""
+                    DELETE FROM {collection_name} 
+                    WHERE {asset_id_id_col} = :asset_id
+                """)
+                result = await session.execute(stmt, {"asset_id": asset_id})
+
+        return result.rowcount
+
     async def create_collection(self, collection_name: str, embedding_size: int, do_reset: bool = False):
         if not collection_name.startswith(self.pgvector_table_prefix):
             collection_name = self.get_pg_collection_name(collection_name=collection_name)
@@ -147,12 +167,11 @@ class PgVector(VectorDBInterface):
                             f'{PgVectorTableSchemaEnums.VECTOR.value} vector({embedding_size}), '
                             f'{PgVectorTableSchemaEnums.METADATA.value} jsonb DEFAULT \'{{}}\', '
                             f'{PgVectorTableSchemaEnums.CHUNK_ID.value} integer, '
+                            f'{PgVectorTableSchemaEnums.ASSET_ID.value} integer, '
                             f'FOREIGN KEY ({PgVectorTableSchemaEnums.CHUNK_ID.value}) REFERENCES chunks(chunk_id) ON DELETE CASCADE'
                         ')'
                     )
                     await session.execute(create_sql)
-                    await session.commit()
-
             return True
 
         return False
@@ -215,7 +234,8 @@ class PgVector(VectorDBInterface):
         return await self.create_vector_index(collection_name=collection_name, index_type=index_type)
 
 
-    async def insert_one(self, collection_name: str, text: str, vector: List, metadata: dict = None, record_id: str = None):
+    async def insert_one(self, collection_name: str, text: str, vector: List,
+                    metadata: dict = None, record_id: str = None, asset_id: int=None):
         if not collection_name.startswith(self.pgvector_table_prefix):
             collection_name = self.get_pg_collection_name(collection_name=collection_name)
 
@@ -223,7 +243,9 @@ class PgVector(VectorDBInterface):
         if not is_collection_existed:
             self.logger.error(f"Can not insert new record to non-existed collection: {collection_name}")
             return False
-
+        if not asset_id:
+            self.logger.error(f"Can not insert new record without asset_id:{collection_name}")
+            return False
         if not record_id:
             self.logger.error(f"Can not insert new record without chunk_id: {collection_name}")
             return False
@@ -231,8 +253,12 @@ class PgVector(VectorDBInterface):
         async with self.db_client() as session:
             async with session.begin():
                 insert_sql = sql_text(f'INSERT INTO {collection_name} '
-                                f'({PgVectorTableSchemaEnums.TEXT.value}, {PgVectorTableSchemaEnums.VECTOR.value}, {PgVectorTableSchemaEnums.METADATA.value}, {PgVectorTableSchemaEnums.CHUNK_ID.value}) '
-                                'VALUES (:text, :vector, :metadata, :chunk_id)'
+                                f'({PgVectorTableSchemaEnums.TEXT.value},'
+                                f'{PgVectorTableSchemaEnums.VECTOR.value},'
+                                f'{PgVectorTableSchemaEnums.METADATA.value},'
+                                f'{PgVectorTableSchemaEnums.CHUNK_ID.value}, '
+                                f'{PgVectorTableSchemaEnums.ASSET_ID.value}) '
+                                'VALUES (:text, :vector, :metadata, :chunk_id,:asset_id)'
                             )
 
                 metadata_json = json.dumps(metadata, ensure_ascii=False) if metadata is not None else "{}"
@@ -240,7 +266,8 @@ class PgVector(VectorDBInterface):
                     'text': text,
                     'vector': "[" + ",".join([ str(v) for v in vector ]) + "]",
                     'metadata': metadata_json,
-                    'chunk_id': record_id
+                    'chunk_id': record_id,
+                    'asset_id': asset_id
                 })
                 await session.commit()
 
@@ -251,7 +278,8 @@ class PgVector(VectorDBInterface):
 
     async def insert_many(self, collection_name: str, texts: List, vectors: List,
                           metadatas: List = None, record_ids: List = None,
-                          batch_size: int = 50):
+                          asset_ids: List=None, batch_size: int = 50):
+
         if not collection_name.startswith(self.pgvector_table_prefix):
             collection_name = self.get_pg_collection_name(collection_name=collection_name)
 
@@ -263,7 +291,7 @@ class PgVector(VectorDBInterface):
             'failed': len(vectors)
         }
 
-        if len(vectors) != len(record_ids):
+        if len(vectors) != len(record_ids) or len(record_ids) != len(asset_ids):
             self.logger.error(f"Invalid data items for collection: {collection_name}")
             return {
                         'success': 0,
@@ -279,25 +307,30 @@ class PgVector(VectorDBInterface):
                 batch_vectors = vectors[i:i + batch_size]
                 batch_metadata = metadatas[i:i + batch_size]
                 batch_record_ids = record_ids[i:i + batch_size]
+                batch_asset_ids = asset_ids[i:i + batch_size]
 
                 values = []
 
-                for _text, _vector, _metadata, _record_id in zip(batch_texts, batch_vectors, batch_metadata, batch_record_ids):
+                for _text, _vector, _metadata, _record_id , _asset_id in zip(
+                        batch_texts, batch_vectors, batch_metadata, batch_record_ids,
+                        batch_asset_ids):
 
                     metadata_json = json.dumps(_metadata, ensure_ascii=False) if _metadata is not None else "{}"
                     values.append({
                         'text': _text,
                         'vector': "[" + ",".join([ str(v) for v in _vector ]) + "]",
                         'metadata': metadata_json,
-                        'chunk_id': _record_id
+                        'chunk_id': _record_id,
+                        'asset_id': _asset_id
                     })
 
                 batch_insert_sql = sql_text(f'INSERT INTO {collection_name} '
                                 f'({PgVectorTableSchemaEnums.TEXT.value}, '
                                 f'{PgVectorTableSchemaEnums.VECTOR.value}, '
                                 f'{PgVectorTableSchemaEnums.METADATA.value}, '
-                                f'{PgVectorTableSchemaEnums.CHUNK_ID.value}) '
-                                f'VALUES (:text, :vector, :metadata, :chunk_id)')
+                                f'{PgVectorTableSchemaEnums.CHUNK_ID.value}, '
+                                f'{PgVectorTableSchemaEnums.ASSET_ID.value}) '
+                                f'VALUES (:text, :vector, :metadata, :chunk_id, :asset_id)')
                 try:
                     async with session.begin():
                         await session.execute(batch_insert_sql, values)
