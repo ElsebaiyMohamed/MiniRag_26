@@ -62,7 +62,7 @@ class AssetDataModel(BaseDataModel):
                 )
             result = await session.execute(stmt)
             records = result.scalars().all()
-            return records if records else False
+            return records
 
     async def set_asset_status(self, asset_id: int, status: int):
         async with self.db_client() as session:

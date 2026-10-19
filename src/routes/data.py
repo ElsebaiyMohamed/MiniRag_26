@@ -94,9 +94,13 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
         )
     if process_request.do_reset:
         log_it.info("reset all chunks at project")
+        for dummy_asset in all_project_files:
+            await asset_model.set_asset_status(dummy_asset.asset_id,
+                                            AssetStatus.UPLOADED.value)
         no_deleted = await chunk_model.delete_chunks_by_project_id(
             project_id=project.project_id
         )
+
         project_files = all_project_files
     else:
         project_files = [asset for asset in all_project_files if asset.asset_status==AssetStatus.UPLOADED.value]
