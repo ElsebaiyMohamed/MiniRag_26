@@ -46,7 +46,7 @@ class AssetDataModel(BaseDataModel):
 
         return len(assets)
 
-    async def get_all_project_assets(self, asset_project_id: int, asset_type: str=None):
+    async def get_all_project_assets(self, asset_project_id: int, asset_type: str):
         async with self.db_client() as session:
             stmt = select(Asset).where(Asset.asset_project_id == asset_project_id, Asset.asset_type == asset_type)
             result = await session.execute(stmt)
@@ -61,3 +61,16 @@ class AssetDataModel(BaseDataModel):
                 if result.rowcount == 0:
                     return False
         return True
+
+    async def delete_asset(self, asset_id: int) -> bool:
+        async with self.db_client() as session:
+            async with session.begin():
+                query = select(Asset).where(Asset.asset_id == asset_id)
+                asset = (await session.execute(query)).scalar_one_or_none()
+
+                if not asset:
+                    return False
+
+                # Deleting via session.delete() fires the ORM cascade
+                await session.delete(asset)
+                return True
