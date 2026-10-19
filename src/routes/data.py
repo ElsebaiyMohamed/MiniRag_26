@@ -8,7 +8,7 @@ from controllers import DataController, ProjectController, ProcessController
 from helpers import Settings, get_settings
 from models import ProjectDataModel, ChunkDataModel, AssetDataModel
 from models.db_schemas import DataChunk, Asset
-from models.enums import ResponseSignal, AssetType
+from models.enums import ResponseSignal, AssetType, AssetStatus
 from models.schemas import ProcessRequest
 
 log_it = logging.getLogger("uvicorn.error")
@@ -55,6 +55,7 @@ async def upload(
         asset_type=AssetType.FILE.value,
         asset_name=file_id,
         asset_size=file.size,
+        asset_status=AssetStatus.UPLOADED.value
     )
     asset_record = await asset_model.create_asset(asset_resource)
 
@@ -68,33 +69,51 @@ async def upload(
 
 
 @data_router.post("/process/{project_id}")
-async def process_endpoint(
-    request: Request, project_id: int, process_request: ProcessRequest
-):
+async def process_endpoint(request: Request, project_id: int, process_request: ProcessRequest):
     processor_controller = ProcessController(project_id=project_id)
     project_model = await ProjectDataModel.create_instance(
         db_client=request.app.db_client
     )
-    project = await project_model.get_project_or_create_one(project_id=project_id)
+    project = await project_model.get_project(project_id=project_id)
+    if not project:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"signal": ResponseSignal.PROJECT_NOT_FOUND.value},
+        )
     chunk_model = await ChunkDataModel.create_instance(db_client=request.app.db_client)
 
     asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
-
-    project_files = await asset_model.get_all_project_assets(
+    all_project_files = await asset_model.get_all_project_assets(
         asset_project_id=project.project_id, asset_type=AssetType.FILE.value
     )
-    project_file_ids = {record.asset_id: record.asset_name for record in project_files}
-
-    if not project_file_ids:
+    total_project_files_num = len(all_project_files)
+    if not total_project_files_num:
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             content={"signal": ResponseSignal.NO_FILES_ERROR.value},
         )
     if process_request.do_reset:
+        log_it.info("reset all chunks at project")
         no_deleted = await chunk_model.delete_chunks_by_project_id(
             project_id=project.project_id
         )
+        project_files = all_project_files
+    else:
+        project_files = [asset for asset in all_project_files if asset.asset_status==AssetStatus.UPLOADED.value]
 
+    if not project_files:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "signal": ResponseSignal.FILES_ALREADY_PROCESSED.value,
+                "total_no_files": total_project_files_num,
+                "no_files_proceeds": 0,
+                "no_files_success": 0,
+                "no_records_added": 0,
+                },
+        )
+
+    project_file_ids = {record.asset_id: record.asset_name for record in project_files}
     no_of_records = 0
     total_no_files = len(project_file_ids)
     faild_files = 0
@@ -112,13 +131,9 @@ async def process_endpoint(
         )
 
         if file_chunks is None or not file_chunks:
-            return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                content={
-                    "file_id": file_id,
-                    "signal": ResponseSignal.PROCESSING_FAILED.value,
-                },
-            )
+            faild_files += 1
+            continue
+
         file_chunks_record = [
             DataChunk(
                 chunk_text=chunk.page_content,
@@ -131,13 +146,15 @@ async def process_endpoint(
         ]
 
         no_of_records += await chunk_model.create_many_chunks(chunks=file_chunks_record)
+        await asset_model.set_asset_status(asset_id, AssetStatus.CHUNKED.value)
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
             "signal": ResponseSignal.PROCESSING_SUCCESS.value,
-            "no_files": total_no_files,
+            "total_no_files": total_project_files_num,
+            "no_files_proceeds": total_no_files,
             "no_files_success": total_no_files - faild_files,
-            "no_records": no_of_records,
+            "no_records_added": no_of_records,
         },
     )
