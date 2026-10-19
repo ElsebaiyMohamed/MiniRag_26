@@ -8,21 +8,21 @@ class ChunkDataModel(BaseDataModel):
     def __init__(self, db_client: object):
         super().__init__(db_client)
         self.db_client = db_client
-    
+
     @classmethod
     async def create_instance(cls, db_client: object):
         instance = cls(db_client)
         return instance
-    
+
     async def create_chunk(self, chunk: DataChunk):
         async with self.db_client() as session:
             async with session.begin():
                 session.add(chunk)
             await session.commit()
             await session.refresh(chunk)
-            
+
         return chunk
-    
+
     async def get_chunk(self, chunk_id: int):
         async with self.db_client() as session:
                 query = select(DataChunk).where(DataChunk.chunk_id==chunk_id)
@@ -37,7 +37,7 @@ class ChunkDataModel(BaseDataModel):
             await session.commit()
 
         return len(chunks)
-    
+
     async def get_project_chunks(self, project_id: int, page_no: int = 1 , page_size: int=10):
         async with self.db_client() as session:
             stmt = select(DataChunk).where(DataChunk.chunk_project_id == project_id).offset((page_no - 1) * page_size).limit(page_size)
@@ -51,5 +51,12 @@ class ChunkDataModel(BaseDataModel):
                 stmt = delete(DataChunk).where(DataChunk.chunk_project_id==project_id)
                 result = await session.execute(stmt)
             await session.commit()
-        
+
         return result.rowcount
+
+    async def delete_chunks_by_asset_id(self, asset_id: int):
+        async with self.db_client() as session:
+            async with session.begin():
+                stmt = delete(DataChunk).where(DataChunk.chunk_asset_id == asset_id)
+                result = await session.execute(stmt)
+        return bool(result.rowcount)
