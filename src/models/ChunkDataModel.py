@@ -38,13 +38,20 @@ class ChunkDataModel(BaseDataModel):
 
         return len(chunks)
 
-    async def get_project_chunks(self, project_id: int, page_no: int = 1 , page_size: int=10):
+    async def get_project_chunks(self, project_id: int, page_no: int = 1 , page_size:
+    int=10):
         async with self.db_client() as session:
-            stmt = select(DataChunk).where(DataChunk.chunk_project_id == project_id).offset((page_no - 1) * page_size).limit(page_size)
+            stmt = select(DataChunk).where(
+                DataChunk.chunk_project_id == project_id).offset((page_no - 1) * page_size).limit(page_size)
             result = await session.execute(stmt)
             records = result.scalars().all()
             return records
-
+    async def get_project_asset_chunks(self, asset_id: int, page_no: int = 1, page_size: int=10):
+        async with self.db_client() as session:
+            stmt = select(DataChunk).where(DataChunk.chunk_asset_id == asset_id).offset((page_no - 1) * page_size).limit(page_size)
+            result = await session.execute(stmt)
+            records = result.scalars().all()
+            return records
     async def delete_chunks_by_project_id(self, project_id: int):
         async with self.db_client() as session:
             async with session.begin():
