@@ -5,8 +5,8 @@ from fastapi import APIRouter, status, Request
 from fastapi.responses import JSONResponse
 
 from controllers import NLPController
-from models import ProjectDataModel, ChunkDataModel
-from models.enums import ResponseSignal
+from models import ProjectDataModel, AssetDataModel, ChunkDataModel
+from models.enums import ResponseSignal, AssetType, AssetStatus
 from models.schemas import PushRequest, SearchRequest
 
 log_it = logging.getLogger('uvicorn.error')
@@ -18,61 +18,101 @@ nlp_router = APIRouter(prefix="/api/v1/nlp",
 @nlp_router.post('/index/push/{project_id}')
 async def index_project(request: Request, project_id: int, push_request: PushRequest):
 
-    project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
-    chunk_model = await ChunkDataModel.create_instance(db_client=request.app.db_client)
-
+    project_model = await ProjectDataModel.create_instance(
+        db_client=request.app.db_client
+    )
     project = await project_model.get_project(project_id=project_id)
-
-    if project is None:
+    if not project:
         return JSONResponse(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    content={
-                        'project_id': project_id,
-                        'signal': ResponseSignal.PROJECT_NOT_FOUND.value
-                    }
-                )
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"signal": ResponseSignal.PROJECT_NOT_FOUND.value},
+        )
 
+    asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
 
+    all_project_files = await asset_model.get_all_project_assets(
+        asset_project_id=project.project_id, asset_type=AssetType.FILE.value
+    )
+
+    total_project_files_num = len(all_project_files)
+    if not total_project_files_num:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"signal": ResponseSignal.NO_FILES_ERROR.value},
+        )
+
+    chunk_model: ChunkDataModel = await ChunkDataModel.create_instance(
+        db_client=request.app.db_client)
     nlp_controller = NLPController(
         vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client
     )
 
-
     if push_request.do_reset:
-        await nlp_controller.reset_vectordb_collection(project)
-    has_records = True
-    page_no = 1
-    chunks_insertion_status = {
-            'success': 0,
-            'failed': 0
-        }
+        log_it.info("reset all embedding at project")
+        for dummy_asset in all_project_files:
+            if dummy_asset.asset_status == AssetStatus.INDEXED.value:
+                await asset_model.set_asset_status(dummy_asset.asset_id, AssetStatus.CHUNKED.value)
+        no_deleted = await nlp_controller.reset_vectordb_collection(project)
+        project_files = all_project_files
+    else:
+        project_files = [
+            asset for asset in all_project_files
+            if asset.asset_status == AssetStatus.CHUNKED.value
+        ]
+    index_status = {
+        'file_success': 0,
+        'file_failed': 0,
+        'chunk_success': 0,
+        'chunk_failed': 0
+    }
+    for asset in project_files:
+        has_records = True
+        page_no = 1
+        chunks_insertion_status = {
+                'success': 0,
+                'failed': 0
+            }
 
-    while has_records:
-        page_chunks = await chunk_model.get_project_chunks(project_id=project.project_id, page_no=page_no)
+        while has_records:
+            page_chunks = await chunk_model.get_project_asset_chunks(
+                asset_id=asset.asset_id, page_no=page_no)
+            if not page_chunks or len(page_chunks) == 0:
+                has_records = False
+                break
+            page_no += 1
+
+            insertion_status = await nlp_controller.index2vectordb(
+                project=project,
+                chunks=page_chunks,
+                do_reset=False
+            )
+            chunks_insertion_status = {key: chunks_insertion_status[key] + insertion_status[key] for key in chunks_insertion_status.keys()}
+
+        if chunks_insertion_status['success'] == 0:
+            log_it.error(f"file {asset.asset_name} failed to indexed ")
+            index_status['file_failed'] += 1
+
+            _ = await nlp_controller.reset_vectordb_collection_asset_vectors(
+                project=project, asset=asset)
+        else:
+            await asset_model.set_asset_status(asset.asset_id,
+                                            AssetStatus.INDEXED.value)
+            index_status['file_success'] += 1
+            index_status['chunk_success'] += chunks_insertion_status['success']
+            index_status['chunk_failed'] += chunks_insertion_status['failed']
 
 
-        if not page_chunks or len(page_chunks) == 0:
-            has_records = False
-            break
-        page_no += 1
 
-        insertion_status = await nlp_controller.index2vectordb(
-            project=project,
-            chunks=page_chunks,
-            do_reset=False
-        )
-        chunks_insertion_status = {key: chunks_insertion_status[key] + insertion_status[key] for key in chunks_insertion_status.keys()}
-
-    if chunks_insertion_status['success'] == 0:
+    if index_status['file_success'] == 0:
         log_it.error(ResponseSignal.INSERT_INTO_VECTORDB_ERROR.value)
-        _ = await nlp_controller.reset_vectordb_collection(project=project)
+
         return JSONResponse(
                             status_code=status.HTTP_400_BAD_REQUEST,
                             content={
                                 'signal': ResponseSignal.INSERT_INTO_VECTORDB_ERROR.value,
-                                'insertion_status': chunks_insertion_status
+                                'insertion_status': index_status
                             }
                         )
 
@@ -81,7 +121,7 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
             status_code=status.HTTP_200_OK,
             content={
                 'signal': ResponseSignal.INSERT_INTO_VECTOR_DATABASE_SUCCESS.value,
-                'insertion_status': chunks_insertion_status
+                'insertion_status': index_status
             }
         )
 
