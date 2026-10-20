@@ -13,7 +13,7 @@ Before you start, read the code of the existing providers next to the interface.
 | Kind | Interface | Existing providers |
 |---|---|---|
 | LLM | `src/stores/llm/LLMInterface.py` | `CohereProvider`, `OpenAiProvider` |
-| Vector store | `src/stores/vectordb/VectorDBInterface.py` | `PgVector`, `QdrantDB` |
+| Vector store | `src/stores/vectordb/VectorDBInterface.py` | `PgVector`|
 
 If your LLM server speaks the OpenAI API (Ollama, vLLM, LM Studio, and others), you do not need a new provider. Set `OPENAI_API_URL`. See [Configuration](configuration.md).
 
@@ -186,7 +186,6 @@ In `src/models/enums/VectorDBEnums.py`:
 
 ```python
 class VectorDBEnums(Enum):
-    QDRANT = 'QDRANT'
     PGVECTOR = 'PGVECTOR'
     ACME = 'ACME'
 ```

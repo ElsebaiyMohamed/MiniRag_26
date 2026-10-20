@@ -40,9 +40,9 @@ Then set `sqlalchemy.url` inside it. See [Configuration](configuration.md#config
 
 ### API fails at startup right after the vector database step
 
-**Cause:** `VECTORDB_BACKEND` is empty or not one of `PGVECTOR` or `QDRANT`, so no vector store could be created.
+**Cause:** `VECTORDB_BACKEND` is empty or not `PGVECTOR`, so no vector store could be created.
 
-**Fix:** set `VECTORDB_BACKEND` exactly to `PGVECTOR` or `QDRANT` (uppercase).
+**Fix:** set `VECTORDB_BACKEND` exactly to `PGVECTOR` (uppercase).
 
 **Cause:** `GENERATION_BACKEND` is empty or not one of `OPENAI` or `COHERE`, so no 
 llms store could be created.
@@ -87,7 +87,7 @@ sudo apt install libpq-dev gcc python3-dev
 
 ### A port is already in use
 
-The stack publishes these host ports: `80` (Nginx), `8000` (API), `5432` (Postgres), `6333` and `5334` (Qdrant), `3000` (Grafana), `9090` (Prometheus), `9100` (node-exporter), `9187` (postgres-exporter).
+The stack publishes these host ports: `80` (Nginx), `8000` (API), `5432` (Postgres), `3000` (Grafana), `9090` (Prometheus), `9100` (node-exporter), `9187` (postgres-exporter).
 
 **Fix:** stop the process using the port, or change the left side of the mapping in `docker/docker-compose.yml`, for example `"5433:5432"` to expose Postgres on host port `5433` while the container keeps `5432`. Do not change the container-side port or the `POSTGRES_PORT` used inside the Docker network.
 
@@ -216,11 +216,6 @@ Make sure Ollama listens on an address reachable from the container, and that yo
 
 ## Vector store
 
-### Multiple workers fail with embedded Qdrant
-
-**Cause:** the Docker image starts several `uvicorn` workers. Embedded (file-based) Qdrant is meant for one process, and a second process opening the same folder is typically rejected.
-
-**Fix:** use `VECTORDB_BACKEND=PGVECTOR`, or run a single worker. See [Deployment](deployment.md#workers-and-the-vector-store).
 
 ### Searches are slow on a large project
 

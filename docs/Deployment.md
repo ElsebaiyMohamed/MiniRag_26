@@ -23,7 +23,6 @@ The Docker Compose stack is set up for easy local use. Before you expose it to o
 | `nginx` | `80` | Keep (and add `443`) |
 | `fastapi` | `8000` | Remove. Reach it through Nginx |
 | `pgvector` | `5432` | Remove |
-| `qdrant` | `6333`, `5334` | Remove |
 | `postgres-exporter` | `9187` | Remove |
 | `node-exporter` | `9100` | Remove |
 | `prometheus` | `9090` | Remove, or restrict to a private network |
@@ -125,8 +124,6 @@ Mount the file into the container, and add `docker/nginx/.htpasswd` to `.gitigno
 
 The Docker image starts `uvicorn` with several workers (`--workers 4`). This matters for two things.
 
-**Vector store.** Embedded Qdrant (`VECTORDB_BACKEND=QDRANT`) keeps its data in a local folder meant to be used by one process. Several workers opening the same folder typically conflict. With multiple workers, use `PGVECTOR`. Choose embedded Qdrant only with a single worker.
-
 **Metrics.** Each worker keeps its own in-memory Prometheus counters, so a scrape of `/metrics` reflects whichever worker answered. See [Monitoring](monitoring.md#multiple-workers).
 
 To change the worker count, edit the `CMD` in `docker/minirag/DockerFile` and rebuild.
@@ -138,8 +135,7 @@ State lives in named Docker volumes. Back up the first two together, because upl
 | Volume | Contents |
 |---|---|
 | `pgvector_data` | PostgreSQL: projects, assets, chunks, and (with pgvector) the vectors |
-| `fast_api_data` | Uploaded files under `/app/assets` (and embedded Qdrant data, if used) |
-| `qdrant_data` | Data of the Qdrant service in the Compose file |
+| `fast_api_data` | Uploaded files under `/app/assets` |
 | `grafana_data`, `prometheus_data` | Dashboards and metrics history (optional) |
 
 Logical database backup and restore:

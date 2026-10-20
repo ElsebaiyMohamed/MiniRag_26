@@ -13,11 +13,11 @@ First tagged release. It builds on the code from the original mini-RAG course an
 
 - Document upload for `.txt` and `.pdf` files (10 MB by default) with per-project storage.
 - Chunking endpoint with a line-aware text splitter and configurable chunk size.
-- Indexing endpoint that embeds chunks and stores vectors in pgvector or Qdrant, with an automatic HNSW index once a collection passes a configurable size.
+- Indexing endpoint that embeds chunks and stores vectors in pgvector, with an automatic HNSW index once a collection passes a configurable size.
 - Semantic search and retrieval-augmented answering endpoints, with English and Arabic prompt templates.
 - Pluggable LLM providers: Cohere and any OpenAI-compatible API, including local models through Ollama.
 - PostgreSQL storage for projects, assets, and chunks, with Alembic migrations.
-- Docker Compose stack: FastAPI, Nginx, PostgreSQL with pgvector, Qdrant, Prometheus, Grafana, node-exporter, and postgres-exporter.
+- Docker Compose stack: FastAPI, Nginx, PostgreSQL with pgvector, Prometheus, Grafana, node-exporter, and postgres-exporter.
 - Prometheus request metrics (`http_requests_total`, `http_request_duration_seconds`) exposed at `/metrics`.
 - Documentation: README with architecture diagrams, tech stack, and roadmap, plus `docs/` guides for configuration, the API (with an exported OpenAPI schema), adding a provider, deployment, monitoring, troubleshooting, and development.
 

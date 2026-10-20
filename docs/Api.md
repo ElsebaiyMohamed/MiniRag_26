@@ -185,7 +185,7 @@ curl http://localhost:8000/api/v1/nlp/index/info/1
 }
 ```
 
-The shape of `collection_info` depends on the vector store. With Qdrant it contains the Qdrant collection description instead.
+The shape of `collection_info` depends on the vector store. 
 
 ---
 

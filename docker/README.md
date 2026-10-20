@@ -8,7 +8,6 @@ This directory contains the Docker setup for the MiniRAG application, including 
 - **Nginx**: Web server for serving the FastAPI application
 - **PostgreSQL (pgvector)**: Vector-enabled database for storing embeddings
 - **Postgres-Exporter**: Exports PostgreSQL metrics for Prometheus
-- **Qdrant**: Vector database for similarity search
 - **Prometheus**: Metrics collection
 - **Grafana**: Visualization dashboard for metrics
 - **Node-Exporter**: System metrics collection
@@ -42,14 +41,14 @@ docker compose up --build -d
 To start only specific services:
 
 ```bash
-docker compose up -d fastapi nginx pgvector qdrant
+docker compose up -d fastapi nginx pgvector
 ```
 
 If you encounter connection issues, you may want to start the database services first and let them initialize before starting the application:
 
 ```bash
 # Start databases first
-docker compose up -d pgvector qdrant postgres-exporter
+docker compose up -d pgvector postgres-exporter
 # Wait for databases to be healthy
 sleep 30
 # Start the application services
@@ -69,7 +68,6 @@ docker compose down -v --remove-orphans
 - Nginx (serving FastAPI): http://localhost
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000
-- Qdrant UI: http://localhost:6333/dashboard
 
 ## Volume Management
 
@@ -133,15 +131,13 @@ Prometheus is configured to scrape these metrics automatically.
 
 1. Log into Grafana at http://localhost:3000 (default credentials: admin/admin_password)
 2. Add Prometheus as a data source (URL: http://prometheus:9090)
-3. Import dashboards for FastAPI, PostgreSQL, and Qdrant
+3. Import dashboards for FastAPI, and PostgreSQL
 
 #### Dashboards URLs
 
 https://grafana.com/grafana/dashboards/18739-fastapi-observability/
 
 https://grafana.com/grafana/dashboards/1860-node-exporter-full/
-
-https://grafana.com/grafana/dashboards/23033-qdrant/
 
 https://grafana.com/grafana/dashboards/12485-postgresql-exporter/
 
