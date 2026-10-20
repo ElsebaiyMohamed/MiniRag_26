@@ -97,6 +97,7 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
         for dummy_asset in all_project_files:
             await asset_model.set_asset_status(dummy_asset.asset_id,
                                             AssetStatus.UPLOADED.value)
+            dummy_asset.asset_status = AssetStatus.UPLOADED.value
         no_deleted = await chunk_model.delete_chunks_by_project_id(
             project_id=project.project_id
         )
@@ -120,12 +121,12 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
     project_file_ids = {record.asset_id: record.asset_name for record in project_files}
     no_of_records = 0
     total_no_files = len(project_file_ids)
-    faild_files = 0
+    failed_files = 0
     for asset_id, file_id in project_file_ids.items():
         file_content = processor_controller.get_file_content(file_id)
         if file_content is None:
             log_it.error(f"SKIP: File Name: {file_id} not exist")
-            faild_files += 1
+            failed_files += 1
             continue
 
         file_chunks = processor_controller.process_file_content(
@@ -135,7 +136,7 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
         )
 
         if file_chunks is None or not file_chunks:
-            faild_files += 1
+            failed_files += 1
             continue
 
         file_chunks_record = [
@@ -149,7 +150,11 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
             for i, chunk in enumerate(file_chunks)
         ]
 
-        no_of_records += await chunk_model.create_many_chunks(chunks=file_chunks_record)
+        record_count =  await chunk_model.create_many_chunks(chunks=file_chunks_record)
+        if record_count == 0:
+            failed_files += 1
+            continue
+        no_of_records += record_count
         await asset_model.set_asset_status(asset_id, AssetStatus.CHUNKED.value)
 
     return JSONResponse(
@@ -158,7 +163,7 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
             "signal": ResponseSignal.PROCESSING_SUCCESS.value,
             "total_no_files": total_project_files_num,
             "no_files_proceeds": total_no_files,
-            "no_files_success": total_no_files - faild_files,
+            "no_files_success": total_no_files - failed_files,
             "no_records_added": no_of_records,
         },
     )

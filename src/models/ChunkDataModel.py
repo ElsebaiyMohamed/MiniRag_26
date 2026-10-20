@@ -31,11 +31,13 @@ class ChunkDataModel(BaseDataModel):
 
     async def create_many_chunks(self, chunks: list, batch_size: int=100):
         async with self.db_client() as session:
-            async with session.begin():
-                for i in range(0, len(chunks), batch_size):
-                    session.add_all(chunks[i:i+batch_size])
-            await session.commit()
-
+            try:
+                async with session.begin():
+                    for i in range(0, len(chunks), batch_size):
+                        await session.add_all(chunks[i:i+batch_size])
+                        await session.flush()
+            except Exception as e:
+                return 0
         return len(chunks)
 
     async def get_project_chunks(self, project_id: int, page_no: int = 1 , page_size:
