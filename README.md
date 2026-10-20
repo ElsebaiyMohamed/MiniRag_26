@@ -7,7 +7,7 @@
 |   | **Language and tooling** | ![Python](https://img.shields.io/badge/Python-3.13.14-3776AB?logo=python&logoColor=white) ![uv](https://img.shields.io/badge/uv-package_manager-DE5FE9?logo=uv&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)                                                                                                                                                                                                                                        |
 |   | **API**                  | ![FastAPI](https://img.shields.io/badge/FastAPI-0.141.1-009688?logo=fastapi&logoColor=white) ![Uvicorn](https://img.shields.io/badge/Uvicorn-0.53.0-499848) ![Pydantic](https://img.shields.io/badge/Pydantic-2.13.5-E92063?logo=pydantic&logoColor=white) ![Pydantic Settings](https://img.shields.io/badge/Pydantic_Settings-2.15.0-E92063?logo=pydantic&logoColor=white)                                                                                                                                      |
 |   | **Database and ORM**     | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white) ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.53-D71F00?logo=sqlalchemy&logoColor=white) ![Alembic](https://img.shields.io/badge/Alembic-1.20.0-6BA81E) ![asyncpg](https://img.shields.io/badge/asyncpg-0.31.0-4169E1) ![psycopg2](https://img.shields.io/badge/psycopg2-2.9.13-4169E1)                                             |
-|   | **Vector search**        | ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791) ![Qdrant](https://img.shields.io/badge/Qdrant-1.19-DC244C?logo=qdrant&logoColor=white) ![Qdrant Client](https://img.shields.io/badge/qdrant--client-1.19.1-DC244C)                                                                                                                                                                                                                                                                               |
+|   | **Vector search**        | ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791)                                                                                                                                                                                                                                                                               |
 |   | **LLM providers**        | ![Cohere](https://img.shields.io/badge/Cohere_SDK-7.1.1-39594D?logo=cohere&logoColor=white) ![OpenAI](https://img.shields.io/badge/OpenAI_SDK-3.19.0-412991?logo=openai&logoColor=white) ![Ollama](https://img.shields.io/badge/Ollama-local_models-000000?logo=ollama&logoColor=white)                                                                                                                                                                                                                          |
 |   | **Document processing**  | ![LangChain](https://img.shields.io/badge/LangChain-1.4.0-1C3C3C?logo=langchain&logoColor=white) ![LangChain Community](https://img.shields.io/badge/LangChain_Community-0.4.2-1C3C3C?logo=langchain&logoColor=white) ![PyMuPDF](https://img.shields.io/badge/PyMuPDF-1.28.2-CC2927)                                                                                                                                                                                                                             |
 |   | **Serving**              | ![Nginx](https://img.shields.io/badge/Nginx-1.30.5-009639?logo=nginx&logoColor=white)                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -31,7 +31,7 @@ It is now being developed beyond the course: new file formats, advanced chunking
 - **Project-based isolation:** each `project_id` has its own files, chunks and vector collection
 - **Chunking:** line-aware text chunking with configurable chunk size
 - **Pluggable LLM providers:** Cohere and any OpenAI-compatible API (including local models via [Ollama](#using-a-local-model-with-ollama))
-- **Pluggable vector stores:** PostgreSQL + pgvector or Qdrant (embedded, file-based)
+- **Pluggable vector stores:** PostgreSQL + pgvector
 - **Semantic search** and **RAG answering** with localized prompt templates (English and Arabic)
 - **Observability:** Prometheus metrics, Grafana, node-exporter and Postgres exporter included
 - **Containerized:** one `docker compose` command brings up the full stack, with Alembic migrations run on startup
@@ -54,7 +54,6 @@ flowchart LR
 
     subgraph data["Data layer"]
         pg[("PostgreSQL<br/>app tables + pgvector")]
-        qd[("Qdrant")]
         files[("File storage<br/>uploaded documents")]
     end
 
@@ -113,7 +112,6 @@ flowchart TB
         llmi --> openai["OpenAiProvider"]
         vf["VectorDBProviderFactory"] --> vi["VectorDBInterface"]
         vi --> pgv["PgVector"]
-        vi --> qd["QdrantDB"]
         tpl["Prompt templates<br/>en, ar"]
     end
 
@@ -275,7 +273,7 @@ src/
 ├── models/        # SQLAlchemy models, Alembic migrations, schemas, enums
 ├── stores/
 │   ├── llm/       # Provider interface, factory, Cohere/OpenAI providers, prompt templates (en, ar)
-│   └── vectordb/  # Vector DB interface, factory, pgvector/Qdrant providers
+│   └── vectordb/  # Vector DB interface, factory, pgvector provider
 ├── helpers/       # Settings (pydantic-settings)
 └── utils/         # Prometheus metrics middleware
 docker/            # Compose stack, Dockerfile, Nginx, Prometheus config, env examples
@@ -401,8 +399,7 @@ All settings are environment variables (`.env.app`).
 | `FILE_MAX_SIZE_IN_MB`                                                                                | Max upload size (default example: `10`)                             |
 | `FILE_DEAFAULT_CHINK_SIZE`                                                                           | Read size in bytes when streaming uploads to disk                   |
 | `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_MAIN_DATABASE` | PostgreSQL connection                                               |
-| `VECTORDB_BACKEND`                                                                                   | `PGVECTOR` or `QDRANT`                                              |
-| `VECTOR_DB_FILE_PATH`                                                                                | Folder name for embedded Qdrant data (used when `QDRANT`)           |
+| `VECTORDB_BACKEND`                                                                                   | `PGVECTOR`                                              |
 | `VECTOR_DB_DISTANCE_METRIC`                                                                          | `cosine` or `dot`                                                   |
 | `VECTOR_DB_PGVEC_INDEX_THRESHOLD`                                                                    | Row count at which a pgvector index is created                      |
 | `GENERATION_BACKEND`, `EMBEDDING_BACKEND`                                                            | `COHERE` or `OPENAI` (OpenAI-compatible, including Ollama)          |

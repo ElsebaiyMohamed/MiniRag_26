@@ -69,9 +69,8 @@ If you run behind the bundled Nginx, its own upload limit also applies. See [Dep
 
 | Variable | Required | Description |
 |---|---|---|
-| `VECTORDB_BACKEND` | yes | `PGVECTOR` or `QDRANT`. Any other value fails at startup |
+| `VECTORDB_BACKEND` | yes | `PGVECTOR`. Any other value fails at startup |
 | `VECTORDB_BACKEND_LITERAL` | no | Informational list of valid backends. The application does not read it |
-| `VECTOR_DB_FILE_PATH` | for `QDRANT` | Folder name for embedded Qdrant data, stored under `src/assets/vector_database/`. Ignored for `PGVECTOR` |
 | `VECTOR_DB_DISTANCE_METRIC` | yes | optional (default `cosine`), and `dot` is supported. |
 | `VECTOR_DB_PGVEC_INDEX_THRESHOLD` | yes | Minimum number of rows in a collection before an HNSW index is created on it. Below the threshold, searches scan exactly |
 
@@ -181,16 +180,6 @@ EMBEDDING_MODEL_SIZE=1024
 ```
 
 Using `OPENAI` for both roles means both talk to the same `OPENAI_API_URL`.
-
-### Qdrant (embedded)
-
-```ini
-VECTORDB_BACKEND="QDRANT"
-VECTOR_DB_FILE_PATH="qdrant_db"
-VECTOR_DB_DISTANCE_METRIC="cosine"
-```
-
-Embedded Qdrant stores data on local disk and is intended for a single API process. See [Deployment](deployment.md#workers-and-the-vector-store).
 
 ### Arabic-first
 
