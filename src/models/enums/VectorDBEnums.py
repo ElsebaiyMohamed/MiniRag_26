@@ -1,9 +1,8 @@
 from enum import Enum
 
 class VectorDBEnums(Enum):
-    QDRANT = 'QDRANT'
     PGVECTOR = 'PGVECTOR'
-    
+
 
 
 class PgVectorTableSchemaEnums(Enum):
@@ -11,9 +10,10 @@ class PgVectorTableSchemaEnums(Enum):
     TEXT = 'text'
     VECTOR = 'vector'
     CHUNK_ID = 'chunk_id'
+    ASSET_ID = 'asset_id'
     METADATA = 'metadata'
     _PREFIX = 'pgvector'
-    
+
 class DistanceMethodEnums(Enum):
     COSINE = 'cosine'
     DOT = 'dot'
@@ -23,7 +23,7 @@ class PgVectorDistanceMethodEnums(Enum):
 class PgVectorOperatorEnums(Enum):            # query operator
     COSINE = '<=>'
     DOT = '<#>'
-    
+
 class PgVectorIndexEnums(Enum):
     HNSW = 'hnsw'
     IVFFLAT = 'ivfflat'

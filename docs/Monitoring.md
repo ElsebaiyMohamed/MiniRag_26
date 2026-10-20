@@ -6,7 +6,6 @@ The Docker Compose stack includes a full metrics pipeline for the API, the machi
 fastapi (/metrics) ──┐
 node-exporter ───────┤
 postgres-exporter ───┼──>  Prometheus  ──>  Grafana
-qdrant (/metrics) ───┤
 prometheus (self) ───┘
 ```
 
@@ -27,7 +26,6 @@ Defined in `docker/prometheus/prometheus.yml`. The scrape and evaluation interva
 | `fastapi` | `fastapi:8000` | `/metrics` | HTTP request metrics from the API |
 | `node-exporter` | `node-exporter:9100` | `/metrics` | Host CPU, memory, disk, network |
 | `postgres` | `postgres-exporter:9187` | `/metrics` | PostgreSQL connections, transactions, table and database stats |
-| `qdrant` | `qdrant:6333` | `/metrics` | Metrics of the Qdrant service |
 | `prometheus` | `localhost:9090` | `/metrics` | Prometheus' own health |
 
 Targets use Docker service names, so they resolve only inside the Compose network. Check their state at http://localhost:9090/targets.

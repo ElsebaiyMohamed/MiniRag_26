@@ -9,7 +9,7 @@ Base URL: `http://localhost:8000` (or `http://localhost` through Nginx).
 
 **Projects.** Every data and NLP endpoint takes an integer `{project_id}`. A project is created implicitly the first time an ID is used, and each project has its own files, chunks, and vector collection. A typo in the ID therefore targets a new, empty project instead of returning an error.
 
-**Signals.** Responses carry a `signal` string that describes the outcome. Clients can match on it. Signals are returned verbatim, including their current spelling (for example `file chuncking success`), so treat changing one as a breaking change.
+**Signals.** Responses carry a `signal` string that describes the outcome. Clients can match on it. Signals are returned verbatim, so treat changing one as a breaking change.
 
 **Status codes.**
 
@@ -27,6 +27,18 @@ Base URL: `http://localhost:8000` (or `http://localhost` through Nginx).
 ```text
 upload  ->  process  ->  index/push  ->  index/search  or  index/answer
 ```
+
+Each upload request accepts one file. Call the upload endpoint repeatedly to add multiple files before processing. Assets move through these states:
+
+```text
+UPLOADED -> CHUNKED -> INDEXED
+```
+
+- `UPLOADED`: saved and waiting for chunking.
+- `CHUNKED`: chunks are stored in PostgreSQL and waiting for indexing.
+- `INDEXED`: the asset's chunks have been indexed successfully.
+
+Normal processing handles only `UPLOADED` assets; normal indexing handles only `CHUNKED` assets. Use `do_reset: 1` to rebuild chunks or embeddings for the project.
 
 ## Endpoints
 
@@ -72,7 +84,7 @@ curl -X POST http://localhost:8000/api/v1/data/upload/1 \
 
 ```json
 {
-  "signal": "file upload successed",
+  "signal": "file upload success",
   "file_id": "k3_document.pdf"
 }
 ```
@@ -91,7 +103,7 @@ curl -X POST http://localhost:8000/api/v1/data/upload/1 \
 
 ## `POST /api/v1/data/process/{project_id}`
 
-Loads every uploaded file in the project and splits it into chunks, stored in PostgreSQL.
+Splits eligible project files into chunks stored in PostgreSQL. Normally, only assets in the `UPLOADED` state are processed. With `do_reset: 1`, all project chunks are deleted and all file assets are processed again. In PgVector, deleting chunks also deletes their associated vector rows through the collection's foreign-key cascade.
 
 **Body**
 
@@ -99,7 +111,7 @@ Loads every uploaded file in the project and splits it into chunks, stored in Po
 |---|---|---|---|
 | `chunk_size` | integer | `100` | Target chunk length in characters. The default is small, so set it explicitly |
 | `overlap_size` | integer | `20` | Accepted but not applied yet |
-| `do_reset` | integer | `0` | `1` deletes the project's existing chunks first |
+| `do_reset` | integer | `0` | `1` deletes the project's existing chunks and reprocesses all files |
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/data/process/1 \
@@ -111,33 +123,36 @@ curl -X POST http://localhost:8000/api/v1/data/process/1 \
 
 ```json
 {
-  "signal": "file chuncking success",
-  "no_files": 2,
+  "signal": "file chunking success",
+  "total_no_files": 2,
+  "no_files_proceeds": 2,
   "no_files_success": 2,
-  "no_records": 148
+  "no_records_added": 148
 }
 ```
 
-`no_files_success` counts files that could be loaded. `no_records` is the number of chunks created.
+`total_no_files` is the number of uploaded file assets in the project. `no_files_proceeds` is the number selected for this run (uploaded assets normally, all assets on reset). `no_files_success` counts selected files successfully chunked, and `no_records_added` is the number of chunks committed.
+
+If no assets are waiting for processing, the endpoint returns `200` with `FILES_ALREADY_PROCESSED`. If chunk insertion fails for a file, that file is counted as unsuccessful and remains `UPLOADED`; successful files are marked `CHUNKED`.
 
 **Errors**
 
 | Status | `signal` | Cause |
 |---|---|---|
-| `400` | `project is empty` | No files uploaded for this project |
-| `400` | `file chuncking failed` | A file produced no chunks. The response also includes `file_id` |
+| `404` | `project not found` | The project does not exist |
+| `404` | `project is empty` | No files uploaded for this project |
 
 ---
 
 ## `POST /api/v1/nlp/index/push/{project_id}`
 
-Embeds the project's chunks and writes the vectors to the vector store.
+Embeds chunks from eligible assets and writes their vectors to the configured PgVector collection. Normally, only assets in the `CHUNKED` state are indexed. With `do_reset: 1`, the project collection is reset and assets currently marked `INDEXED` are returned to `CHUNKED` for reindexing.
 
 **Body**
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `do_reset` | integer | `0` | `1` drops and recreates the project's vector collection first. Required after changing the embedding model |
+| `do_reset` | integer | `0` | `1` drops the project's vector collection and reindexes eligible chunked assets. Required after changing the embedding model |
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/nlp/index/push/1 \
@@ -148,14 +163,39 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/push/1 \
 **200**
 
 ```json
-{ "signal": "insert into vector database success" }
+{
+  "signal": "file indexed successfully",
+  "insertion_status": {
+    "project_status_before_run": {
+      "total_files": 2,
+      "uploaded_files": 0,
+      "chunked_files": 1,
+      "indexed_files": 1
+    },
+    "call_status": {
+      "file_success": 1,
+      "file_failed": 0,
+      "chunk_success": 148,
+      "chunk_failed": 0
+    }
+  }
+}
 ```
+
+`project_status_before_run` reports the asset counts used to determine the indexing work. On a reset call, indexed assets are changed to `CHUNKED` before these counts are assembled. `chunked_files` is the number selected for the current call. `call_status` reports this call's file and chunk outcomes. If any chunk insert for an asset fails, the asset is counted as failed and that asset's inserted vectors are deleted; the asset is not marked `INDEXED`.
+
+When there are no eligible `CHUNKED` assets:
+
+- If all file assets are already indexed, the endpoint returns `200` with signal `project chunked files already indexed`.
+- If one or more file assets are still uploaded and need processing, it returns `200` with signal `chunk files first before indexing`.
 
 **Errors**
 
 | Status | `signal` | Cause |
 |---|---|---|
-| `400` | `failed to insert into vector database` | Embedding or insert failed, or there was nothing to index |
+| `404` | `project not found` | The project does not exist |
+| `404` | `project is empty` | No files uploaded for this project |
+| `400` | `failed to insert into vector database` | No asset was indexed successfully during an indexing attempt |
 
 ---
 
@@ -185,7 +225,7 @@ curl http://localhost:8000/api/v1/nlp/index/info/1
 }
 ```
 
-The shape of `collection_info` depends on the vector store. With Qdrant it contains the Qdrant collection description instead.
+The shape of `collection_info` depends on the vector store. 
 
 ---
 

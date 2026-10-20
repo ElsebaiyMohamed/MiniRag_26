@@ -66,9 +66,12 @@ class OpenAiProvider(LLMInterface):
         single = isinstance(prompts, str)
         texts = [self.process_text(prompts)] if single else [self.process_text(t) for t
                                                              in prompts]
-        response = self.client.embeddings.create(model=self.embedding_model_id,
+        try:
+            response = self.client.embeddings.create(model=self.embedding_model_id,
                                                  input=texts)
-
+        except Exception as e:
+            self.logger.error(f'failed to get embedding from provider. {e}')
+            response = None
 
         if response is None or response.data is None or len(response.data) == 0 or response.data[0].embedding is None:
             self.logger.error('unable to get embeddings from provider')

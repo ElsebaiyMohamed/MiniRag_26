@@ -1,5 +1,3 @@
-from typing import Listfrom typing import Union
-
 # Adding a provider
 
 MiniRag_26 talks to language models and vector databases through interfaces and factories, so adding a new one touches a small, predictable set of files. This guide covers:
@@ -13,7 +11,7 @@ Before you start, read the code of the existing providers next to the interface.
 | Kind | Interface | Existing providers |
 |---|---|---|
 | LLM | `src/stores/llm/LLMInterface.py` | `CohereProvider`, `OpenAiProvider` |
-| Vector store | `src/stores/vectordb/VectorDBInterface.py` | `PgVector`, `QdrantDB` |
+| Vector store | `src/stores/vectordb/VectorDBInterface.py` | `PgVector`|
 
 If your LLM server speaks the OpenAI API (Ollama, vLLM, LM Studio, and others), you do not need a new provider. Set `OPENAI_API_URL`. See [Configuration](configuration.md).
 
@@ -186,7 +184,6 @@ In `src/models/enums/VectorDBEnums.py`:
 
 ```python
 class VectorDBEnums(Enum):
-    QDRANT = 'QDRANT'
     PGVECTOR = 'PGVECTOR'
     ACME = 'ACME'
 ```
@@ -213,11 +210,14 @@ class AcmeDB(VectorDBInterface):
     async def create_collection(self, collection_name: str, embedding_size: int,
                                 do_reset: bool = False) -> bool: ...
     async def insert_one(self, collection_name: str, text: str, vector: list,
-                         metadata: dict = None, record_id: str = None): ...
+                         metadata: dict = None, record_id: str = None,
+                         asset_id: int = None): ...
     async def insert_many(self, collection_name: str, texts: list, vectors: list,
                           metadatas: list = None, record_ids: list = None,
-                          batch_size: int = 50): ...
+                          asset_ids: list = None, batch_size: int = 50): ...
     async def search_by_vector(self, collection_name: str, vector: list, limit: int = 10): ...
+    async def delete_embeddings_by_asset_id(self, collection_name: str,
+                                            asset_id: int) -> int: ...
 ```
 
 Behavior the controllers depend on:
@@ -225,13 +225,19 @@ Behavior the controllers depend on:
 | Method | Contract |
 |---|---|
 | `connect` / `disconnect` | Called once at startup and shutdown from the FastAPI lifespan |
-| `create_collection(name, embedding_size, do_reset)` | If `do_reset` is true, drop first. Create only if missing. Return `True` when created, `False` when it already existed |
+| `create_collection(name, embedding_size, do_reset)` | If `do_reset` is true, drop first. Ensure the collection exists and return `True` when it is available for inserts, whether newly created or already present; return `False` if creation fails |
 | `delete_collection(name)` | Used by reset. Must be safe when the collection does not exist |
 | `get_collection_info(name)` | Return something JSON-serializable. The info route serializes it |
-| `insert_many(...)` | `record_ids` are the Postgres `chunk_id` values, one per vector. Return `{'success': n, 'failed': m}` |
+| `insert_one(..., record_id, asset_id)` | Store the vector with its chunk ID and owning asset ID. Both IDs are required for project/asset cleanup and traceability |
+| `insert_many(..., record_ids, asset_ids)` | `record_ids` are the chunk IDs and `asset_ids` are the owning asset IDs. Both lists must align one-to-one with `texts`, `vectors`, and `metadatas`. Persist the asset ID with each vector and return `{'success': n, 'failed': m}` |
+| `delete_embeddings_by_asset_id(name, asset_id)` | Delete only vectors belonging to that asset and return the number deleted. Used to clean up an asset when indexing fails; do not delete other assets' vectors |
 | `search_by_vector(name, vector, limit)` | Return a list of `RetrievedDocument(text=..., score=...)` sorted best first, where a higher score is better. Return `False` or `None` when the collection is missing |
 
 Collection names are `collection_{project_id}`, one per project. Keep projects isolated from each other.
+
+The asset ID must be stored in a field that can be filtered during deletion. For example, PgVector stores it in an `asset_id` column; a document-oriented store could store it in each point's payload. Ensure collection creation establishes the field/indexing needed by your backend's deletion operation.
+
+`chunk_id` also links each vector to its source chunk. In PgVector, the collection's foreign key uses `ON DELETE CASCADE`, so deleting a chunk automatically removes its vector. If your store does not support that kind of cascade, ensure project and asset reset/deletion paths explicitly remove the corresponding vectors.
 
 Two pitfalls that bit existing code:
 
@@ -258,7 +264,7 @@ If a locale folder or template is missing, the parser falls back to `DEFAULT_LAN
 
 ## Contribution checklist
 
-- [ ] Interface fully implemented, with `async` where required
+- [ ] Interface fully implemented, including `asset_id` on insert methods and `delete_embeddings_by_asset_id`
 - [ ] Failures are logged and return `None` or `False`, not raised to the route
 - [ ] Exported and registered in the factory
 - [ ] New settings added to `config.py` and both example env files

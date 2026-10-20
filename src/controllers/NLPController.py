@@ -1,6 +1,6 @@
 from typing import List
 
-from models.db_schemas import Project, DataChunk
+from models.db_schemas import Project, DataChunk, Asset
 from models.enums import DocumentTypeEnum
 from .BaseController import BaseController
 
@@ -20,7 +20,11 @@ class NLPController(BaseController):
     async def reset_vectordb_collection(self, project: Project):
         collection_name = self.create_collection_name(project.project_id)
         return await self.vectordb_client.delete_collection(collection_name)
-
+    async def reset_vectordb_collection_asset_vectors(self, project: Project,
+                                                    asset: Asset):
+        collection_name = self.create_collection_name(project.project_id)
+        return await self.vectordb_client.delete_embeddings_by_asset_id(
+            collection_name, asset.asset_id)
     async def get_vectordb_collection_info(self, project: Project):
         collection_name = self.create_collection_name(project.project_id)
         collection__info = await self.vectordb_client.get_collection_info(collection_name)
@@ -29,6 +33,7 @@ class NLPController(BaseController):
     async def index2vectordb(self, project: Project, chunks: List[DataChunk], do_reset: bool=False):
         collection_name = self.create_collection_name(project.project_id)
         chunk_ids = [c.chunk_id for c in chunks]
+        chunk_asset_ids = [c.chunk_asset_id for c in chunks]
         chunk_texts = [c.chunk_text for c in chunks]
         chunk_metadatas = [c.chunk_metadata for c in chunks]
 
@@ -43,18 +48,23 @@ class NLPController(BaseController):
             'failed': len(chunk_texts)
         }
 
-        await self.vectordb_client.create_collection(
+        is_created = await self.vectordb_client.create_collection(
             collection_name=collection_name,
             embedding_size=self.embedding_client.embedding_size,
             do_reset=do_reset
         )
-
+        if not is_created:
+            return {
+            'success': 0,
+            'failed': len(chunk_texts)
+        }
         insertion_status: dict = await self.vectordb_client.insert_many(
             collection_name=collection_name,
             texts=chunk_texts,
             metadatas=chunk_metadatas,
             vectors=vectors,
-            record_ids=chunk_ids
+            record_ids=chunk_ids,
+            asset_ids=chunk_asset_ids
         )
         return insertion_status
 
