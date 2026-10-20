@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Per-asset upload, chunking, and indexing status tracking with incremental processing and indexing.
+- API documentation for the `UPLOADED` → `CHUNKED` → `INDEXED` lifecycle, reset behavior, updated process response fields, indexing result details, and no-pending-work signals.
+
+### Changed
+
+- Processing reset rebuilds chunks for all project files, and PgVector removes vectors associated with deleted chunks.
+- Indexing reset recreates the project's vector collection and indexes eligible chunked assets.
+- Indexing reports per-file and per-chunk outcomes; an asset with any failed chunk is treated as failed and its inserted vectors are removed.
+
 
 ## [1.1.0] - 2026-10-11
 
