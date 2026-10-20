@@ -159,22 +159,25 @@ class PgVector(VectorDBInterface):
         is_collection_existed = await self.is_collection_existed(collection_name=collection_name)
         if not is_collection_existed:
             async with self.db_client() as session:
-                async with session.begin():
-                    create_sql = sql_text(
-                        f'CREATE TABLE {collection_name} ('
-                            f'{PgVectorTableSchemaEnums.ID.value} bigserial PRIMARY KEY,'
-                            f'{PgVectorTableSchemaEnums.TEXT.value} text, '
-                            f'{PgVectorTableSchemaEnums.VECTOR.value} vector({embedding_size}), '
-                            f'{PgVectorTableSchemaEnums.METADATA.value} jsonb DEFAULT \'{{}}\', '
-                            f'{PgVectorTableSchemaEnums.CHUNK_ID.value} integer, '
-                            f'{PgVectorTableSchemaEnums.ASSET_ID.value} integer, '
-                            f'FOREIGN KEY ({PgVectorTableSchemaEnums.CHUNK_ID.value}) REFERENCES chunks(chunk_id) ON DELETE CASCADE'
-                        ')'
-                    )
-                    await session.execute(create_sql)
-            return True
-
-        return False
+                try:
+                    async with session.begin():
+                        create_sql = sql_text(
+                            f'CREATE TABLE {collection_name} ('
+                                f'{PgVectorTableSchemaEnums.ID.value} bigserial PRIMARY KEY,'
+                                f'{PgVectorTableSchemaEnums.TEXT.value} text, '
+                                f'{PgVectorTableSchemaEnums.VECTOR.value} vector({embedding_size}), '
+                                f'{PgVectorTableSchemaEnums.METADATA.value} jsonb DEFAULT \'{{}}\', '
+                                f'{PgVectorTableSchemaEnums.CHUNK_ID.value} integer, '
+                                f'{PgVectorTableSchemaEnums.ASSET_ID.value} integer, '
+                                f'FOREIGN KEY ({PgVectorTableSchemaEnums.CHUNK_ID.value}) REFERENCES chunks(chunk_id) ON DELETE CASCADE'
+                            ')'
+                        )
+                        await session.execute(create_sql)
+                except Exception as e:
+                    self.logger.error(f'failed to create collection {collection_name}, '
+                                f'with error {e}')
+                    return False
+        return True
 
     async def is_index_existed(self, collection_name: str) -> bool:
         if not collection_name.startswith(self.pgvector_table_prefix):

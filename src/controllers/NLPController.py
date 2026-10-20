@@ -48,12 +48,16 @@ class NLPController(BaseController):
             'failed': len(chunk_texts)
         }
 
-        await self.vectordb_client.create_collection(
+        is_created = await self.vectordb_client.create_collection(
             collection_name=collection_name,
             embedding_size=self.embedding_client.embedding_size,
             do_reset=do_reset
         )
-
+        if not is_created:
+            return {
+            'success': 0,
+            'failed': len(chunk_texts)
+        }
         insertion_status: dict = await self.vectordb_client.insert_many(
             collection_name=collection_name,
             texts=chunk_texts,
