@@ -11,6 +11,8 @@ class ResponseSignal(Enum):
     FILES_ALREADY_PROCESSED="Project files are already up-to-date. No further processing required."
     PROCESSING_FAILED = 'file chunking failed'
     PROCESSING_SUCCESS = 'file chunking success'
+    FILES_NEED_CHUNKING = 'chunk files first before indexing'
+    NO_FILES_TO_BE_INDEXED = 'project chunked files already indexed'
     INSERT_INTO_VECTORDB_ERROR = 'failed to insert into vector database'
     INSERT_INTO_VECTOR_DATABASE_SUCCESS= "file indexed successfully"
     VECTORDB_COLLECTION_INFO_RETRIEVED = 'collection information retrieved successfully'

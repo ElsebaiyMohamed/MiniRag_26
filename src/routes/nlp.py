@@ -54,19 +54,51 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
         for dummy_asset in all_project_files:
             if dummy_asset.asset_status == AssetStatus.INDEXED.value:
                 await asset_model.set_asset_status(dummy_asset.asset_id, AssetStatus.CHUNKED.value)
+                dummy_asset.asset_status = AssetStatus.CHUNKED.value
         no_deleted = await nlp_controller.reset_vectordb_collection(project)
-        project_files = all_project_files
+        project_files = [a for a in all_project_files if a.asset_status == AssetStatus.CHUNKED.value]
     else:
         project_files = [
             asset for asset in all_project_files
             if asset.asset_status == AssetStatus.CHUNKED.value
         ]
+
     index_status = {
+        'project_status_before_run':{
+        'total_files': len(all_project_files),
+        'uploaded_files': len([a for a in all_project_files if a.asset_status == AssetStatus.UPLOADED.value]),
+        'chunked_files': len(project_files),
+        'indexed_files': len([a for a in all_project_files if a.asset_status == AssetStatus.INDEXED.value]),
+        },
+        'call_status':{
         'file_success': 0,
         'file_failed': 0,
         'chunk_success': 0,
         'chunk_failed': 0
+        }
     }
+    if (index_status['project_status_before_run']['chunked_files'] == 0 and
+            index_status['project_status_before_run']['uploaded_files'] == 0):
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                'signal': ResponseSignal.NO_FILES_TO_BE_INDEXED.value,
+                'insertion_status': index_status
+            }
+        )
+    if (index_status['project_status_before_run']['chunked_files'] == 0 and
+            index_status['project_status_before_run']['uploaded_files'] > 0):
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                'signal': ResponseSignal.FILES_NEED_CHUNKING.value,
+                'insertion_status': index_status
+            }
+        )
+
+
+
+
     for asset in project_files:
         has_records = True
         page_no = 1
@@ -90,22 +122,25 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
             )
             chunks_insertion_status = {key: chunks_insertion_status[key] + insertion_status[key] for key in chunks_insertion_status.keys()}
 
-        if chunks_insertion_status['success'] == 0:
+        if chunks_insertion_status['failed'] > 0 or chunks_insertion_status[
+            'success'] == 0:
             log_it.error(f"file {asset.asset_name} failed to indexed ")
-            index_status['file_failed'] += 1
-
+            index_status['call_status']['file_failed'] += 1
+            index_status['call_status']['chunk_failed'] += chunks_insertion_status[
+                'failed'] + chunks_insertion_status[
+                'success']
             _ = await nlp_controller.reset_vectordb_collection_asset_vectors(
                 project=project, asset=asset)
         else:
             await asset_model.set_asset_status(asset.asset_id,
                                             AssetStatus.INDEXED.value)
-            index_status['file_success'] += 1
-            index_status['chunk_success'] += chunks_insertion_status['success']
-            index_status['chunk_failed'] += chunks_insertion_status['failed']
+            index_status['call_status']['file_success'] += 1
+            index_status['call_status']['chunk_success'] += chunks_insertion_status['success']
+            index_status['call_status']['chunk_failed'] += chunks_insertion_status['failed']
 
 
 
-    if index_status['file_success'] == 0:
+    if index_status['call_status']['file_success'] == 0:
         log_it.error(ResponseSignal.INSERT_INTO_VECTORDB_ERROR.value)
 
         return JSONResponse(
