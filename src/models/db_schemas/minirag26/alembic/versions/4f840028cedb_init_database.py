@@ -1,18 +1,18 @@
-"""initial_clean_schema
+"""init database
 
-Revision ID: 4838e49c6f23
-Revises: 
-Create Date: 2026-10-03 05:27:33.669165
+Revision ID: 4f840028cedb
+Revises:
+Create Date: 2026-10-20 03:05:51.326496
 
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '4838e49c6f23'
+revision: str = '4f840028cedb'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,6 +36,7 @@ def upgrade() -> None:
     sa.Column('asset_name', sa.String(), nullable=False),
     sa.Column('asset_size', sa.Integer(), nullable=False),
     sa.Column('asset_config', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('asset_status', sa.Integer(), nullable=False),
     sa.Column('asset_project_id', sa.Integer(), nullable=False),
     sa.Column('asset_pushed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['asset_project_id'], ['projects.project_id'], ),
