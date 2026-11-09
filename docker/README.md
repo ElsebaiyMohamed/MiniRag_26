@@ -19,12 +19,12 @@ This directory contains the Docker setup for the MiniRAG application, including 
 Create your environment files from the examples:
 
 ```bash
-# Create all required .env files from examples
+# Create all required .env.app files from examples
 cd docker/envv
 cp .env.example.app .env.app
-cp .env.example.postgres .env.postgres
-cp .env.example.grafana .env.grafana
-cp .env.example.postgresexporter .env.postgresexporter
+cp .env.example.app.postgres .env.app.postgres
+cp .env.example.app.grafana .env.app.grafana
+cp .env.example.app.postgresexporter .env.app.postgresexporter
 
 # Setup the Alembic configuration for the FastAPI application
 cd ..

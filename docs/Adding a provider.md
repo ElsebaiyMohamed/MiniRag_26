@@ -154,7 +154,7 @@ elif provider == LLMEnum.ACME.value:
 ### 5. Add configuration
 
 - Add `ACME_API_KEY: str` to `Settings` in `src/helpers/config.py`.
-- Add it to `src/.env.example` and `docker/envv/.env.example.app`.
+- Add it to `../src/.env.example.app` and `docker/envv/.env.example.app`.
 - Add the dependency with `uv add <sdk>`.
 
 Users then select the provider with `GENERATION_BACKEND="ACME"` and/or `EMBEDDING_BACKEND="ACME"`.

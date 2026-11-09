@@ -310,9 +310,9 @@ cd MiniRag_26/docker
 
 ```bash
 cp envv/.env.example.app              envv/.env.app
-cp envv/.env.example.postgres         envv/.env.postgres
-cp envv/.env.example.postgresexporter envv/.env.postgresexporter
-cp envv/.env.example.grafana          envv/.env.grafana
+cp envv/.env.example.app.postgres         envv/.env.app.postgres
+cp envv/.env.example.app.postgresexporter envv/.env.app.postgresexporter
+cp envv/.env.example.app.grafana          envv/.env.app.grafana
 cp minirag/alembic.example.ini        minirag/alembic.ini
 ```
 
@@ -359,7 +359,7 @@ uv sync
 **2. Create the app config from the example**
 
 ```bash
-cp src/.env.example src/.env.app
+cp src/.env.example.app src/.env.app
 ```
 
 Edit `src/.env.app` with your database and LLM settings. For a local Postgres use `POSTGRES_HOST=localhost`.

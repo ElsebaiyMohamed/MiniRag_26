@@ -10,7 +10,7 @@ The repository ships only `*.example` files. Real files hold secrets and are git
 
 | Real file (you create it) | Copy from | Used by |
 |---|---|---|
-| `src/.env.app` | `src/.env.example` | Local development |
+| `src/.env.app` | `../src/.env.example.app` | Local development |
 | `docker/envv/.env.app` | `docker/envv/.env.example.app` | `fastapi` container |
 | `docker/envv/.env.postgres` | `docker/envv/.env.example.postgres` | `pgvector` container |
 | `docker/envv/.env.postgresexporter` | `docker/envv/.env.example.postgresexporter` | `postgres-exporter` container |
@@ -193,6 +193,6 @@ EMBEDDING_MODEL_SIZE=<its dimension>
 ## Adding a new setting
 
 1. Add the field to `Settings` in `src/helpers/config.py`.
-2. Add it to `src/.env.example` and `docker/envv/.env.example.app`.
+2. Add it to `../src/.env.example.app` and `docker/envv/.env.example.app`.
 3. Document it in this file.
 4. Mention it in `CHANGELOG.md` under *Unreleased*.
