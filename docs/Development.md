@@ -40,7 +40,7 @@ The architecture diagrams are in the README.
 
 ```bash
 uv sync
-cp src/.env.example src/.env.app          # then edit it
+cp src/.env.example.app src/.env.app          # then edit it
 ```
 
 You need a PostgreSQL database with pgvector. The simplest way is to reuse the one from the Docker stack. Create the env files as described in the README quickstart, then start only the database:
