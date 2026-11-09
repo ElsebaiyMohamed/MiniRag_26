@@ -37,7 +37,7 @@ class NLPController(BaseController):
         chunk_texts = [c.chunk_text for c in chunks]
         chunk_metadatas = [c.chunk_metadata for c in chunks]
 
-        vectors = self.embedding_client.embed_text(
+        vectors = await self.embedding_client.embed_text(
                 prompts=chunk_texts,
                 document_type=DocumentTypeEnum.DOCUMENT.value,
             )
@@ -70,7 +70,7 @@ class NLPController(BaseController):
 
     async def search_vector_db_collection(self, project: Project, text: str, limit: int = 10):
         collection_name = self.create_collection_name(project.project_id)
-        vector = self.embedding_client.embed_text(
+        vector = await self.embedding_client.embed_text(
                     prompts=text,
                     document_type=DocumentTypeEnum.QUERY.value
                 )
@@ -117,7 +117,7 @@ class NLPController(BaseController):
             )
         ]
 
-        answer = self.generation_client.generate_text(
+        answer = await self.generation_client.generate_text(
             prompt=full_prompt,
             chat_history=chat_history,
         )

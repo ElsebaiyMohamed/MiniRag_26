@@ -13,11 +13,11 @@ class LLMInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
+    async def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
         raise NotImplementedError
 
     @abstractmethod
-    def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
+    async def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
         raise NotImplementedError
 
     @abstractmethod

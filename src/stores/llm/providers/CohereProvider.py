@@ -20,7 +20,7 @@ class CohereProvider(LLMInterface):
         self.embedding_model_id = None
         self.embedding_size = None
         self.enum = CohereEnum
-        self.client = cohere.ClientV2(api_key=self.api_key)
+        self.client = cohere.AsyncClientV2(api_key=self.api_key)
         self.logger = logging.getLogger(__name__)
 
     def set_generation_model(self, model_id: str):
@@ -30,7 +30,8 @@ class CohereProvider(LLMInterface):
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
-    def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
+    async def generate_text(self, prompt: str, max_output_tokens: int=None,
+                            temperature: float=None, *args, **kwargs):
         if self.client is None:
             self.logger.error("Cohere client was not set")
             return None
@@ -44,7 +45,7 @@ class CohereProvider(LLMInterface):
         messages = chat_history.copy() if chat_history else []
         messages.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
 
-        response = self.client.chat(
+        response = await self.client.chat(
             model=self.generation_model_id,
             messages=messages,
             max_tokens=max_output_tokens,
@@ -56,32 +57,32 @@ class CohereProvider(LLMInterface):
         return response.message.content[0].text
 
 
-    def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
-            if self.client is None:
-                self.logger.error("Cohere client was not set")
-                return None
-            if self.embedding_model_id is None:
-                self.logger.error("Embedding model for cohere not set")
-                return None
-            input_type = CohereEnum.DOCUMENT.value
-            if document_type == DocumentTypeEnum.QUERY.value:
-                input_type = CohereEnum.QUERY.value
-            single = isinstance(prompts, str)
-            texts = [self.process_text(prompts)] if single else [self.process_text(t)
-                                                                 for t in prompts]
+    async def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
+        if self.client is None:
+            self.logger.error("Cohere client was not set")
+            return None
+        if self.embedding_model_id is None:
+            self.logger.error("Embedding model for cohere not set")
+            return None
+        input_type = CohereEnum.DOCUMENT.value
+        if document_type == DocumentTypeEnum.QUERY.value:
+            input_type = CohereEnum.QUERY.value
+        single = isinstance(prompts, str)
+        texts = [self.process_text(prompts)] if single else [self.process_text(t)
+                                                             for t in prompts]
 
-            response = self.client.embed(
-                model=self.embedding_model_id,
-                texts=texts,
-                input_type=input_type,
-                embedding_types=['float'],
-            )
+        response = await self.client.embed(
+            model=self.embedding_model_id,
+            texts=texts,
+            input_type=input_type,
+            embedding_types=['float'],
+        )
 
-            if response is None or response.embeddings is None or not response.embeddings.float:
-                self.logger.error('unable to get embeddings from provider')
-                return None
-            vectors = response.embeddings.float
-            return vectors[0] if single else vectors
+        if response is None or response.embeddings is None or not response.embeddings.float:
+            self.logger.error('unable to get embeddings from provider')
+            return None
+        vectors = response.embeddings.float
+        return vectors[0] if single else vectors
 
 
     def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
