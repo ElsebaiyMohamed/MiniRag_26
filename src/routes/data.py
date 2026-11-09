@@ -24,7 +24,7 @@ async def upload(
     app_settings: Settings = Depends(get_settings),
 ):
     data_contoller = DataController()
-    is_valid, signal = data_contoller.validate(file)
+    is_valid, signal = await data_contoller.validate(file)
 
     if not is_valid:
         return JSONResponse(
