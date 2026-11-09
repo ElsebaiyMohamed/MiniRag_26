@@ -3,6 +3,7 @@ FROM ghcr.io/astral-sh/uv:python3.14-alpine
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     PYTHONUNBUFFERED=1 \
+    PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus \
     PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
