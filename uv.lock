@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.13.14"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -1074,6 +1074,7 @@ dependencies = [
     { name = "pymupdf" },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
+    { name = "starlette" },
     { name = "starlette-exporter" },
     { name = "uvicorn" },
 ]
@@ -1096,6 +1097,7 @@ requires-dist = [
     { name = "pymupdf", specifier = ">=1.28.2" },
     { name = "python-multipart", specifier = ">=0.0.32" },
     { name = "sqlalchemy", specifier = ">=2.0.53" },
+    { name = "starlette", specifier = ">=1.6.0" },
     { name = "starlette-exporter", specifier = ">=0.24.0" },
     { name = "uvicorn", specifier = ">=0.53.0" },
 ]
