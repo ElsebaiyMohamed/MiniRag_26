@@ -289,17 +289,22 @@ async def index_answer(request: Request, project_id: int, search_request: Search
         query=search_request.text,
         limit=search_request.limit
     )
+
     if answer:
+        response_content = {
+            'signal': ResponseSignal.RAG_ANSWER_SUCCESS.value,
+            'answer': answer,
+        }
+
+        if search_request.debug:
+            response_content['full_prompt'] = full_prompt
+            response_content['chat_history'] = chat_history
 
         return JSONResponse(
-                status_code=status.HTTP_200_OK,
-                content={
-                    'signal': ResponseSignal.RAG_ANSWER_SUCCESS.value,
-                    'answer': answer,
-                    'full_prompt': full_prompt,
-                    'chat_history': chat_history
-                }
-            )
+            status_code=status.HTTP_200_OK,
+            content=response_content
+        )
+
     return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
