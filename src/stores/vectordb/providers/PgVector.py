@@ -223,6 +223,7 @@ class PgVector(VectorDBInterface):
                 await session.execute(create_idx_sql)
 
                 self.logger.info(f"END: Created vector index for collection: {collection_name}")
+                return True
 
     async def reset_vector_index(self, collection_name: str, index_type: str = PgVectorIndexEnums.HNSW.value) -> bool:
         if not collection_name.startswith(self.pgvector_table_prefix):

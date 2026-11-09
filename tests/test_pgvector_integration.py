@@ -58,7 +58,7 @@ async def test_pgvector_collection_insert_search_and_asset_delete(pgvector_sessi
         db_client=pgvector_session_factory,
         default_vector_size=2,
         distance_method="cosine",
-        index_threshold=2,
+        index_threshold=1,
     )
     try:
         await store.connect()

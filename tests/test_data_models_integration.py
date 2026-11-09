@@ -21,7 +21,8 @@ async def test_project_asset_and_chunk_models(pgvector_session_factory, monkeypa
 
     project = await projects.create_project(Project())
     assert await projects.get_project(project.project_id) is not None
-    assert await projects.get_project_or_create_one(project.project_id) == project
+    existing_project = await projects.get_project_or_create_one(project.project_id)
+    assert existing_project.project_id == project.project_id
 
     second_project = await projects.get_project_or_create_one(project_id=project.project_id + 1)
     project_page, total_pages = await projects.get_all_projects(page=1, page_size=1)

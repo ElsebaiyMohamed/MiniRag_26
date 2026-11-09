@@ -170,7 +170,7 @@ def workflow_models(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_upload_process_index_search_answer_workflow(
-    tmp_path, monkeypatch, workflow_models
+    tmp_path, monkeypatch, workflow_models, settings_stub
 ):
     projects, assets, chunks = workflow_models
     project_assets = tmp_path / "assets"

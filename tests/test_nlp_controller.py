@@ -12,7 +12,7 @@ from models.enums import DocumentTypeEnum
 
 
 @pytest.mark.asyncio
-async def test_index_returns_failed_count_when_embedding_fails():
+async def test_index_returns_failed_count_when_embedding_fails(settings_stub):
     embedding = SimpleNamespace(embed_text=AsyncMock(return_value=None), embedding_size=3)
     vector_db = SimpleNamespace(create_collection=AsyncMock(), insert_many=AsyncMock())
     controller = NLPController(vector_db, None, embedding)
@@ -30,7 +30,9 @@ async def test_index_returns_failed_count_when_embedding_fails():
 
 
 @pytest.mark.asyncio
-async def test_search_returns_false_when_embedding_or_vector_results_are_missing():
+async def test_search_returns_false_when_embedding_or_vector_results_are_missing(
+    settings_stub,
+):
     embedding = SimpleNamespace(embed_text=AsyncMock(return_value=None), embedding_size=3)
     vector_db = SimpleNamespace(search_by_vector=AsyncMock(return_value=False))
     controller = NLPController(vector_db, None, embedding)
@@ -49,7 +51,9 @@ async def test_search_returns_false_when_embedding_or_vector_results_are_missing
 
 
 @pytest.mark.asyncio
-async def test_answer_returns_empty_tuple_when_retrieval_finds_no_documents():
+async def test_answer_returns_empty_tuple_when_retrieval_finds_no_documents(
+    settings_stub,
+):
     controller = NLPController(
         vectordb_client=SimpleNamespace(),
         generation_client=SimpleNamespace(generate_text=AsyncMock()),

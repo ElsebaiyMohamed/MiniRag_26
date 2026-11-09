@@ -1,5 +1,6 @@
 import os
 import sys
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -8,6 +9,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
+
+
+@pytest.fixture
+def settings_stub(monkeypatch):
+    from importlib import import_module
+
+    base_controller = import_module("controllers.BaseController")
+    monkeypatch.setattr(base_controller, "get_settings", lambda: SimpleNamespace())
 
 
 @pytest_asyncio.fixture
