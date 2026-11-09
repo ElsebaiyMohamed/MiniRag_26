@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-from controllers.ProcessController import ProcessController, Document
+from controllers.ProcessController import Document, ProcessController
 
 
 @pytest.fixture
