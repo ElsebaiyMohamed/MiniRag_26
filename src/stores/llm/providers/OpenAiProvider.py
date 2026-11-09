@@ -1,7 +1,7 @@
 import logging
 from typing import Union, List
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from models.enums import OpenAIEnum
 from ..LLMInterface import LLMInterface
@@ -21,7 +21,7 @@ class OpenAiProvider(LLMInterface):
         self.embedding_model_id = None
         self.embedding_size = None
         self.enum = OpenAIEnum
-        self.client = OpenAI(api_key=self.api_key, base_url=self.api_url)
+        self.client = AsyncOpenAI(api_key=self.api_key, base_url=self.api_url)
         self.logger = logging.getLogger(__name__)
 
     def set_generation_model(self, model_id: str):
@@ -31,7 +31,7 @@ class OpenAiProvider(LLMInterface):
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
-    def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
+    async def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
         if self.client is None:
             self.logger.error("OpenAi client was not set")
             return None
@@ -43,7 +43,7 @@ class OpenAiProvider(LLMInterface):
         chat_history: list = list(kwargs.get('chat_history', []))
         chat_history.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
 
-        response = self.client.chat.completions.create(
+        response = await self.client.chat.completions.create(
             model=self.generation_model_id,
             messages=chat_history,
             max_tokens=max_output_tokens,
@@ -56,7 +56,7 @@ class OpenAiProvider(LLMInterface):
         return response.choices[0].message.content
 
 
-    def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
+    async def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
         if self.client is None:
             self.logger.error("OpenAi client was not set")
             return None
@@ -64,11 +64,11 @@ class OpenAiProvider(LLMInterface):
             self.logger.error("Embedding model for OpenAi not set")
             return None
         single = isinstance(prompts, str)
-        texts = [self.process_text(prompts)] if single else [self.process_text(t) for t
-                                                             in prompts]
+        texts = [self.process_text(prompts)] if single else [self.process_text(t) for
+                                                             t in prompts]
         try:
-            response = self.client.embeddings.create(model=self.embedding_model_id,
-                                                 input=texts)
+            response = await self.client.embeddings.create(
+                model=self.embedding_model_id, input=texts)
         except Exception as e:
             self.logger.error(f'failed to get embedding from provider. {e}')
             response = None
