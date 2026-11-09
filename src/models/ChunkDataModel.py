@@ -34,7 +34,7 @@ class ChunkDataModel(BaseDataModel):
             try:
                 async with session.begin():
                     for i in range(0, len(chunks), batch_size):
-                        await session.add_all(chunks[i:i+batch_size])
+                        session.add_all(chunks[i:i+batch_size])
                         await session.flush()
             except Exception as e:
                 return 0

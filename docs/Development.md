@@ -123,20 +123,25 @@ Loading happens in `ProcessController._get_file_loader`, which maps a file exten
 
 ## Testing
 
-There is no automated test suite yet, and adding one is on the roadmap. Until then, verify changes by running the full flow from the README against a small document: upload, process, push, search, answer. For changes to a provider, run that flow with the provider selected.
+Run the unit and API workflow tests with:
 
-A good starting setup for contributors is `pytest` with `httpx`'s async client against the FastAPI app, and the provider interfaces replaced by small fakes so tests need neither a database nor API keys.
+```bash
+uv run pytest tests/ --cov=src --cov-report=term-missing
+uvx ruff check tests/
+```
+
+The API workflow and provider tests use fakes, so they need neither API keys nor a database. The pgvector integration test uses a real PostgreSQL database with the pgvector extension; it is skipped locally unless `PGVECTOR_TEST_DATABASE_URL` is set. CI provides this service automatically. Provider tests use mocked SDK clients and do not make network calls.
 
 ## Code style
 
-No formatter or linter is enforced yet. Until one is added, match the style of the surrounding code, and keep these conventions:
+Ruff is used in CI for the test suite. Until source-wide linting is enabled, match the style of the surrounding code, and keep these conventions:
 
 - Routes stay thin. Logic belongs in controllers.
 - Provider-specific code stays inside `stores/`. Controllers talk to interfaces only.
 - I/O methods on stores and data models are `async`, so always `await` them.
 - Return a clear `signal` for every failure path in a route, and log the underlying error.
 
-Adding `ruff` and a pre-commit configuration would be a welcome contribution.
+Expanding Ruff coverage to application source requires resolving the existing lint findings there.
 
 ## Commits and pull requests
 
