@@ -6,19 +6,19 @@ Real environment variables take precedence over values in a `.env` file.
 
 ## Config files
 
-The repository ships only `*.example` files. Real files hold secrets and are git-ignored, so you create them by copying:
+The repository ships example configuration files, not populated secret files. Real files hold secrets and are git-ignored, so you create them by copying:
 
 | Real file (you create it) | Copy from | Used by |
 |---|---|---|
-| `src/.env.app` | `../src/.env.example.app` | Local development |
+| `src/.env.app` | `src/.env.example.app` | Local development |
 | `docker/envv/.env.app` | `docker/envv/.env.example.app` | `fastapi` container |
-| `docker/envv/.env.postgres` | `docker/envv/.env.example.postgres` | `pgvector` container |
-| `docker/envv/.env.postgresexporter` | `docker/envv/.env.example.postgresexporter` | `postgres-exporter` container |
-| `docker/envv/.env.grafana` | `docker/envv/.env.example.grafana` | `grafana` container |
-| `src/models/db_schemas/minirag26/alembic.ini` | `alembic.ini.example` (same folder) | Alembic, local development |
+| `docker/envv/.env.app.postgres` | `docker/envv/.env.example.postgres` | `pgvector` container |
+| `docker/envv/.env.app.postgresexporter` | `docker/envv/.env.example.postgresexporter` | `postgres-exporter` container |
+| `docker/envv/.env.app.grafana` | `docker/envv/.env.example.grafana` | `grafana` container |
+| `src/models/db_schemas/minirag26/alembic.ini` | `src/models/db_schemas/minirag26/alembic.ini.example` | Alembic, local development |
 | `docker/minirag/alembic.ini` | `docker/minirag/alembic.example.ini` | Alembic inside the Docker image |
 
-For local development, `.env.app` is read from the current directory, so start from `src/`. It’s now always `src/.env.app`.
+The application settings file is anchored to `src/.env.app`, regardless of the current working directory. Real environment variables override values from that file.
 
 ### Database credentials must match everywhere
 
@@ -26,8 +26,8 @@ In the Docker setup the same database credentials appear in four places. Keep th
 
 | File | Keys |
 |---|---|
-| `envv/.env.postgres` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
-| `envv/.env.postgresexporter` | `DATA_SOURCE_USER`, `DATA_SOURCE_PASS` |
+| `envv/.env.app.postgres` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
+| `envv/.env.app.postgresexporter` | `DATA_SOURCE_USER`, `DATA_SOURCE_PASS` |
 | `envv/.env.app` | `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_MAIN_DATABASE` |
 | `minirag/alembic.ini` | `sqlalchemy.url` |
 
@@ -53,7 +53,7 @@ Inside the Docker network the database host is `pgvector` and the port is `5432`
 | `FILE_MAX_SIZE_IN_MB` | yes | Maximum upload size in megabytes |
 | `FILE_DEAFAULT_CHINK_SIZE` | yes | Bytes read per iteration while streaming an upload to disk (for example `256000`) |
 
-If you run behind the bundled Nginx, its own upload limit also applies. See [Deployment](deployment.md#nginx).
+If you run behind the bundled Nginx, its own upload limit also applies. See [Deployment](Deployment.md#nginx).
 
 ### PostgreSQL
 
@@ -71,7 +71,7 @@ If you run behind the bundled Nginx, its own upload limit also applies. See [Dep
 |---|---|---|
 | `VECTORDB_BACKEND` | yes | `PGVECTOR`. Any other value fails at startup |
 | `VECTORDB_BACKEND_LITERAL` | no | Informational list of valid backends. The application does not read it |
-| `VECTOR_DB_DISTANCE_METRIC` | yes | optional (default `cosine`), and `dot` is supported. |
+| `VECTOR_DB_DISTANCE_METRIC` | no | Distance metric; defaults to `cosine`. `dot` is also supported. |
 | `VECTOR_DB_PGVEC_INDEX_THRESHOLD` | yes | Minimum number of rows in a collection before an HNSW index is created on it. Below the threshold, searches scan exactly |
 
 ### LLM providers
@@ -80,9 +80,9 @@ If you run behind the bundled Nginx, its own upload limit also applies. See [Dep
 |---|---|---|
 | `GENERATION_BACKEND` | yes | Provider used for answers: `COHERE` or `OPENAI` |
 | `EMBEDDING_BACKEND` | yes | Provider used for embeddings: `COHERE` or `OPENAI`. May differ from `GENERATION_BACKEND` |
-| `COHERE_API_KEY` | yes (may be empty) | Cohere key. Must be present only if using Cohere as BACKEND |
-| `OPENAI_API_KEY` | yes (may be empty) | Key for OpenAI or any OpenAI-compatible server. For Ollama use any non-empty value |
-| `OPENAI_API_URL` | yes (may be empty) | Base URL of an OpenAI-compatible API. Empty means the official OpenAI endpoint |
+| `COHERE_API_KEY` | only for Cohere | Non-empty Cohere key when either backend is `COHERE` |
+| `OPENAI_API_KEY` | only for OpenAI | Non-empty key when either backend is `OPENAI`; Ollama accepts any non-empty value |
+| `OPENAI_API_URL` | no | Base URL of an OpenAI-compatible API. Empty or unset uses the official OpenAI endpoint |
 | `GENERATION_MODEL_ID` | yes in practice | Model used for answers |
 | `EMBEDDING_MODEL_ID` | yes in practice | Model used for embeddings |
 | `EMBEDDING_MODEL_SIZE` | yes in practice | Output dimension of the embedding model. **Must match the model exactly** |
@@ -161,7 +161,7 @@ EMBEDDING_MODEL_ID="bge-m3"
 EMBEDDING_MODEL_SIZE=1024
 ```
 
-When the API runs inside Docker, `localhost` refers to the container. Use `http://host.docker.internal:11434/v1`. See [Troubleshooting](troubleshooting.md#ollama-is-unreachable-from-docker).
+When the API runs inside Docker, `localhost` refers to the container. Use `http://host.docker.internal:11434/v1`. See [Troubleshooting](Troubleshooting.md#ollama-is-unreachable-from-docker).
 
 ### Mixed: cloud embeddings, local generation
 
@@ -195,4 +195,4 @@ EMBEDDING_MODEL_SIZE=<its dimension>
 1. Add the field to `Settings` in `src/helpers/config.py`.
 2. Add it to `../src/.env.example.app` and `docker/envv/.env.example.app`.
 3. Document it in this file.
-4. Mention it in `CHANGELOG.md` under *Unreleased*.
+4. Mention it in `Changelog.md` under *Unreleased*.

@@ -3,11 +3,11 @@
 Base URL: `http://localhost:8000` (or `http://localhost` through Nginx).
 
 - Interactive docs (Swagger UI): `/docs`
-- Machine-readable schema: [`openapi.json`](openapi.json) in this folder, also served live at `/openapi.json`
+- Machine-readable schema: [`Openapi.json`](Openapi.json) in this folder, also served live at `/openapi.json`
 
 ## Conventions
 
-**Projects.** Every data and NLP endpoint takes an integer `{project_id}`. A project is created implicitly the first time an ID is used, and each project has its own files, chunks, and vector collection. A typo in the ID therefore targets a new, empty project instead of returning an error.
+**Projects.** Every data and NLP endpoint takes an integer `{project_id}`. Upload creates the project if it does not exist. Other operations require an existing project; a typo in the ID returns a project-not-found error instead of targeting a new, empty project.
 
 **Signals.** Responses carry a `signal` string that describes the outcome. Clients can match on it. Signals are returned verbatim, so treat changing one as a breaking change.
 
@@ -17,6 +17,7 @@ Base URL: `http://localhost:8000` (or `http://localhost` through Nginx).
 |---|---|
 | `200` | Success |
 | `400` | The request was understood but could not be completed. See the `signal` |
+| `404` | The requested project or resource does not exist |
 | `422` | The request body or parameters failed validation (FastAPI default format) |
 | `500` | Unexpected server error, for example a failed file write |
 
@@ -73,7 +74,7 @@ curl http://localhost:8000/
 
 ## `POST /api/v1/data/upload/{project_id}`
 
-Uploads one file as `multipart/form-data` with the field name `file`. Allowed types and the size limit come from `FILE_ALLOWED_EXTENTIONS` and `FILE_MAX_SIZE_IN_MB`. See [Configuration](configuration.md).
+Uploads one file as `multipart/form-data` with the field name `file`. The request must use an allowed MIME type from `FILE_ALLOWED_EXTENTIONS`, a supported `.txt` or `.pdf` filename extension, and stay within `FILE_MAX_SIZE_IN_MB`. See [Configuration](Configuration.md).
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/data/upload/1 \
@@ -95,7 +96,7 @@ curl -X POST http://localhost:8000/api/v1/data/upload/1 \
 
 | Status | `signal` | Cause |
 |---|---|---|
-| `400` | `file type not supported` | Content type not allowed |
+| `400` | `file type not supported` | MIME type or filename extension is not supported |
 | `400` | `file size exceeded` | File larger than the configured maximum |
 | `500` | `file upload failed` | The file could not be written to disk |
 
@@ -272,12 +273,12 @@ Results are sorted best first. A higher `score` means more similar.
 
 Retrieval-augmented answer. The question is embedded, the closest chunks are retrieved, a prompt is built from the localized template, and the generation model answers using only those documents.
 
-**Body**: same as search (`text`, `limit`).
+**Body**: same query fields as search (`text`, `limit`), plus optional `debug` (boolean, default `false`). The shared request schema also exposes `debug` for search, but only the answer endpoint uses it.
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/nlp/index/answer/1 \
   -H "Content-Type: application/json" \
-  -d '{"text": "What is the refund policy?", "limit": 5}'
+  -d '{"text": "What is the refund policy?", "limit": 5, "debug": true}'
 ```
 
 **200**
@@ -293,6 +294,8 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/answer/1 \
 }
 ```
 
+Without `"debug": true`, the successful response contains only `signal` and `answer`.
+
 | Field | Description |
 |---|---|
 | `answer` | The model's reply |
@@ -307,13 +310,13 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/answer/1 \
 
 ---
 
-## Regenerating `openapi.json`
+## Regenerating `Openapi.json`
 
 The schema is generated from the application, so regenerate it whenever endpoints or models change. From the repository root:
 
 ```bash
 cd src
-uv run python -c "import json; from main import app; print(json.dumps(app.openapi(), indent=2))" > ../docs/openapi.json
+uv run python -c "import json; from main import app; print(json.dumps(app.openapi(), indent=2))" > ../docs/Openapi.json
 ```
 
 This does not need a running database, because it only builds the schema and does not start the application.

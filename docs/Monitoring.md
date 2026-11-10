@@ -15,7 +15,7 @@ prometheus (self) ───┘
 | Grafana | http://localhost:3000 | Dashboards on top of Prometheus |
 | API metrics | http://localhost:8000/metrics | Raw Prometheus-format metrics from the API |
 
-In production, do not publish these ports. See [Deployment](deployment.md#monitoring-access).
+In production, do not publish these ports. See [Deployment](Deployment.md#monitoring-access).
 
 ## What Prometheus scrapes
 
@@ -45,7 +45,7 @@ Beyond these two, the endpoint also exposes the default process and Python runti
 
 ### Multiple workers
 
-The Docker image runs several `uvicorn` workers, and each worker keeps its own counters. A scrape of `/metrics` reaches one worker at random, so counters can appear to jump or reset between scrapes. For accurate numbers, either run a single worker, or switch the Prometheus client to multiprocess mode (set `PROMETHEUS_MULTIPROC_DIR` and serve the aggregated registry). This is a known limitation.
+The Docker image runs four `uvicorn` workers and enables Prometheus multiprocess collection through `PROMETHEUS_MULTIPROC_DIR`, so `/metrics` aggregates metrics across workers. The entrypoint clears the multiprocess files once at container startup. For a custom multi-worker deployment, set the variable before starting workers and expose a registry using `MultiProcessCollector`. Without multiprocess mode, a scrape reports only the worker that handled it.
 
 ## Setting up Grafana
 
@@ -53,7 +53,7 @@ Grafana starts empty, with no data source and no dashboards.
 
 ### 1. Log in
 
-Open http://localhost:3000 and sign in with the admin user and password from `docker/envv/.env.grafana`.
+Open http://localhost:3000 and sign in with the admin user and password from `docker/envv/.env.app.grafana`.
 
 ### 2. Add the data source
 
@@ -137,4 +137,4 @@ Prometheus is configured without alert rules or an Alertmanager. Good first aler
 
 ## Troubleshooting
 
-See [Troubleshooting](troubleshooting.md#monitoring) for targets that are down, empty Grafana panels, and login problems.
+See [Troubleshooting](Troubleshooting.md#monitoring) for targets that are down, empty Grafana panels, and login problems.

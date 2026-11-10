@@ -428,6 +428,18 @@
             ],
             "title": "Limit",
             "default": 10
+          },
+          "debug": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debug",
+            "default": false
           }
         },
         "type": "object",

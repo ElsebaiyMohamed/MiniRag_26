@@ -5,17 +5,19 @@
 |   | Layer                    | Tools                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 |:--|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 |   | **Language and tooling** | ![Python](https://img.shields.io/badge/Python-3.13.14-3776AB?logo=python&logoColor=white) ![uv](https://img.shields.io/badge/uv-package_manager-DE5FE9?logo=uv&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)                                                                                                                                                                                                                                        |
-|   | **API**                  | ![FastAPI](https://img.shields.io/badge/FastAPI-0.141.1-009688?logo=fastapi&logoColor=white) ![Uvicorn](https://img.shields.io/badge/Uvicorn-0.53.0-499848) ![Pydantic](https://img.shields.io/badge/Pydantic-2.13.5-E92063?logo=pydantic&logoColor=white) ![Pydantic Settings](https://img.shields.io/badge/Pydantic_Settings-2.15.0-E92063?logo=pydantic&logoColor=white)                                                                                                                                      |
-|   | **Database and ORM**     | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white) ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.53-D71F00?logo=sqlalchemy&logoColor=white) ![Alembic](https://img.shields.io/badge/Alembic-1.20.0-6BA81E) ![asyncpg](https://img.shields.io/badge/asyncpg-0.31.0-4169E1) ![psycopg2](https://img.shields.io/badge/psycopg2-2.9.13-4169E1)                                             |
+|   | **API**                  | ![FastAPI](https://img.shields.io/badge/FastAPI-0.162.2-009688?logo=fastapi&logoColor=white) ![Uvicorn](https://img.shields.io/badge/Uvicorn-0.54.0-499848) ![Pydantic](https://img.shields.io/badge/Pydantic-2.14.3-E92063?logo=pydantic&logoColor=white) ![Pydantic Settings](https://img.shields.io/badge/Pydantic_Settings-2.16.2-E92063?logo=pydantic&logoColor=white)                                                                                                                                      |
+|   | **Database and ORM**     | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white) ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.1.8-D71F00?logo=sqlalchemy&logoColor=white) ![Alembic](https://img.shields.io/badge/Alembic-1.20.1-6BA81E) ![asyncpg](https://img.shields.io/badge/asyncpg-0.32.0-4169E1) ![psycopg2](https://img.shields.io/badge/psycopg2-2.9.13-4169E1)                                             |
 |   | **Vector search**        | ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791)                                                                                                                                                                                                                                                                               |
-|   | **LLM providers**        | ![Cohere](https://img.shields.io/badge/Cohere_SDK-7.1.1-39594D?logo=cohere&logoColor=white) ![OpenAI](https://img.shields.io/badge/OpenAI_SDK-3.19.0-412991?logo=openai&logoColor=white) ![Ollama](https://img.shields.io/badge/Ollama-local_models-000000?logo=ollama&logoColor=white)                                                                                                                                                                                                                          |
-|   | **Document processing**  | ![LangChain](https://img.shields.io/badge/LangChain-1.4.0-1C3C3C?logo=langchain&logoColor=white) ![LangChain Community](https://img.shields.io/badge/LangChain_Community-0.4.2-1C3C3C?logo=langchain&logoColor=white) ![PyMuPDF](https://img.shields.io/badge/PyMuPDF-1.28.2-CC2927)                                                                                                                                                                                                                             |
+|   | **LLM providers**        | ![Cohere](https://img.shields.io/badge/Cohere_SDK-7.3.1-39594D?logo=cohere&logoColor=white) ![OpenAI](https://img.shields.io/badge/OpenAI_SDK-3.48.0-412991?logo=openai&logoColor=white) ![Ollama](https://img.shields.io/badge/Ollama-local_models-000000?logo=ollama&logoColor=white)                                                                                                                                                                                                                          |
+|   | **Document processing**  | ![LangChain](https://img.shields.io/badge/LangChain-1.4.9-1C3C3C?logo=langchain&logoColor=white) ![LangChain Community](https://img.shields.io/badge/LangChain_Community-0.4.2-1C3C3C?logo=langchain&logoColor=white) ![PyMuPDF](https://img.shields.io/badge/PyMuPDF-2.1-CC2927)                                                                                                                                                                                                                             |
 |   | **Serving**              | ![Nginx](https://img.shields.io/badge/Nginx-1.30.5-009639?logo=nginx&logoColor=white)                                                                                                                                                                                                                                                                                                                                                                                                                            |
 |   | **Monitoring**           | ![Prometheus](https://img.shields.io/badge/Prometheus-3.13.4-E6522C?logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-13.0-F46800?logo=grafana&logoColor=white) ![Node Exporter](https://img.shields.io/badge/Node_Exporter-1.12.1-E6522C?logo=prometheus&logoColor=white) ![Postgres Exporter](https://img.shields.io/badge/Postgres_Exporter-0.20.1-4169E1?logo=postgresql&logoColor=white) ![prometheus_client](https://img.shields.io/badge/prometheus__client-0.26.0-E6522C) |
 
+Python dependency versions are tracked in `uv.lock`.
+
 A production-oriented **Retrieval-Augmented Generation (RAG) backend** for question answering over your own documents, with first-class **Arabic and English** support.
 
-Upload documents, chunk and embed them into a vector database, then search them or ask questions and get answers grounded in your content. Everything runs behind a FastAPI service with Postgres, a swappable vector store, swappable LLM providers, and built-in monitoring.
+Upload documents, chunk and embed them with PostgreSQL + pgvector, then search them or ask questions and get answers grounded in your content. Everything runs behind a FastAPI service with interchangeable LLM providers and built-in monitoring.
 
 ## Origin and credits
 
@@ -31,7 +33,7 @@ It is now being developed beyond the course: new file formats, advanced chunking
 - **Project-based isolation:** each `project_id` has its own files, chunks and vector collection
 - **Chunking:** line-aware text chunking with configurable chunk size
 - **Pluggable LLM providers:** Cohere and any OpenAI-compatible API (including local models via [Ollama](#using-a-local-model-with-ollama))
-- **Pluggable vector stores:** PostgreSQL + pgvector
+- **Vector search:** PostgreSQL + pgvector (the only supported vector backend today)
 - **Semantic search** and **RAG answering** with localized prompt templates (English and Arabic)
 - **Observability:** Prometheus metrics, Grafana, node-exporter and Postgres exporter included
 - **Containerized:** one `docker compose` command brings up the full stack, with Alembic migrations run on startup
@@ -71,8 +73,7 @@ flowchart LR
 
     client --> nginx --> api
     client -. "direct :8000" .-> api
-    api --> pg
-    api -->|"VECTORDB_BACKEND"| qd
+    api -->|"app data + vectors"| pg
     api --> files
     api -->|"GENERATION_BACKEND<br/>EMBEDDING_BACKEND"| cohere
     api --> oai
@@ -85,7 +86,7 @@ flowchart LR
 
 ### Code structure
 
-Providers sit behind interfaces and factories, so LLMs and vector stores can be swapped through configuration.
+LLM providers sit behind an interface and factory, so generation and embedding providers can be selected independently through configuration. The vector-store interface currently has one implementation: pgvector.
 
 ```mermaid
 flowchart TB
@@ -106,7 +107,7 @@ flowchart TB
         orm[("SQLAlchemy + Alembic")]
     end
 
-    subgraph stores["Stores: swappable providers"]
+    subgraph stores["Stores"]
         llmf["LLMProviderFactory"] --> llmi["LLMInterface"]
         llmi --> cohere["CohereProvider"]
         llmi --> openai["OpenAiProvider"]
@@ -174,7 +175,7 @@ sequenceDiagram
     API->>API: build prompt from en or ar template
     API->>LLM: generate answer from documents
     LLM-->>API: answer
-    API-->>C: answer, full_prompt, chat_history
+    API-->>C: answer (debug fields are optional)
 ```
 
 ### Data model
@@ -306,13 +307,13 @@ git clone https://github.com/ElsebaiyMohamed/MiniRag_26.git
 cd MiniRag_26/docker
 ```
 
-**2. Create your config files from the examples.** The repository only ships `*.example` files. Real config files contain secrets and are git-ignored, so you must create them:
+**2. Create your config files from the examples.** The repository ships example configuration files, not populated secret files. Real config files contain secrets and are git-ignored, so you must create them:
 
 ```bash
 cp envv/.env.example.app              envv/.env.app
-cp envv/.env.example.app.postgres         envv/.env.app.postgres
-cp envv/.env.example.app.postgresexporter envv/.env.app.postgresexporter
-cp envv/.env.example.app.grafana          envv/.env.app.grafana
+cp envv/.env.example.postgres             envv/.env.app.postgres
+cp envv/.env.example.postgresexporter     envv/.env.app.postgresexporter
+cp envv/.env.example.grafana              envv/.env.app.grafana
 cp minirag/alembic.example.ini        minirag/alembic.ini
 ```
 
@@ -320,10 +321,10 @@ cp minirag/alembic.example.ini        minirag/alembic.ini
 
 | File                         | Set                                                                                                                                                                                                            |
 |------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `envv/.env.postgres`         | `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_DB=minirag26`                                                                                                                              |
-| `envv/.env.postgresexporter` | `DATA_SOURCE_USER=postgres`, `DATA_SOURCE_PASS=<password>`                                                                                                                                                     |
+| `envv/.env.app.postgres`     | `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_DB=minirag26`                                                                                                                              |
+| `envv/.env.app.postgresexporter` | `DATA_SOURCE_USER=postgres`, `DATA_SOURCE_PASS=<password>`                                                                                                                                                     |
 | `envv/.env.app`              | `POSTGRES_USERNAME=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_HOST=pgvector`, `POSTGRES_PORT=5432`, `POSTGRES_MAIN_DATABASE=minirag26`, plus your LLM settings (see [Configuration](#configuration)) |
-| `envv/.env.grafana`          | Change the admin password                                                                                                                                                                                      |
+| `envv/.env.app.grafana`      | Change the admin password                                                                                                                                                                                      |
 | `minirag/alembic.ini`        | `sqlalchemy.url = postgresql://postgres:<password>@pgvector:5432/minirag26`                                                                                                                                    |
 
 **4. Start the stack**
@@ -464,6 +465,8 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/answer/1 \
   -d '{"text": "your question", "limit": 5}'
 ```
 
+Add `"debug": true` to an answer request to include the full prompt and chat history in its response. These potentially sensitive details are omitted by default.
+
 | Method | Endpoint                                | Purpose                                              |
 |--------|-----------------------------------------|------------------------------------------------------|
 | `GET`  | `/`                                     | App info                                             |
@@ -487,11 +490,12 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/answer/1 \
 |                  | OCR                                                               | Planned |
 | **Voice**        | Voice input (speech-to-text), English and Arabic                  | Planned |
 |                  | Spoken answers (text-to-speech), English and Arabic               | Planned |
-| **Quality**      | Tests, CI, API authentication                                     | Planned |
+| **Quality**      | Unit, API workflow, and pgvector integration tests; CI            | Done    |
+|                  | API authentication                                                | Planned |
 
 ## Known limitations
 
-- Only `.txt` and `.pdf` are supported; uploads are validated by MIME type.
+- Only `.txt` and `.pdf` are supported; uploads must pass both MIME-type and filename-extension checks.
 - No authentication. Don't expose the service to the public internet as-is.
 - `overlap_size` is accepted by the process endpoint but not applied yet.
 

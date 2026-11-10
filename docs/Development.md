@@ -84,13 +84,13 @@ Open http://localhost:8000/docs to try every endpoint from the browser.
 2. Add any new outcome strings to `ResponseSignal` in `src/models/enums/ResponseEnums.py`.
 3. Put the logic in a controller, and keep the route thin.
 4. Add the route to the matching router in `src/routes/`. A new router file must also be included in `main.py`.
-5. Update [API reference](api.md) and regenerate `docs/openapi.json` (the command is at the bottom of that file).
+5. Update [API reference](Api.md) and regenerate `docs/Openapi.json` (the command is at the bottom of that file).
 
 Signal strings are part of the public API. Changing an existing one is a breaking change and belongs in the changelog.
 
 ### Add a setting
 
-Follow the steps in [Configuration](configuration.md#adding-a-new-setting).
+Follow the steps in [Configuration](Configuration.md#adding-a-new-setting).
 
 ### Change the database schema
 
@@ -110,7 +110,7 @@ The per-project vector tables created by the pgvector provider are not managed b
 
 ### Add an LLM provider, vector store, or prompt language
 
-See [Adding a provider](adding-a-provider.md).
+See [Adding a provider](Adding%20a%20provider.md).
 
 ### Add a new file type (planned work)
 
@@ -119,7 +119,7 @@ Loading happens in `ProcessController._get_file_loader`, which maps a file exten
 1. The extension in `ProcessingEnum`.
 2. The MIME type in `FILE_ALLOWED_EXTENTIONS`.
 3. A branch in `_get_file_loader` returning a loader whose `load()` yields objects with `page_content` and `metadata`.
-4. Documentation updates (README features, [Configuration](configuration.md), changelog).
+4. Documentation updates (README features, [Configuration](Configuration.md), changelog).
 
 ## Testing
 
@@ -151,11 +151,11 @@ Use conventional commits:
 type(scope): short summary
 ```
 
-Types in use: `feat`, `fix`, `refactor`, `docs`, `chore`. Keep unrelated changes in separate commits, and add a line to `CHANGELOG.md` under *Unreleased* for anything user-visible.
+Types in use: `feat`, `fix`, `refactor`, `docs`, `chore`. Keep unrelated changes in separate commits, and add a line to `Changelog.md` under *Unreleased* for anything user-visible.
 
 ## Releasing
 
-1. Move the *Unreleased* entries in `CHANGELOG.md` under a new version heading with the date.
+1. Move the *Unreleased* entries in `Changelog.md` under a new version heading with the date.
 2. Update the version in `pyproject.toml` and `APP_VERSION` in your example env files.
 3. Commit, then tag: `git tag vX.Y.Z && git push --tags`.
 4. Publish a GitHub release with the changelog section as the notes.

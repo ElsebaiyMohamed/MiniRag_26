@@ -26,17 +26,17 @@ cd docker
 cp minirag/alembic.example.ini minirag/alembic.ini
 ```
 
-Then set `sqlalchemy.url` inside it. See [Configuration](configuration.md#config-files).
+Then set `sqlalchemy.url` inside it. See [Configuration](Configuration.md#config-files).
 
 ### `compose` complains that an env file is missing
 
 **Cause:** the real `envv/.env.*` files were not created from the examples.
 
-**Fix:** copy each `envv/.env.example.<name>` to `envv/.env.<name>`. The full list is in [Configuration](configuration.md#config-files).
+**Fix:** copy each `envv/.env.example.<name>` to its matching real env file. The full list is in [Configuration](Configuration.md#config-files).
 
 ### API fails at startup with `ValidationError: Field required`
 
-**Fix:** run `uvicorn` from `src/`, and compare your `.env.app` against `../src/.env.example.app`. All keys must exist. Keys for unused providers (such as `COHERE_API_KEY`) may be empty strings but must be present.
+**Fix:** run `uvicorn` from `src/`, and compare `src/.env.app` against `src/.env.example.app` and the required variables in [Configuration](Configuration.md). A provider API key is required only when that provider is selected.
 
 ### API fails at startup right after the vector database step
 
@@ -116,7 +116,7 @@ Only `.txt` and `.pdf` are supported today.
 
 **Cause:** Nginx rejects request bodies above its own limit, which is 1 MB unless configured, before the API sees them. Uploading directly to port `8000` works.
 
-**Fix:** add `client_max_body_size` to `docker/nginx/default.conf` so it is at least as large as `FILE_MAX_SIZE_IN_MB`, then restart Nginx. See [Deployment](deployment.md#nginx).
+**Fix:** add `client_max_body_size` to `docker/nginx/default.conf` so it is at least as large as `FILE_MAX_SIZE_IN_MB`, then restart Nginx. See [Deployment](Deployment.md#nginx).
 
 ### Process returns `project is empty`
 
@@ -146,7 +146,7 @@ Typical message from Postgres: `expected N dimensions, not M`.
 
 **Fix:**
 
-1. Set `EMBEDDING_MODEL_ID` and `EMBEDDING_MODEL_SIZE` to a matching pair. See [the dimension table](configuration.md#embedding-dimensions).
+1. Set `EMBEDDING_MODEL_ID` and `EMBEDDING_MODEL_SIZE` to a matching pair. See [the dimension table](Configuration.md#embedding-dimensions).
 2. Restart the API.
 3. Re-index with `"do_reset": 1`:
 
@@ -163,9 +163,9 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/push/1 \
 
 ### Nothing is indexed after a push
 
-**Cause:** the project has no chunks yet. Indexing reads the chunks created by the process step. Projects are created implicitly the first time an ID is used, so a typo in `project_id` silently targets a new, empty project.
+**Cause:** the project has no chunks yet. Indexing reads the chunks created by the process step. Projects are created when a file is uploaded; other operations on a typo in `project_id` return a project-not-found error.
 
-**Fix:** run upload, then process, then push, all with the same `project_id`. Check the result with `GET /api/v1/nlp/index/info/{project_id}`.
+**Fix:** run upload, then process, then push, all with the same `project_id`. Check the result with `GET /api/v1/nlp/index/info/{project_id}`. If the ID is wrong, use the same ID as the upload rather than relying on an empty project being created.
 
 ## Search and answers
 
@@ -231,11 +231,11 @@ Make sure Ollama listens on an address reachable from the container, and that yo
 
 ### Grafana shows no data
 
-**Fix:** add a Prometheus data source with URL `http://prometheus:9090` (the service name, not `localhost`). See [Monitoring](monitoring.md).
+**Fix:** add a Prometheus data source with URL `http://prometheus:9090` (the service name, not `localhost`). See [Monitoring](Monitoring.md).
 
 ### Cannot log in to Grafana
 
-**Fix:** use the admin user and password from `envv/.env.grafana`. These are applied when the Grafana volume is first created. Changing the file later does not change an existing password. Reset it inside Grafana, or remove the `grafana_data` volume to start over.
+**Fix:** use the admin credentials from `envv/.env.app.grafana`. They are applied when the Grafana volume is first created; changing the file later does not change an existing password. Reset the password in the existing Grafana instance rather than deleting the volume, which also removes its persisted dashboards and settings.
 
 ## Still stuck?
 

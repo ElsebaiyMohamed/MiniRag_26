@@ -1,6 +1,6 @@
 # Adding a provider
 
-MiniRag_26 talks to language models and vector databases through interfaces and factories, so adding a new one touches a small, predictable set of files. This guide covers:
+MiniRag_26 talks to language models and vector databases through interfaces and factories. LLM providers can be selected independently for generation and embeddings; pgvector is currently the only supported vector-store implementation. This guide covers:
 
 - [Adding an LLM provider](#adding-an-llm-provider) (generation and embeddings)
 - [Adding a vector store](#adding-a-vector-store)
@@ -11,9 +11,9 @@ Before you start, read the code of the existing providers next to the interface.
 | Kind | Interface | Existing providers |
 |---|---|---|
 | LLM | `src/stores/llm/LLMInterface.py` | `CohereProvider`, `OpenAiProvider` |
-| Vector store | `src/stores/vectordb/VectorDBInterface.py` | `PgVector`|
+| Vector store | `src/stores/vectordb/VectorDBInterface.py` | `PgVector` |
 
-If your LLM server speaks the OpenAI API (Ollama, vLLM, LM Studio, and others), you do not need a new provider. Set `OPENAI_API_URL`. See [Configuration](configuration.md).
+If your LLM server speaks the OpenAI API (Ollama, vLLM, LM Studio, and others), you do not need a new provider. Set `OPENAI_API_URL`. See [Configuration](Configuration.md).
 
 ## How providers are wired
 
@@ -88,18 +88,17 @@ class AcmeProvider(LLMInterface):
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
-    def generate_text(self, prompt: str, max_output_tokens: int = None,
-                      temperature: float = None, *args, **kwargs):
+    async def generate_text(self, prompt: str, max_output_tokens: int = None,
+                            temperature: float = None, *args, **kwargs):
         chat_history = kwargs.get('chat_history', [])
         messages = chat_history.copy()
         messages.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
-        # call your API; return the answer text, or None on failure
+        # Await the async SDK call; return the answer text, or None on failure.
         ...
 
-    def embed_text(self, prompts: Union[List, str], document_type: str = None, *args, 
-                   **kwargs):
-        # return one vector (list of floats) or list of vectors for many inputs, or 
-        None on failure
+    async def embed_text(self, prompts: Union[List, str], document_type: str = None,
+                         *args, **kwargs):
+        # Await the async SDK call; return one vector, a list of vectors, or None.
         ...
 
 
@@ -116,8 +115,8 @@ The contract the controllers rely on:
 |---|---|
 | `set_generation_model(model_id)` | Store the model name. Called once at startup |
 | `set_embedding_model(model_id, embedding_size)` | Store the model name and its dimension. Called with both arguments at startup |
-| `generate_text(prompt, ..., chat_history=[...])` | Return the answer as a plain `str`. Return `None` on any failure. Prefer copying `chat_history` rather than mutating it |
-| `embed_text(prompt, document_type)` | Return `list[float]` or `list[list[float], list[float], ...]`. `document_type` is `DocumentTypeEnum.DOCUMENT` when indexing and `QUERY` when searching |
+| `async generate_text(prompt, ..., chat_history=[...])` | Return the answer as a plain `str`. Return `None` on failure. Prefer copying `chat_history` rather than mutating it |
+| `async embed_text(prompt, document_type)` | Return `list[float]` or a list of vectors. `document_type` is `DocumentTypeEnum.DOCUMENT` when indexing and `QUERY` when searching |
 | `construct_prompt(prompt, role)` | Return a message dict in your API's format |
 | `enum` attribute | An enum with `SYSTEM`, `USER`, `ASSISTANT` values used to build `chat_history` |
 | `embedding_size` attribute | Read by indexing to create the collection |
@@ -125,7 +124,8 @@ The contract the controllers rely on:
 Notes:
 
 - If your embedding model treats queries and documents differently (as Cohere does with `input_type`), map `document_type` accordingly. If it does not, ignore the argument.
-- Log the real error and return `None`. Routes turn a falsy result into a clean `4xx` signal.
+- Await asynchronous SDK methods; do not make blocking provider calls from these `async` methods.
+- Log provider errors and return `None` when the request cannot be completed. Routes map an empty result to an error signal; uncaught provider exceptions can become server errors.
 
 ### 3. Export it
 
@@ -161,7 +161,7 @@ Users then select the provider with `GENERATION_BACKEND="ACME"` and/or `EMBEDDIN
 
 ### 6. Verify
 
-There is no automated test suite yet. Run the end-to-end flow from the README against the new provider:
+Add mocked tests for successful responses and provider errors, then run the test suite described in [Development](Development.md#testing). If credentials and a reachable provider are available, also run the end-to-end flow from the README:
 
 1. Start the API with the new backend selected.
 2. Upload a small file, process it, and push it. A successful push proves embeddings work and have the right dimension.
@@ -170,9 +170,9 @@ There is no automated test suite yet. Run the end-to-end flow from the README ag
 
 ### 7. Document it
 
-- Add a row to the variable tables in [Configuration](configuration.md), and a provider example.
+- Add a row to the variable tables in [Configuration](Configuration.md), and a provider example.
 - Add its badge to the README tech stack.
-- Add an entry to `CHANGELOG.md` under *Unreleased*.
+- Add an entry to `Changelog.md` under *Unreleased*.
 
 ## Adding a vector store
 
@@ -250,7 +250,7 @@ Export it in `src/stores/vectordb/providers/__init__.py`, then add a branch to `
 
 ### 4. Configure, verify, document
 
-Follow steps 5 to 7 of the LLM guide, using `VECTORDB_BACKEND="ACME"`. When verifying, also run a push with `"do_reset": 1` twice in a row and check that no duplicate records appear.
+Follow steps 5 to 7 of the LLM guide, using `VECTORDB_BACKEND="ACME"`. This requires changing the supported backend in the application, not just adding a provider class. When verifying, also run a push with `"do_reset": 1` twice in a row and check that no duplicate records appear.
 
 ## Adding a prompt language
 
@@ -265,9 +265,9 @@ If a locale folder or template is missing, the parser falls back to `DEFAULT_LAN
 ## Contribution checklist
 
 - [ ] Interface fully implemented, including `asset_id` on insert methods and `delete_embeddings_by_asset_id`
-- [ ] Failures are logged and return `None` or `False`, not raised to the route
+- [ ] Provider failures are logged and handled consistently; expected provider failures return `None` or `False`
 - [ ] Exported and registered in the factory
 - [ ] New settings added to `config.py` and both example env files
 - [ ] End-to-end flow verified (upload, process, push, search, answer)
-- [ ] [Configuration](configuration.md) updated
-- [ ] README tech stack and `CHANGELOG.md` updated
+- [ ] [Configuration](Configuration.md) updated
+- [ ] README tech stack and `Changelog.md` updated

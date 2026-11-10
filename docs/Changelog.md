@@ -10,12 +10,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Per-asset upload, chunking, and indexing status tracking with incremental processing and indexing.
 - API documentation for the `UPLOADED` → `CHUNKED` → `INDEXED` lifecycle, reset behavior, updated process response fields, indexing result details, and no-pending-work signals.
+- Opt-in answer diagnostics: set `debug` to `true` to include the prompt and chat history in an answer response.
+- Automated unit, API workflow, and pgvector integration tests, with CI coverage for the test suite.
 
 ### Changed
 
 - Processing reset rebuilds chunks for all project files, and PgVector removes vectors associated with deleted chunks.
 - Indexing reset recreates the project's vector collection and indexes eligible chunked assets.
 - Indexing reports per-file and per-chunk outcomes; an asset with any failed chunk is treated as failed and its inserted vectors are removed.
+- Projects are created by upload; other operations no longer silently create a project when given an unknown ID.
+- Upload validation checks the declared MIME type, filename extension, and configured size limit.
+- LLM provider calls use asynchronous SDK clients.
+- Docker's multi-worker API metrics use Prometheus multiprocess collection.
+- Refreshed locked dependencies and declared SQLAlchemy's asyncio extra.
 
 
 ## [1.1.0] - 2026-10-11

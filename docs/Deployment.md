@@ -10,7 +10,7 @@ The Docker Compose stack is set up for easy local use. Before you expose it to o
 - [ ] Use strong, unique secrets and keep them out of git ([Secrets](#secrets))
 - [ ] Add TLS and an upload limit to Nginx ([Nginx](#nginx))
 - [ ] Add authentication in front of the API ([Authentication](#authentication))
-- [ ] Choose a vector store that matches your worker count ([Workers](#workers-and-the-vector-store))
+- [ ] Configure the worker count and metrics mode ([Workers](#workers))
 - [ ] Back up the database and the uploads volume ([Backups](#backups))
 - [ ] Protect Grafana and Prometheus ([Monitoring access](#monitoring-access))
 
@@ -36,7 +36,7 @@ A published database port combined with a weak password is the most common way a
 
 - Real env files (`docker/envv/.env.*`, `src/.env.app`) and both `alembic.ini` files are git-ignored. Keep it that way, and never commit them.
 - Replace every placeholder password: Postgres, Grafana (`GF_SECURITY_ADMIN_PASSWORD`), and the postgres-exporter credentials.
-- Use one database password in all four places listed in [Configuration](configuration.md#database-credentials-must-match-everywhere).
+- Use one database password in all four places listed in [Configuration](Configuration.md#database-credentials-must-match-everywhere).
 - Treat `COHERE_API_KEY` and `OPENAI_API_KEY` as money. Restrict them in the provider's dashboard where possible, and rotate them if they leak.
 - For shared or production hosts, prefer Docker secrets or a secrets manager over plain env files.
 - Keep `GF_USERS_ALLOW_SIGN_UP=false`.
@@ -120,11 +120,11 @@ location / {
 
 Mount the file into the container, and add `docker/nginx/.htpasswd` to `.gitignore`. For anything beyond a small trusted group, use an API gateway or an identity-aware proxy instead.
 
-## Workers and the vector store
+## Workers
 
-The Docker image starts `uvicorn` with several workers (`--workers 4`). This matters for two things.
+The Docker image starts `uvicorn` with four workers (`--workers 4`).
 
-**Metrics.** Each worker keeps its own in-memory Prometheus counters, so a scrape of `/metrics` reflects whichever worker answered. See [Monitoring](monitoring.md#multiple-workers).
+**Metrics.** Docker sets `PROMETHEUS_MULTIPROC_DIR` and the entrypoint prepares it before starting workers, allowing `/metrics` to aggregate across workers. See [Monitoring](Monitoring.md#multiple-workers).
 
 To change the worker count, edit the `CMD` in `docker/minirag/DockerFile` and rebuild.
 
@@ -160,7 +160,7 @@ cd docker
 docker compose up -d --build
 ```
 
-Read `CHANGELOG.md` first. If a release changes the embedding setup, re-index your projects with `"do_reset": 1`.
+Read `Changelog.md` first. If a release changes the embedding setup, re-index your projects with `"do_reset": 1`.
 
 ## Monitoring access
 
@@ -177,4 +177,4 @@ location = /metrics {
 - The API itself is light. Cost and latency come from the embedding and generation providers.
 - Indexing a large project sends many embedding requests, so expect provider rate limits.
 - Local models through Ollama need enough RAM or VRAM for both the generation and the embedding model.
-- Postgres memory settings matter once collections grow. Keep the pgvector index threshold in mind. See [Configuration](configuration.md#vector-database).
+- Postgres memory settings matter once collections grow. Keep the pgvector index threshold in mind. See [Configuration](Configuration.md#vector-database).
