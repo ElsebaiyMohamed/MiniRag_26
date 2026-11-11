@@ -1,42 +1,42 @@
-APP_NAME="" 				# Provide a value for APP_NAME
-APP_VERSION="" 				# Provide a value for APP_VERSION
-APP_DESCRIPTION="" 				# Provide a value for APP_DESCRIPTION
+APP_NAME="MiniRag_26"
+APP_VERSION="0.1"
+APP_DESCRIPTION="Question Answering System"
 
-
-FILE_ALLOWED_EXTENTIONS="" 				# Provide a value for FILE_ALLOWED_EXTENTIONS
-FILE_MAX_SIZE_IN_MB="" 				# Provide a value for FILE_MAX_SIZE_IN_MB
-FILE_DEAFAULT_CHINK_SIZE="" 				# Provide a value for FILE_DEAFAULT_CHINK_SIZE
+FILE_ALLOWED_EXTENTIONS=["application/pdf","text/plain"]
+FILE_MAX_SIZE_IN_MB=10
+FILE_DEAFAULT_CHINK_SIZE=256000# 256kp
 
 # ========================== Database Config ======================
 
-POSTGRES_USERNAME="" 				# Provide a value for POSTGRES_USERNAME
-POSTGRES_PASSWORD="" 				# Provide a value for POSTGRES_PASSWORD
-POSTGRES_HOST="" 				# Provide a value for POSTGRES_HOST
-POSTGRES_PORT="" 				# Provide a value for POSTGRES_PORT
-POSTGRES_MAIN_DATABASE="" 				# Provide a value for POSTGRES_MAIN_DATABASE
+POSTGRES_USERNAME="postgres"
+POSTGRES_PASSWORD=""
+POSTGRES_HOST="localhost"
+POSTGRES_PORT=5432
+POSTGRES_MAIN_DATABASE="minirag26"
 
 # ========================== Vector Database Config ======================
-VECTORDB_BACKEND_LITERAL="" 				# Provide a value for VECTORDB_BACKEND_LITERAL
-VECTORDB_BACKEND="" 				# Provide a value for VECTORDB_BACKEND
-VECTOR_DB_DISTANCE_METRIC="cosine" 				# Provide a value for VECTOR_DB_DISTANCE_METRIC
-VECTOR_DB_PGVEC_INDEX_THRESHOLD="" 				# Provide a value for VECTOR_DB_PGVEC_INDEX_THRESHOLD
+VECTORDB_BACKEND_LITERAL=["PGVECTOR"]
+VECTORDB_BACKEND="PGVECTOR"
+VECTOR_DB_DISTANCE_METRIC="cosine"
+VECTOR_DB_PGVEC_INDEX_THRESHOLD=1500
 
 # ========================== LLM Config ======================
-OPENAI_API_KEY="" 				# Provide a value for OPENAI_API_KEY
-OPENAI_API_URL="" 				# Provide a value for OPENAI_API_URL
-COHERE_API_KEY="" 				# Provide a value for COHERE_API_KEY
-GENERATION_BACKEND="" 				# Provide a value for GENERATION_BACKEND
-EMBEDDING_BACKEND="" 				# Provide a value for EMBEDDING_BACKEND
+OPENAI_API_KEY=""
+OPENAI_API_URL=""
+COHERE_API_KEY=""
 
-GENERATION_MODEL_ID="" 				# Provide a value for GENERATION_MODEL_ID
+GENERATION_BACKEND="OPENAI"
+EMBEDDING_BACKEND="OPENAI"
 
-EMBEDDING_MODEL_ID="" 				# Provide a value for EMBEDDING_MODEL_ID
-EMBEDDING_MODEL_SIZE="" 				# Provide a value for EMBEDDING_MODEL_SIZE
+LLM_REQUEST_TIMEOUT_SEC=60
+GENERATION_MODEL_ID="qwen2:1.5b-instruct-q8_0"
+EMBEDDING_MODEL_ID="nomic-embed-text:v1.5"
+EMBEDDING_MODEL_SIZE=768
 
-INPUT_DEFAULT_MAX_CHAR="" 				# Provide a value for INPUT_DEFAULT_MAX_CHAR
-DEAFAULT_MAX_OUTPUT_TOKENS="" 				# Provide a value for DEAFAULT_MAX_OUTPUT_TOKENS
-GENERATION_DEFAULT_TEMPERATURE="" 				# Provide a value for GENERATION_DEFAULT_TEMPERATURE
+INPUT_DEFAULT_MAX_CHAR=1024
+DEAFAULT_MAX_OUTPUT_TOKENS=200
+GENERATION_DEFAULT_TEMPERATURE=0.1
 
 # ========================= Template Configs =========================
-PRIMARY_LANG ="en" 				# Provide a value for PRIMARY_LANG
-DEFAULT_LANG ="en" 				# Provide a value for DEFAULT_LANG
+PRIMARY_LANG="en"
+DEFAULT_LANG="en"
