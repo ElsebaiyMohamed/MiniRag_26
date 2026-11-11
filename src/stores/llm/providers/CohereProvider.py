@@ -1,5 +1,5 @@
 import logging
-from typing import Union, List
+from typing import Any, Union, List
 
 import cohere
 
@@ -8,8 +8,13 @@ from ..LLMInterface import LLMInterface
 
 
 class CohereProvider(LLMInterface):
-    def __init__(self, api_key: str, default_max_char: int=1000,
-                default_output_max_tokens: int=1000, default_generation_temperature: float=0.1):
+    def __init__(
+        self,
+        api_key: str,
+        default_max_char: int = 1000,
+        default_output_max_tokens: int = 1000,
+        default_generation_temperature: float = 0.1,
+    ):
         super().__init__()
 
         self.api_key = api_key
@@ -30,8 +35,14 @@ class CohereProvider(LLMInterface):
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
-    async def generate_text(self, prompt: str, max_output_tokens: int=None,
-                            temperature: float=None, *args, **kwargs):
+    async def generate_text(
+            self,
+            prompt: str,
+            max_output_tokens: int | None = None,
+            temperature: float | None = None,
+            *args: Any,
+            **kwargs: Any
+    ):
         if self.client is None:
             self.logger.error("Cohere client was not set")
             return None
@@ -40,24 +51,26 @@ class CohereProvider(LLMInterface):
             return None
         max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_max_output_tokens
         temperature = temperature if temperature is not None else self.default_generation_temperature
-        chat_history: list = kwargs.get('chat_history', [])
+        chat_history: list = kwargs.get("chat_history", [])
 
         messages = chat_history.copy() if chat_history else []
         messages.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
 
         response = await self.client.chat(
-            model=self.generation_model_id,
-            messages=messages,
-            max_tokens=max_output_tokens,
-            temperature=temperature
+            model=self.generation_model_id, messages=messages, max_tokens=max_output_tokens, temperature=temperature
         )
         if response is None or not response.message:
-            self.logger.error('unable to get response from provider')
+            self.logger.error("unable to get response from provider")
             return None
         return response.message.content[0].text
 
-
-    async def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
+    async def embed_text(
+            self,
+            prompts: Union[List, str],
+            document_type: str | None = None,
+            *args: Any,
+            **kwargs: Any
+    ):
         if self.client is None:
             self.logger.error("Cohere client was not set")
             return None
@@ -68,28 +81,24 @@ class CohereProvider(LLMInterface):
         if document_type == DocumentTypeEnum.QUERY.value:
             input_type = CohereEnum.QUERY.value
         single = isinstance(prompts, str)
-        texts = [self.process_text(prompts)] if single else [self.process_text(t)
-                                                             for t in prompts]
+        texts = [self.process_text(prompts)] if single else [self.process_text(t) for t in prompts]
 
         response = await self.client.embed(
             model=self.embedding_model_id,
             texts=texts,
             input_type=input_type,
-            embedding_types=['float'],
+            embedding_types=["float"],
         )
 
         if response is None or response.embeddings is None or not response.embeddings.float:
-            self.logger.error('unable to get embeddings from provider')
+            self.logger.error("unable to get embeddings from provider")
             return None
         vectors = response.embeddings.float
         return vectors[0] if single else vectors
 
+    def construct_prompt(self, prompt: str, role: str, *args: Any, **kwargs: Any):
+        return {"role": role, "content": self.process_text(prompt)}
 
-    def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
-        return {
-            'role': role,
-            'content': self.process_text(prompt)
-        }
     def process_text(self, prompt: str):
         # return prompt[:self.default_max_char].strip()
         return prompt

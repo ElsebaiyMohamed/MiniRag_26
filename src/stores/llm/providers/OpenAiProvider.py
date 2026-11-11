@@ -1,5 +1,5 @@
 import logging
-from typing import Union, List
+from typing import Union, Any, List
 
 from openai import AsyncOpenAI
 
@@ -8,8 +8,14 @@ from ..LLMInterface import LLMInterface
 
 
 class OpenAiProvider(LLMInterface):
-    def __init__(self, api_key: str, api_url: str= None, default_max_char: int=1000,
-                default_output_max_tokens: int=1000, default_generation_temperature: float=0.1):
+    def __init__(
+        self,
+        api_key: str,
+        api_url: str | None = None,
+        default_max_char: int = 1000,
+        default_output_max_tokens: int = 1000,
+        default_generation_temperature: float = 0.1,
+    ):
         super().__init__()
 
         self.api_key = api_key
@@ -31,7 +37,13 @@ class OpenAiProvider(LLMInterface):
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
-    async def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
+    async def generate_text(
+        self, prompt: str,
+            max_output_tokens: int | None = None,
+            temperature: float | None = None,
+            *args: Any,
+            **kwargs: Any
+    ):
         if self.client is None:
             self.logger.error("OpenAi client was not set")
             return None
@@ -40,23 +52,30 @@ class OpenAiProvider(LLMInterface):
             return None
         max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_max_output_tokens
         temperature = temperature if temperature is not None else self.default_generation_temperature
-        chat_history: list = list(kwargs.get('chat_history', []))
+        chat_history: list = list(kwargs.get("chat_history", []))
         chat_history.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
 
         response = await self.client.chat.completions.create(
-            model=self.generation_model_id,
-            messages=chat_history,
-            max_tokens=max_output_tokens,
-            temperature=temperature
+            model=self.generation_model_id, messages=chat_history, max_tokens=max_output_tokens, temperature=temperature
         )
 
-        if response is None or response.choices is None or len(response.choices) == 0 or response.choices[0].message is None:
-            self.logger.error('unable to get response from provider')
+        if (
+            response is None
+            or response.choices is None
+            or len(response.choices) == 0
+            or response.choices[0].message is None
+        ):
+            self.logger.error("unable to get response from provider")
             return None
         return response.choices[0].message.content
 
-
-    async def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
+    async def embed_text(
+            self,
+            prompts: Union[List, str],
+            document_type: str | None = None,
+            *args,
+            **kwargs
+    ):
         if self.client is None:
             self.logger.error("OpenAi client was not set")
             return None
@@ -64,26 +83,22 @@ class OpenAiProvider(LLMInterface):
             self.logger.error("Embedding model for OpenAi not set")
             return None
         single = isinstance(prompts, str)
-        texts = [self.process_text(prompts)] if single else [self.process_text(t) for
-                                                             t in prompts]
+        texts = [self.process_text(prompts)] if single else [self.process_text(t) for t in prompts]
         try:
-            response = await self.client.embeddings.create(
-                model=self.embedding_model_id, input=texts)
+            response = await self.client.embeddings.create(model=self.embedding_model_id, input=texts)
         except Exception as e:
-            self.logger.error(f'failed to get embedding from provider. {e}')
+            self.logger.error(f"failed to get embedding from provider. {e}")
             response = None
 
         if response is None or response.data is None or len(response.data) == 0 or response.data[0].embedding is None:
-            self.logger.error('unable to get embeddings from provider')
+            self.logger.error("unable to get embeddings from provider")
             return None
         vectors = [d.embedding for d in response.data]
         return vectors[0] if single else vectors
 
-    def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
-        return {
-            'role': role,
-            'content': self.process_text(prompt)
-        }
+    def construct_prompt(self, prompt: str, role: str, *args: Any, **kwargs: Any):
+        return {"role": role, "content": self.process_text(prompt)}
+
     def process_text(self, prompt: str):
         # return prompt[:self.default_max_char].strip()
         return prompt

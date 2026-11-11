@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Any, Optional, Union, List
 
 
 class LLMInterface(ABC):
@@ -13,14 +13,25 @@ class LLMInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def generate_text(self, prompt: str, max_output_tokens: int=None, temperature: float=None, *args, **kwargs):
+    async def generate_text(
+        self,
+        prompt: str,
+        max_output_tokens: Optional[int | None] = None,
+        temperature: Optional[float | None] = None,
+        *args: Any,
+        **kwargs: Any
+    ):
         raise NotImplementedError
 
     @abstractmethod
-    async def embed_text(self, prompts: Union[List, str], document_type: str=None, *args, **kwargs):
+    async def embed_text(
+            self, prompts: Union[List, str],
+            document_type: str | None = None,
+            *args: Any,
+            **kwargs: Any
+    ):
         raise NotImplementedError
 
     @abstractmethod
-    def construct_prompt(self, prompt: str, role: str, *args, **kwargs):
+    def construct_prompt(self, prompt: str, role: str, *args: Any, **kwargs: Any):
         raise NotImplementedError
-
