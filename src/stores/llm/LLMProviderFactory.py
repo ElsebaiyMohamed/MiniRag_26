@@ -15,6 +15,7 @@ class LLMProviderFactory:
                 default_max_char=self.config.INPUT_DEFAULT_MAX_CHAR,
                 default_output_max_tokens=self.config.DEAFAULT_MAX_OUTPUT_TOKENS,
                 default_generation_temperature=self.config.GENERATION_DEFAULT_TEMPERATURE,
+                request_timeout_sec=self.config.LLM_REQUEST_TIMEOUT_SEC
             )
         elif provider == LLMEnum.COHERE.value:
             return CohereProvider(
@@ -22,6 +23,7 @@ class LLMProviderFactory:
                 default_max_char=self.config.INPUT_DEFAULT_MAX_CHAR,
                 default_output_max_tokens=self.config.DEAFAULT_MAX_OUTPUT_TOKENS,
                 default_generation_temperature=self.config.GENERATION_DEFAULT_TEMPERATURE,
+                request_timeout_sec=self.config.LLM_REQUEST_TIMEOUT_SEC
             )
         else:
             raise ValueError(f"Unsupported LLM provider '{provider}'. Supported: OPENAI, COHERE")
