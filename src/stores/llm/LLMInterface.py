@@ -155,7 +155,6 @@ class LLMInterface(ABC):
                     "error_type": "APITimeoutError",
                     "latency_ms": round(latency_ms, 2),
                 },
-                exc_info=True,
             )
             return LLMResult(
                 content=None,
@@ -179,7 +178,6 @@ class LLMInterface(ABC):
                     "error_type": error_type,
                     "latency_ms": round(latency_ms, 2),
                 },
-                exc_info=True,
             )
             return LLMResult(
                 content=None,
