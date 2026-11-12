@@ -134,26 +134,28 @@ sequenceDiagram
     participant EMB as Embedding provider
     participant VDB as Vector store
 
-    C->>API: POST /data/upload/{project_id}
-    API->>API: validate type and size
-    API->>FS: stream file to disk
-    API->>DB: create Asset
-    API-->>C: file_id
+    C ->> API: POST /data/upload/{project_id}
+    API ->> API: validate type and size
+    API ->> FS: stream file to disk
+    API ->> DB: create Asset
+    API -->> C: file_id
 
-    C->>API: POST /data/process/{project_id}
-    API->>FS: load TXT or PDF
-    API->>API: split into chunks
-    API->>DB: store chunks
-    API-->>C: file and chunk counts
+    C ->> API: POST /data/process/{project_id}
+    API ->> FS: load TXT or PDF
+    API ->> API: split into chunks
+    API ->> DB: store chunks
+    API -->> C: file and chunk counts
 
-    C->>API: POST /nlp/index/push/{project_id}
+    C ->> API: POST /nlp/index/push/{project_id}
+
     loop each page of chunks
-        API->>DB: read chunks
-        API->>EMB: embed batch as documents
-        EMB-->>API: vectors
-        API->>VDB: insert vectors
+        API ->> DB: read chunks
+        API ->> EMB: embed batch as documents
+        EMB -->> API: vectors
+        API ->> VDB: insert vectors
     end
-    API-->>C: success
+
+    API -->> C: success
 ```
 
 ### Question answering flow
@@ -167,15 +169,15 @@ sequenceDiagram
     participant VDB as Vector store
     participant LLM as Generation provider
 
-    C->>API: POST /nlp/index/answer/{project_id}
-    API->>EMB: embed question as query
-    EMB-->>API: query vector
-    API->>VDB: top-k similarity search
-    VDB-->>API: chunks and scores
-    API->>API: build prompt from en or ar template
-    API->>LLM: generate answer from documents
-    LLM-->>API: answer
-    API-->>C: answer (debug fields are optional)
+    C ->> API: POST /nlp/index/answer/{project_id}
+    API ->> EMB: embed question as query
+    EMB -->> API: query vector
+    API ->> VDB: top-k similarity search
+    VDB -->> API: chunks and scores
+    API ->> API: build prompt from en or ar template
+    API ->> LLM: generate answer from documents
+    LLM -->> API: answer
+    API -->> C: answer (debug fields are optional)
 ```
 
 ### Data model
@@ -190,37 +192,37 @@ erDiagram
     CHUNKS ||--o| VECTOR_COLLECTION : "embedded as"
 
     PROJECTS {
-        int project_id PK
-        uuid project_uuid UK
+        int         project_id   PK
+        uuid        project_uuid UK
         timestamptz created_at
         timestamptz updated_at
     }
     ASSETS {
-        int asset_id PK
-        uuid asset_uuid UK
-        string asset_type
-        string asset_name
-        int asset_size
-        jsonb asset_config
-        int asset_project_id FK
+        int         asset_id         PK
+        uuid        asset_uuid       UK
+        string      asset_type
+        string      asset_name
+        int         asset_size
+        jsonb       asset_config
+        int         asset_project_id FK
         timestamptz asset_pushed_at
     }
     CHUNKS {
-        int chunk_id PK
-        uuid chunk_uuid UK
-        string chunk_text
-        jsonb chunk_metadata
-        int chunk_order
-        int chunk_project_id FK
-        int chunk_asset_id FK
+        int         chunk_id         PK
+        uuid        chunk_uuid       UK
+        string      chunk_text
+        jsonb       chunk_metadata
+        int         chunk_order
+        int         chunk_project_id FK
+        int         chunk_asset_id   FK
         timestamptz chunk_pushed_at
     }
     VECTOR_COLLECTION {
-        bigint id PK
-        text text
+        bigint id       PK
+        text   text
         vector vector
-        jsonb metadata
-        int chunk_id FK
+        jsonb  metadata
+        int    chunk_id FK
     }
 ```
 
@@ -230,8 +232,9 @@ Green is implemented, dashed amber is on the [Roadmap](#roadmap).
 
 ```mermaid
 flowchart TB
-    classDef planned fill:#fff8e1,stroke:#f9a825,stroke-dasharray: 5 5,color:#333
-    classDef done fill:#e8f5e9,stroke:#2e7d32,color:#1b1b1b
+
+    classDef planned fill:#fff8e1, stroke:#f9a825, stroke-dasharray:5 5, color:#333
+    classDef done fill:#e8f5e9, stroke:#2e7d32, color:#1b1b1b
 
     subgraph ingest["Ingestion pipeline"]
         direction LR
@@ -311,9 +314,9 @@ cd MiniRag_26/docker
 
 ```bash
 cp envv/.env.example.app              envv/.env.app
-cp envv/.env.example.postgres             envv/.env.app.postgres
-cp envv/.env.example.postgresexporter     envv/.env.app.postgresexporter
-cp envv/.env.example.grafana              envv/.env.app.grafana
+cp envv/.env.example.postgres             envv/.env.postgres
+cp envv/.env.example.postgresexporter     envv/.env.postgresexporter
+cp envv/.env.example.grafana              envv/.env.grafana
 cp minirag/alembic.example.ini        minirag/alembic.ini
 ```
 
@@ -321,10 +324,10 @@ cp minirag/alembic.example.ini        minirag/alembic.ini
 
 | File                         | Set                                                                                                                                                                                                            |
 |------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `envv/.env.app.postgres`     | `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_DB=minirag26`                                                                                                                              |
-| `envv/.env.app.postgresexporter` | `DATA_SOURCE_USER=postgres`, `DATA_SOURCE_PASS=<password>`                                                                                                                                                     |
+| `envv/.env.postgres`         | `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_DB=minirag26`                                                                                                                              |
+| `envv/.env.postgresexporter` | `DATA_SOURCE_USER=postgres`, `DATA_SOURCE_PASS=<password>`                                                                                                                                                     |
 | `envv/.env.app`              | `POSTGRES_USERNAME=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_HOST=pgvector`, `POSTGRES_PORT=5432`, `POSTGRES_MAIN_DATABASE=minirag26`, plus your LLM settings (see [Configuration](#configuration)) |
-| `envv/.env.app.grafana`      | Change the admin password                                                                                                                                                                                      |
+| `envv/.env.grafana`          | Change the admin password                                                                                                                                                                                      |
 | `minirag/alembic.ini`        | `sqlalchemy.url = postgresql://postgres:<password>@pgvector:5432/minirag26`                                                                                                                                    |
 
 **4. Start the stack**
@@ -393,23 +396,24 @@ Open http://localhost:8000/docs.
 
 All settings are environment variables (`.env.app`).
 
-| Variable                                                                                             | Description                                                         |
-|------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| `APP_NAME`, `APP_VERSION`, `APP_DESCRIPTION`                                                         | Shown at `GET /`                                                    |
-| `FILE_ALLOWED_EXTENTIONS`                                                                            | Allowed upload MIME types, e.g. `["application/pdf", "text/plain"]` |
-| `FILE_MAX_SIZE_IN_MB`                                                                                | Max upload size (default example: `10`)                             |
-| `FILE_DEAFAULT_CHINK_SIZE`                                                                           | Read size in bytes when streaming uploads to disk                   |
-| `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_MAIN_DATABASE` | PostgreSQL connection                                               |
-| `VECTORDB_BACKEND`                                                                                   | `PGVECTOR`                                              |
-| `VECTOR_DB_DISTANCE_METRIC`                                                                          | `cosine` or `dot`                                                   |
-| `VECTOR_DB_PGVEC_INDEX_THRESHOLD`                                                                    | Row count at which a pgvector index is created                      |
-| `GENERATION_BACKEND`, `EMBEDDING_BACKEND`                                                            | `COHERE` or `OPENAI` (OpenAI-compatible, including Ollama)          |
-| `GENERATION_MODEL_ID`, `EMBEDDING_MODEL_ID`                                                          | Model names for the chosen backends                                 |
-| `EMBEDDING_MODEL_SIZE`                                                                               | Embedding dimension. Must match the embedding model                 |
-| `COHERE_API_KEY`                                                                                     | Cohere key                                                          |
-| `OPENAI_API_KEY`, `OPENAI_API_URL`                                                                   | Key and base URL for OpenAI or any compatible server                |
-| `INPUT_DEFAULT_MAX_CHAR`, `DEAFAULT_MAX_OUTPUT_TOKENS`, `GENERATION_DEFAULT_TEMPERATURE`             | Generation defaults                                                 |
-| `PRIMARY_LANG`, `DEFAULT_LANG`                                                                       | Prompt template language (`ar` or `en`) and fallback                |
+| Variable                                                                                             | Description                                                            |
+|------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| `APP_NAME`, `APP_VERSION`, `APP_DESCRIPTION`                                                         | Shown at `GET /`                                                       |
+| `FILE_ALLOWED_EXTENTIONS`                                                                            | Allowed upload MIME types, e.g. `["application/pdf", "text/plain"]`    |
+| `FILE_MAX_SIZE_IN_MB`                                                                                | Max upload size (default example: `10`)                                |
+| `FILE_DEAFAULT_CHINK_SIZE`                                                                           | Read size in bytes when streaming uploads to disk                      |
+| `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_MAIN_DATABASE` | PostgreSQL connection                                                  |
+| `VECTORDB_BACKEND`                                                                                   | `PGVECTOR`                                                             |
+| `VECTOR_DB_DISTANCE_METRIC`                                                                          | `cosine` or `dot`                                                      |
+| `VECTOR_DB_PGVEC_INDEX_THRESHOLD`                                                                    | Row count at which a pgvector index is created                         |
+| `GENERATION_BACKEND`, `EMBEDDING_BACKEND`                                                            | `COHERE` or `OPENAI` (OpenAI-compatible, including Ollama)             |
+| `GENERATION_MODEL_ID`, `EMBEDDING_MODEL_ID`                                                          | Model names for the chosen backends                                    |
+| `EMBEDDING_MODEL_SIZE`                                                                               | Embedding dimension. Must match the embedding model                    |
+| `COHERE_API_KEY`                                                                                     | Cohere key                                                             |
+| `LLM_REQUEST_TIMEOUT_SEC`                                                                            | Request timeout in seconds for LLM provider calls (defaults to `60.0`) |
+| `OPENAI_API_KEY`, `OPENAI_API_URL`                                                                   | Key and base URL for OpenAI or any compatible server                   |
+| `INPUT_DEFAULT_MAX_CHAR`, `DEAFAULT_MAX_OUTPUT_TOKENS`, `GENERATION_DEFAULT_TEMPERATURE`             | Generation defaults                                                    |
+| `PRIMARY_LANG`, `DEFAULT_LANG`                                                                       | Prompt template language (`ar` or `en`) and fallback                   |
 
 > **Notes**
 > - For Arabic documents, choose a **multilingual** embedding model and set `EMBEDDING_MODEL_SIZE` to match.

@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Unified `LLMResult` contract for all LLM provider generation and embedding calls, including latency and token usage
+  telemetry (`prompt_tokens`, `completion_tokens`, `total_tokens`).
+- Shared `_safe_call` wrapper in `LLMInterface` enforcing configurable request timeouts (`LLM_REQUEST_TIMEOUT_SEC`),
+  latency measurement, and sanitized error logging.
+- Provider-level `_parse_response` handlers in `OpenAiProvider` and `CohereProvider` to normalize SDK response shapes
+  and token metrics.
 - Per-asset upload, chunking, and indexing status tracking with incremental processing and indexing.
 - API documentation for the `UPLOADED` → `CHUNKED` → `INDEXED` lifecycle, reset behavior, updated process response fields, indexing result details, and no-pending-work signals.
 - Opt-in answer diagnostics: set `debug` to `true` to include the prompt and chat history in an answer response.
@@ -15,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- NLP routes (`/index/push`, `/index/info`, `/index/search`, `/index/answer`) now map upstream LLM and vector store
+  failures to HTTP `502 Bad Gateway` and return standardized `telemetry` metadata.
 - Processing reset rebuilds chunks for all project files, and PgVector removes vectors associated with deleted chunks.
 - Indexing reset recreates the project's vector collection and indexes eligible chunked assets.
 - Indexing reports per-file and per-chunk outcomes; an asset with any failed chunk is treated as failed and its inserted vectors are removed.

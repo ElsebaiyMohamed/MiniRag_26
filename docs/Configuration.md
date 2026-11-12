@@ -76,19 +76,20 @@ If you run behind the bundled Nginx, its own upload limit also applies. See [Dep
 
 ### LLM providers
 
-| Variable | Required | Description |
-|---|---|---|
-| `GENERATION_BACKEND` | yes | Provider used for answers: `COHERE` or `OPENAI` |
-| `EMBEDDING_BACKEND` | yes | Provider used for embeddings: `COHERE` or `OPENAI`. May differ from `GENERATION_BACKEND` |
-| `COHERE_API_KEY` | only for Cohere | Non-empty Cohere key when either backend is `COHERE` |
-| `OPENAI_API_KEY` | only for OpenAI | Non-empty key when either backend is `OPENAI`; Ollama accepts any non-empty value |
-| `OPENAI_API_URL` | no | Base URL of an OpenAI-compatible API. Empty or unset uses the official OpenAI endpoint |
-| `GENERATION_MODEL_ID` | yes in practice | Model used for answers |
-| `EMBEDDING_MODEL_ID` | yes in practice | Model used for embeddings |
-| `EMBEDDING_MODEL_SIZE` | yes in practice | Output dimension of the embedding model. **Must match the model exactly** |
-| `INPUT_DEFAULT_MAX_CHAR` | no | Passed to providers, but prompt truncation is currently disabled, so it has no effect |
-| `DEAFAULT_MAX_OUTPUT_TOKENS` | no | Maximum tokens generated per answer |
-| `GENERATION_DEFAULT_TEMPERATURE` | no | Sampling temperature for answers (the example uses `0.1`) |
+| Variable                         | Required        | Description                                                                              |
+|----------------------------------|-----------------|------------------------------------------------------------------------------------------|
+| `GENERATION_BACKEND`             | yes             | Provider used for answers: `COHERE` or `OPENAI`                                          |
+| `EMBEDDING_BACKEND`              | yes             | Provider used for embeddings: `COHERE` or `OPENAI`. May differ from `GENERATION_BACKEND` |
+| `COHERE_API_KEY`                 | only for Cohere | Non-empty Cohere key when either backend is `COHERE`                                     |
+| `OPENAI_API_KEY`                 | only for OpenAI | Non-empty key when either backend is `OPENAI`; Ollama accepts any non-empty value        |
+| `OPENAI_API_URL`                 | no              | Base URL of an OpenAI-compatible API. Empty or unset uses the official OpenAI endpoint   |
+| `GENERATION_MODEL_ID`            | yes in practice | Model used for answers                                                                   |
+| `EMBEDDING_MODEL_ID`             | yes in practice | Model used for embeddings                                                                |
+| `EMBEDDING_MODEL_SIZE`           | yes in practice | Output dimension of the embedding model. **Must match the model exactly**                |
+| `LLM_REQUEST_TIMEOUT_SEC`        | no              | Request timeout in seconds for LLM provider calls (defaults to `60.0`)                   |
+| `INPUT_DEFAULT_MAX_CHAR`         | no              | Passed to providers, but prompt truncation is currently disabled, so it has no effect    |
+| `DEAFAULT_MAX_OUTPUT_TOKENS`     | no              | Maximum tokens generated per answer                                                      |
+| `GENERATION_DEFAULT_TEMPERATURE` | no              | Sampling temperature for answers (the example uses `0.1`)                                |
 
 The `*_BACKEND` values are the uppercase names of the provider enum, so `COHERE` and `OPENAI` are the only valid ones.
 
