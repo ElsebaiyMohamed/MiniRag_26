@@ -193,7 +193,9 @@ class CohereProvider(LLMInterface):
             return await self.client.embed(
                 model=self.embedding_model_id,
                 texts=texts,
-                input_type=input_type,                output_dimension = (self.embedding_size,)embedding_types=["float"],
+                input_type=input_type,
+                output_dimension = self.embedding_size,
+                embedding_types=["float"],
             )
 
         result = await self._safe_call(

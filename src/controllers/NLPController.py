@@ -21,9 +21,12 @@ class NLPController(BaseController):
         collection_name = self.create_collection_name(project.project_id)
         return await self.vectordb_client.delete_collection(collection_name)
 
-    async def reset_vectordb_collection_asset_vectors(self, project: Project,
-                                                      asset: Asset):
-        collection_name = self.create_collection_name(project.project_id)        return await self.vectordb_client.delete_embeddings_by_asset_id(collection_name, asset.asset_id)async def get_vectordb_collection_info(self, project: Project):
+    async def reset_vectordb_collection_asset_vectors(self, project: Project, asset: Asset):
+
+        collection_name = self.create_collection_name(project.project_id)
+        return await self.vectordb_client.delete_embeddings_by_asset_id(collection_name, asset.asset_id)
+
+    async def get_vectordb_collection_info(self, project: Project):
         collection_name = self.create_collection_name(project.project_id)
         collection__info = await self.vectordb_client.get_collection_info(collection_name)
         return collection__info
@@ -53,11 +56,16 @@ class NLPController(BaseController):
             collection_name=collection_name,
             embedding_size=self.embedding_client.embedding_size, do_reset=do_reset
         )
-        if not is_created:            return {"success": 0, "failed": len(chunk_texts), "error": "Failed to create vector database collection"}insertion_status: dict = await self.vectordb_client.insert_many(
-            collection_name=collection_name,
-            texts=chunk_texts,
-            metadatas=chunk_metadatas,            vectors = (results.content,)record_ids=chunk_ids,
-            asset_ids=chunk_asset_ids,
+        if not is_created:
+            return {"success": 0, "failed": len(chunk_texts), "error": "Failed to create vector database collection"}
+
+        insertion_status: dict = await self.vectordb_client.insert_many(
+        collection_name=collection_name,
+        texts=chunk_texts,
+        metadatas=chunk_metadatas,
+        vectors = results.content,
+        record_ids=chunk_ids,
+        asset_ids=chunk_asset_ids,
         )
         return insertion_status
 
@@ -69,7 +77,9 @@ class NLPController(BaseController):
             return False, embed_result
 
         result = await self.vectordb_client.search_by_vector(
-            collection_name=collection_name,            vector = (embed_result.content,)limit=limit
+            collection_name=collection_name,
+            vector = embed_result.content,
+            limit=limit
         )
 
         # Clear large raw vector data from telemetry object universally before returning
