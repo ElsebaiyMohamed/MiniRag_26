@@ -13,13 +13,14 @@ Base URL: `http://localhost:8000` (or `http://localhost` through Nginx).
 
 **Status codes.**
 
-| Code | Meaning |
-|---|---|
-| `200` | Success |
-| `400` | The request was understood but could not be completed. See the `signal` |
-| `404` | The requested project or resource does not exist |
+| Code  | Meaning                                                                   |
+|-------|---------------------------------------------------------------------------|
+| `200` | Success                                                                   |
+| `400` | The request was understood but could not be completed. See the `signal`   |
+| `404` | The requested project or resource does not exist                          |
 | `422` | The request body or parameters failed validation (FastAPI default format) |
-| `500` | Unexpected server error, for example a failed file write |
+| `500` | Unexpected server error, for example a failed file write                  |
+| `502` | Bad Gateway — upstream LLM provider or vector database operation failed   |
 
 **Request bodies** are JSON unless noted. Flags such as `do_reset` are integers: `0` or `1`.
 
@@ -192,12 +193,11 @@ When there are no eligible `CHUNKED` assets:
 
 **Errors**
 
-| Status | `signal` | Cause |
-|---|---|---|
-| `404` | `project not found` | The project does not exist |
-| `404` | `project is empty` | No files uploaded for this project |
-| `400` | `failed to insert into vector database` | No asset was indexed successfully during an indexing attempt |
-
+| Status | `signal`                                | Cause                                                                                                      |
+|--------|-----------------------------------------|------------------------------------------------------------------------------------------------------------|
+| `404`  | `project not found`                     | The project does not exist                                                                                 |
+| `404`  | `project is empty`                      | No files uploaded for this project                                                                         |
+| `502`  | `failed to insert into vector database` | No asset was indexed successfully during an indexing attempt (e.g., embedding provider or vector DB error) |
 ---
 
 ## `GET /api/v1/nlp/index/info/{project_id}`
@@ -228,6 +228,13 @@ curl http://localhost:8000/api/v1/nlp/index/info/1
 
 The shape of `collection_info` depends on the vector store. 
 
+**Errors**
+
+| Status | `signal`                             | Cause                                                          |
+|--------|--------------------------------------|----------------------------------------------------------------|
+| `404`  | `project not found`                  | The project does not exist                                     |
+| `502`  | `vectordb collection info not found` | The vector collection does not exist or could not be retrieved |
+
 ---
 
 ## `POST /api/v1/nlp/index/search/{project_id}`
@@ -253,9 +260,27 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/search/1 \
 {
   "signal": "vectordb search success",
   "result": [
-    { "text": "Refunds are issued within 14 days of ...", "score": 0.83 },
-    { "text": "To request a refund, contact ...", "score": 0.79 }
-  ]
+    {
+      "text": "Refunds are issued within 14 days of ...",
+      "score": 0.83
+    },
+    {
+      "text": "To request a refund, contact ...",
+      "score": 0.79
+    }
+  ],
+  "telemetry": {
+    "content": [],
+    "provider": "openai",
+    "model": "text-embedding-3-small",
+    "operation": "embed_text",
+    "latency_ms": 145.2,
+    "success": true,
+    "prompt_tokens": 8,
+    "completion_tokens": 0,
+    "total_tokens": 8,
+    "error_message": null
+  }
 }
 ```
 
@@ -263,9 +288,11 @@ Results are sorted best first. A higher `score` means more similar.
 
 **Errors**
 
-| Status | `signal` | Cause |
-|---|---|---|
-| `400` | `vectordb search error` | The collection does not exist (nothing pushed), or embedding the query failed |
+| Status | `signal`                     | Cause                                                                         |
+|--------|------------------------------|-------------------------------------------------------------------------------|
+| `400`  | `vectordb search error`      | The collection does not exist (nothing pushed), or embedding the query failed |
+| `502`  | `EMBEDDING_GENERATION_ERROR` | `Upstream embedding provider failed or timed out`                             |
+| `502`  | `vectordb search error`      | `The collection does not exist (nothing pushed) or vector search failed`      |
 
 ---
 
@@ -287,26 +314,57 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/answer/1 \
 {
   "signal": "rag answer success",
   "answer": "Refunds are issued within 14 days ...",
+  "telemetry": {
+    "generation_metrics": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "operation": "generate_text",
+      "latency_ms": 820.5,
+      "success": true,
+      "prompt_tokens": 312,
+      "completion_tokens": 45,
+      "total_tokens": 357,
+      "error_message": null
+    },
+    "embedding_metrics": {
+      "content": [],
+      "provider": "openai",
+      "model": "text-embedding-3-small",
+      "operation": "embed_text",
+      "latency_ms": 110.1,
+      "success": true,
+      "prompt_tokens": 8,
+      "completion_tokens": 0,
+      "total_tokens": 8,
+      "error_message": null
+    }
+  },
   "full_prompt": "## Document No: 1\n### Content: ...\n\n## Document No: 2 ...",
   "chat_history": [
-    { "role": "system", "content": "You are an assistant to generate a response ..." }
+    {
+      "role": "system",
+      "content": "You are an assistant to generate a response ..."
+    }
   ]
 }
 ```
 
 Without `"debug": true`, the successful response contains only `signal` and `answer`.
 
-| Field | Description |
-|---|---|
-| `answer` | The model's reply |
-| `full_prompt` | The documents and question exactly as sent to the model. Useful for debugging retrieval quality |
+| Field          | Description                                                                                                         |
+|----------------|---------------------------------------------------------------------------------------------------------------------|
+| `answer`       | The model's reply                                                                                                   |
+| `telemetry`    | Token usage, latency, and provider metadata for both embedding and generation calls                                 |
+| `full_prompt`  | The documents and question exactly as sent to the model. Useful for debugging retrieval quality                     |
 | `chat_history` | The messages sent before the final question. Depending on the provider, the final user message may also appear here |
 
 **Errors**
 
-| Status | `signal` | Cause |
-|---|---|---|
-| `400` | `rag answer error` | Nothing was retrieved, or the generation provider returned no text |
+| Status | `signal`                     | Cause                                                                                    |
+|--------|------------------------------|------------------------------------------------------------------------------------------|
+| `404`  | `project not found`          | The project does not exist                                                               |
+| `502`  | `EMBEDDING_GENERATION_ERROR` | Upstream embedding provider failed during query embedding                                |
+| `502`  | `rag answer error`           | Nothing was retrieved from the vector store, or the generation provider failed/timed out |
 
 ---
 

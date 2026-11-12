@@ -24,24 +24,26 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
     POSTGRES_MAIN_DATABASE: str
 
-    VECTORDB_BACKEND_LITERAL: List[str] = None
+    VECTORDB_BACKEND_LITERAL: List[str] | None = None
     VECTORDB_BACKEND: str=""
     VECTOR_DB_DISTANCE_METRIC: str = "cosine"
     VECTOR_DB_PGVEC_INDEX_THRESHOLD: int
 
-    OPENAI_API_KEY: str | None = None
+    OPENAI_API_KEY: str= None
     OPENAI_API_URL: str | None = None
-    COHERE_API_KEY: str | None = None
+    COHERE_API_KEY: str= None
 
     GENERATION_BACKEND: str
     EMBEDDING_BACKEND: str
 
-    GENERATION_MODEL_ID: str=None
-    EMBEDDING_MODEL_ID: str=None
-    EMBEDDING_MODEL_SIZE: int=None
-    INPUT_DEFAULT_MAX_CHAR: int=None
-    DEAFAULT_MAX_OUTPUT_TOKENS: int=None
-    GENERATION_DEFAULT_TEMPERATURE: float=None
+    LLM_REQUEST_TIMEOUT_SEC: int=60
+    GENERATION_MODEL_ID: str | None=None
+    EMBEDDING_MODEL_ID: str | None=None
+    EMBEDDING_MODEL_SIZE: int| None =None
+
+    INPUT_DEFAULT_MAX_CHAR: int=2048
+    DEAFAULT_MAX_OUTPUT_TOKENS: int=2048
+    GENERATION_DEFAULT_TEMPERATURE: float=0.001
 
 
     # ========================= Template Configs =========================

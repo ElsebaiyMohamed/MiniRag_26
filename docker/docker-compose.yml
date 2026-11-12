@@ -49,7 +49,7 @@ services:
     volumes:
       - pgvector_data:/var/lib/postgresql
     env_file:
-      - ./envv/.env.app.postgres
+      - ./envv/.env.postgres
     networks:
       - bakend
     restart: always
@@ -67,7 +67,7 @@ services:
     ports:
       - "9187:9187"
     env_file:
-      - ./envv/.env.app.postgresexporter
+      - ./envv/.env.postgresexporter
     depends_on:
       - pgvector
     networks:
@@ -101,7 +101,7 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
     env_file:
-      - ./envv/.env.app.grafana
+      - ./envv/.env.grafana
     networks:
       - bakend
     depends_on:

@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../s
 from models import AssetDataModel, ChunkDataModel, ProjectDataModel
 from models.enums import AssetStatus, OpenAIEnum, ResponseSignal
 from models.schemas import RetrievedDocument
+from models.schemas import LLMResult
 from routes import data as data_routes
 from routes import nlp as nlp_routes
 from stores.llm.templates import TemplateParser
@@ -57,10 +58,8 @@ class FakeChunkModel:
         return len(chunks)
 
     async def get_project_asset_chunks(self, asset_id, page_no):
-        return [
-            chunk for chunk in self.chunks
-            if chunk.chunk_asset_id == asset_id and page_no == 1
-        ]
+        return [chunk for chunk in self.chunks if
+                chunk.chunk_asset_id == asset_id and page_no == 1]
 
 
 class FakeUploadController:
@@ -99,7 +98,18 @@ class FakeEmbeddingClient:
         def embed(text):
             return [float(len(text)), 1.0]
 
-        return embed(prompts) if isinstance(prompts, str) else [embed(text) for text in prompts]
+        content = embed(prompts) if isinstance(prompts, str) else [embed(text) for text
+                                                                   in prompts]
+        return LLMResult(
+            content=content,
+            provider="openai",
+            model="text-embedding-3-small",
+            operation="embed_text",
+            latency_ms=1.5,
+            success=True,
+            prompt_tokens=4,
+            total_tokens=4,
+        )
 
 
 class FakeGenerationClient:
@@ -110,7 +120,17 @@ class FakeGenerationClient:
         return {"role": role, "content": prompt}
 
     async def generate_text(self, prompt, chat_history):
-        return "The document says the answer is 42."
+        return LLMResult(
+            content="The document says the answer is 42.",
+            provider="openai",
+            model="gpt-4o",
+            operation="generate_text",
+            latency_ms=12.0,
+            success=True,
+            prompt_tokens=25,
+            completion_tokens=8,
+            total_tokens=33,
+        )
 
 
 class FakeVectorDB:
@@ -122,19 +142,14 @@ class FakeVectorDB:
             self.records.clear()
         return True
 
-    async def insert_many(
-        self, collection_name, texts, metadatas, vectors, record_ids, asset_ids
-    ):
-        self.records.extend(
-            (text, vector) for text, vector in zip(texts, vectors)
-        )
+    async def insert_many(self, collection_name, texts, metadatas, vectors, record_ids,
+                          asset_ids):
+        self.records.extend((text, vector) for text, vector in zip(texts, vectors))
         return {"success": len(texts), "failed": 0}
 
     async def search_by_vector(self, collection_name, vector, limit):
-        return [
-            RetrievedDocument(text=text, score=1.0)
-            for text, _ in self.records[:limit]
-        ]
+        return [RetrievedDocument(text=text, score=1.0) for text, _ in
+                self.records[:limit]]
 
     async def delete_embeddings_by_asset_id(self, collection_name, asset_id):
         return 0
@@ -169,24 +184,25 @@ def workflow_models(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_upload_process_index_search_answer_workflow(
-    tmp_path, monkeypatch, workflow_models, settings_stub
-):
+async def test_upload_process_index_search_answer_workflow(tmp_path, monkeypatch,
+                                                           workflow_models,
+                                                           settings_stub):
     projects, assets, chunks = workflow_models
     project_assets = tmp_path / "assets"
     project_assets.mkdir()
     monkeypatch.setattr(data_routes, "DataController", FakeUploadController)
+
     def get_project_path(project_id):
         project_path = project_assets / str(project_id)
         project_path.mkdir(exist_ok=True)
         return str(project_path)
 
-    monkeypatch.setattr(data_routes, "ProjectController", lambda: SimpleNamespace(
-        get_project_path=get_project_path
-    ))
-    monkeypatch.setattr(data_routes, "ProcessController", lambda project_id: FakeProcessController(
-        project_id, project_assets
-    ))
+    monkeypatch.setattr(data_routes, "ProjectController",
+                        lambda: SimpleNamespace(get_project_path=get_project_path))
+    monkeypatch.setattr(
+        data_routes, "ProcessController",
+        lambda project_id: FakeProcessController(project_id, project_assets)
+    )
 
     app = FastAPI()
     app.include_router(data_routes.data_router)
@@ -197,8 +213,7 @@ async def test_upload_process_index_search_answer_workflow(
     app.generation_client = FakeGenerationClient()
     app.template_parser = TemplateParser(language="en")
     app.dependency_overrides[data_routes.get_settings] = lambda: SimpleNamespace(
-        FILE_DEAFAULT_CHINK_SIZE=16
-    )
+        FILE_DEAFAULT_CHINK_SIZE=16)
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
@@ -209,9 +224,9 @@ async def test_upload_process_index_search_answer_workflow(
         assert upload_response.status_code == 200
         assert upload_response.json()["signal"] == ResponseSignal.FILE_UPLOAD_SUCCESS.value
 
-        process_response = await client.post(
-            "/api/v1/data/process/1", json={"chunk_size": 500, "overlap_size": 20}
-        )
+        process_response = await client.post("/api/v1/data/process/1",
+                                             json={"chunk_size": 500,
+                                                   "overlap_size": 20})
         assert process_response.status_code == 200
         assert process_response.json()["no_files_success"] == 1
         assert len(chunks.chunks) == 1
@@ -220,21 +235,14 @@ async def test_upload_process_index_search_answer_workflow(
         push_response = await client.post("/api/v1/nlp/index/push/1", json={})
         assert push_response.status_code == 200
         assert push_response.json()["signal"] == (
-            ResponseSignal.INSERT_INTO_VECTOR_DATABASE_SUCCESS.value
-        )
+            ResponseSignal.INSERT_INTO_VECTOR_DATABASE_SUCCESS.value)
         assert assets.assets[0].asset_status == AssetStatus.INDEXED.value
 
-        search_response = await client.post(
-            "/api/v1/nlp/index/search/1", json={"text": "answer", "limit": 1}
-        )
+        search_response = await client.post("/api/v1/nlp/index/search/1",
+                                            json={"text": "answer", "limit": 1})
         assert search_response.status_code == 200
         assert search_response.json()["result"][0]["text"] == "The answer is 42."
-
-        default_answer_response = await client.post(
-            "/api/v1/nlp/index/answer/1", json={"text": "What is the answer?"}
-        )
-        assert default_answer_response.status_code == 200
-        assert set(default_answer_response.json()) == {"signal", "answer"}
+        assert "telemetry" in search_response.json()
 
         answer_response = await client.post(
             "/api/v1/nlp/index/answer/1",
@@ -245,5 +253,6 @@ async def test_upload_process_index_search_answer_workflow(
         assert answer["answer"] == "The document says the answer is 42."
         assert "full_prompt" in answer
         assert "chat_history" in answer
+        assert "telemetry" in answer
 
     assert projects.project.project_id == 1

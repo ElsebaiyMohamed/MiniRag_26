@@ -68,12 +68,14 @@ from models.enums import AcmeEnum, DocumentTypeEnum
 class AcmeProvider(LLMInterface):
     def __init__(self, api_key: str, default_max_char: int = 1000,
                  default_output_max_tokens: int = 1000,
-                 default_generation_temperature: float = 0.1):
+                 default_generation_temperature: float = 0.1,
+                 request_timeout_sec: float = 60.0):
         super().__init__()
         self.api_key = api_key
         self.default_max_char = default_max_char
         self.default_max_output_tokens = default_output_max_tokens
         self.default_generation_temperature = default_generation_temperature
+        self.request_timeout_sec = request_timeout_sec
         self.generation_model_id = None
         self.embedding_model_id = None
         self.embedding_size = None
@@ -111,15 +113,16 @@ class AcmeProvider(LLMInterface):
 
 The contract the controllers rely on:
 
-| Method | Must do |
-|---|---|
-| `set_generation_model(model_id)` | Store the model name. Called once at startup |
-| `set_embedding_model(model_id, embedding_size)` | Store the model name and its dimension. Called with both arguments at startup |
-| `async generate_text(prompt, ..., chat_history=[...])` | Return the answer as a plain `str`. Return `None` on failure. Prefer copying `chat_history` rather than mutating it |
-| `async embed_text(prompt, document_type)` | Return `list[float]` or a list of vectors. `document_type` is `DocumentTypeEnum.DOCUMENT` when indexing and `QUERY` when searching |
-| `construct_prompt(prompt, role)` | Return a message dict in your API's format |
-| `enum` attribute | An enum with `SYSTEM`, `USER`, `ASSISTANT` values used to build `chat_history` |
-| `embedding_size` attribute | Read by indexing to create the collection |
+| Method                                                 | Must do                                                                                                                                                                                                          |
+|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `set_generation_model(model_id)`                       | Store the model name. Called once at startup                                                                                                                                                                     |
+| `set_embedding_model(model_id, embedding_size)`        | Store the model name and its dimension. Called with both arguments at startup                                                                                                                                    |
+| `async generate_text(prompt, ..., chat_history=[...])` | Return an `LLMResult` Pydantic model (never raw `None` or primitives alone). Handles single string prompts.                                                                                                      |
+| `async embed_text(prompts, document_type)`             | Return an `LLMResult` Pydantic model supporting both single inputs (`str`) and batched inputs (`Union[List[str], str]`). `document_type` is `DocumentTypeEnum.DOCUMENT` when indexing and `QUERY` when searching |
+| `_parse_response(operation, raw_response)`             | Provider-level parser extracting `content`, `prompt_tokens`, `completion_tokens`, and `total_tokens` from unique SDK response schemas                                                                            |
+| `construct_prompt(prompt, role)`                       | Return a message dict in your API's format                                                                                                                                                                       |
+| `enum` attribute                                       | An enum with `SYSTEM`, `USER`, `ASSISTANT` values used to build `chat_history`                                                                                                                                   |
+| `embedding_size` attribute                             | Read by indexing to create the collection                                                                                                                                                                        |
 
 Notes:
 
@@ -148,6 +151,7 @@ elif provider == LLMEnum.ACME.value:
         default_max_char=self.config.INPUT_DEFAULT_MAX_CHAR,
         default_output_max_tokens=self.config.DEAFAULT_MAX_OUTPUT_TOKENS,
         default_generation_temperature=self.config.GENERATION_DEFAULT_TEMPERATURE,
+        request_timeout_sec=self.config.LLM_REQUEST_TIMEOUT_SEC,
     )
 ```
 
