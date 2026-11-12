@@ -1,4 +1,5 @@
-FROM ghcr.io/astral-sh/uv:python3.14-alpine
+FROM python:3.13.14-slim-trixie
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -8,23 +9,23 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-RUN apk add --no-cache \
-    build-base \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     gcc \
-    musl-dev \
-    linux-headers \
+    linux-libc-dev \
     libffi-dev \
-    postgresql-dev \
-    pkgconfig \
+    libpq-dev \
+    pkg-config \
     libavif-dev \
-    jpeg-dev \
+    libjpeg-dev \
     unzip \
     zip \
     python3-dev \
     libxml2-dev \
-    libxslt-dev \
+    libxslt1-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
 
 
 
