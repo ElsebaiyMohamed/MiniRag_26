@@ -113,7 +113,8 @@ class OpenAiProvider(LLMInterface):
             )
 
         max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_max_output_tokens
-        temperature = temperature if temperature is not None else self.default_generation_temperaturechat_history: list = list(kwargs.get("chat_history", []))
+        temperature = temperature if temperature is not None else self.default_generation_temperature
+        chat_history: list = list(kwargs.get("chat_history", []))
         chat_history.append(self.construct_prompt(prompt=prompt, role=self.enum.USER.value))
 
         async def _call():

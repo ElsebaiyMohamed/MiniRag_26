@@ -93,7 +93,9 @@ class CohereProvider(LLMInterface):
             if self.embedding_size and any(
                     len(v) != self.embedding_size for v in vectors):
                 self.logger.error(
-                    "Embedding vector dimension mismatch against configuration")
+                    f"Embedding vector dimension {len(vectors)} mismatch against "
+                    f"configuration {self.embedding_size}")
+
                 return None
             return {
                 "content": vectors,
@@ -191,8 +193,7 @@ class CohereProvider(LLMInterface):
             return await self.client.embed(
                 model=self.embedding_model_id,
                 texts=texts,
-                input_type=input_type,
-                embedding_types=["float"],
+                input_type=input_type,                output_dimension = (self.embedding_size,)embedding_types=["float"],
             )
 
         result = await self._safe_call(
