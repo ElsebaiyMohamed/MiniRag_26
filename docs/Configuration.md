@@ -54,6 +54,18 @@ Inside the Docker network the database host is `pgvector` and the port is `5432`
 | `FILE_DEAFAULT_CHINK_SIZE` | yes | Bytes read per iteration while streaming an upload to disk (for example `256000`) |
 
 If you run behind the bundled Nginx, its own upload limit also applies. See [Deployment](Deployment.md#nginx).
+### Document processing
+
+| Variable                     | Required | Default | Description                                                                                                        |
+|------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------------|
+| `PROCESSING_MAX_CONCURRENCY` | no       | `2`     | Maximum number of documents being loaded and split concurrently per application worker. Must be greater than zero. |
+
+Document loading and chunking run in worker threads using `asyncio.to_thread()`.
+An asyncio semaphore limits concurrent processing operations.
+
+The limit applies independently to each application worker. For example,
+two workers configured with `PROCESSING_MAX_CONCURRENCY=2` can process
+up to four documents concurrently.
 
 ### PostgreSQL
 
