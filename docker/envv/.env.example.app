@@ -5,7 +5,8 @@ APP_DESCRIPTION="Question Answering System"
 
 FILE_ALLOWED_EXTENTIONS=["application/pdf", "text/plain"]
 FILE_MAX_SIZE_IN_MB=10
-FILE_DEAFAULT_CHINK_SIZE=256000 # 256kp
+FILE_DEAFAULT_CHINK_SIZE=256000
+PROCESSING_MAX_CONCURRENCY=2
 
 # ========================== Database Config ======================
 
