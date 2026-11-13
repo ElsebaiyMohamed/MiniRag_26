@@ -49,6 +49,7 @@ async def test_application_lifespan_configures_and_closes_clients(monkeypatch):
         EMBEDDING_MODEL_ID="embedding-model",
         EMBEDDING_MODEL_SIZE=3,
         VECTORDB_BACKEND="PGVECTOR",
+        PROCESSING_MAX_CONCURRENCY=2,
     )
     engine = SimpleNamespace(dispose=AsyncMock())
     session_factory = object()

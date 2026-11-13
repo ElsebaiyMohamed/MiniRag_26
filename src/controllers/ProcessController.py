@@ -1,14 +1,15 @@
 import os
-from typing import List
 from dataclasses import dataclass
+from typing import List
 
-from langchain_community.document_loaders import TextLoader, PyMuPDFLoader 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
 
-
+from models.enums import ProcessingEnum
 from .BaseController import BaseController
 from .ProjectController import ProjectController
-from models.enums import ProcessingEnum
+
+
+# from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 @dataclass
 class Document:
@@ -19,37 +20,37 @@ class Document:
 class ProcessController(BaseController):
     def __init__(self, project_id: int):
         super().__init__()
-        
+
         self.project_id = str(project_id)
         self.project_path = ProjectController().get_project_path(self.project_id)
-        
+
     def _get_file_ext(self, file_id: str):
         return os.path.splitext(file_id)[-1]
-    
+
     def _get_file_loader(self, file_id: str):
         file_ext = self._get_file_ext(file_id=file_id)
         file_path = self.join_path(self.project_path, file_id)
         if not self.file_exist_on_path(file_path=file_path):
             return None
-        
+
         if file_ext == ProcessingEnum.TXT.value:
             return TextLoader(file_path, encoding='utf-8')
         if file_ext == ProcessingEnum.PDF.value:
             return PyMuPDFLoader(file_path)
         return None
-    
+
     def get_file_content(self, file_id: str):
         loader = self._get_file_loader(file_id=file_id)
         if loader is not None:
             return loader.load()
         return None
-    
+
     def process_file_content(self, file_content: list, chunk_size: int=100, overlap_size: int=20):
         # text_spliter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap_size, length_function=len)
-        
+
         file_text = [t.page_content for t in file_content]
         file_metadata = [t.metadata for t in file_content]
-        
+
         # chunks = text_spliter.create_documents(file_text, metadatas=file_metadata)
         chunks = self.simple_text_spliter(file_text, file_metadata, chunk_size=chunk_size)
         return chunks
@@ -65,7 +66,7 @@ class ProcessController(BaseController):
                 line = page_lines[i]
                 chunk_text = chunk_text + spliter_tag + line
                 if len(chunk_text) > chunk_size:
-                    
+
                     # page_metadata['page'] = ', '.join(list(page_no))
                     chunks.append(Document(
                         page_content=chunk_text.strip(),
@@ -81,3 +82,28 @@ class ProcessController(BaseController):
                 )
             )
         return chunks
+
+
+    def process_file(
+        self,
+        file_id: str,
+        chunk_size: int = 100,
+        overlap_size: int = 20,
+    ):
+        """
+        Load and split a file in one synchronous operation.
+
+        This method is intended to run inside asyncio.to_thread().
+        File loading (including PDF access) and splitting therefore
+        happen in the same worker thread.
+        """
+        file_content = self.get_file_content(file_id)
+
+        if file_content is None:
+            return None
+
+        return self.process_file_content(
+            file_content=file_content,
+            chunk_size=chunk_size,
+            overlap_size=overlap_size,
+        )

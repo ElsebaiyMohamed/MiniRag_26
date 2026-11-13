@@ -5,9 +5,9 @@ from fastapi import APIRouter, status, Request
 from fastapi.responses import JSONResponse
 
 from controllers import NLPController
-from models import ProjectDataModel, AssetDataModel
+from models import ProjectDataModel, AssetDataModel, ChunkDataModel
 from models.enums import ResponseSignal, AssetType, AssetStatus
-from models.schemas import PushRequest
+from models.schemas import PushRequest, SearchRequest
 
 log_it = logging.getLogger("uvicorn.error")
 
@@ -15,7 +15,9 @@ nlp_router = APIRouter(prefix="/api/v1/nlp", tags=["v1", "nlp"])
 
 
 @nlp_router.post("/index/push/{project_id}")
-async def index_project(request: Request, project_id: int, push_request: PushRequest):    project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)project = await project_model.get_project(project_id=project_id)
+async def index_project(request: Request, project_id: int, push_request: PushRequest):
+    project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
+    project = await project_model.get_project(project_id=project_id)
     if not project:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -33,10 +35,12 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"signal": ResponseSignal.NO_FILES_ERROR.value},
-        )    chunk_model: ChunkDataModel = await ChunkDataModel.create_instance(db_client=request.app.db_client)nlp_controller = NLPController(
-        vectordb_client=request.app.vectordb_client,
-        generation_client=request.app.generation_client,
-        embedding_client=request.app.embedding_client,
+        )
+    chunk_model: ChunkDataModel = await ChunkDataModel.create_instance(db_client=request.app.db_client)
+    nlp_controller = NLPController(
+    vectordb_client=request.app.vectordb_client,
+    generation_client=request.app.generation_client,
+    embedding_client=request.app.embedding_client,
     )
 
     if push_request.do_reset:
@@ -47,7 +51,9 @@ async def index_project(request: Request, project_id: int, push_request: PushReq
                 dummy_asset.asset_status = AssetStatus.CHUNKED.value
         no_deleted = await nlp_controller.reset_vectordb_collection(project)
         project_files = [a for a in all_project_files if a.asset_status == AssetStatus.CHUNKED.value]
-    else:        project_files = [asset for asset in all_project_files if asset.asset_status == AssetStatus.CHUNKED.value]index_status = {
+    else:
+        project_files = [asset for asset in all_project_files if asset.asset_status == AssetStatus.CHUNKED.value]
+        index_status = {
         "project_status_before_run": {
             "total_files": len(all_project_files),
             "uploaded_files": len([a for a in all_project_files if

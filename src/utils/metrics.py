@@ -8,7 +8,12 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 REQUEST_COUNT = Counter("http_requests_total", "Total HTTP Requests", ["method", "endpoint", "status"])
 REQUEST_LATENCY = Histogram("http_request_duration_seconds", "HTTP Request Latency", ["method", "endpoint"])
-
+DOCUMENT_PROCESSING_DURATION = Histogram(
+    "document_processing_duration_seconds",
+    "Time spent loading and splitting uploaded documents",
+    ["file_type", "outcome"],
+    buckets=(0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120),
+)
 
 class PrometheusMiddleware:
     def __init__(self, app: ASGIApp) -> None:
@@ -35,14 +40,24 @@ class PrometheusMiddleware:
         finally:
             duration = time.time() - start_time
 
-            # Use the route path template if available, else fallback to url path
+            # Use the route path template if available, else fallback to URL path
             route = scope.get("route")
-            endpoint = route.path if route and hasattr(route, "path") else request.url.path
+            endpoint = (
+                route.path
+                if route and hasattr(route, "path")
+                else request.url.path
+            )
 
-            REQUEST_LATENCY.labels(method=request.method, endpoint=endpoint).observe(duration)
-            REQUEST_COUNT.labels(method=request.method, endpoint=endpoint, status=status_code).inc()
+            REQUEST_LATENCY.labels(
+                method=request.method,
+                endpoint=endpoint,
+            ).observe(duration)
 
-
+            REQUEST_COUNT.labels(
+                method=request.method,
+                endpoint=endpoint,
+                status=status_code,
+            ).inc()
 def setup_metrics(app: FastAPI):
     app.add_middleware(PrometheusMiddleware)
 

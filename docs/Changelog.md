@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+
+- Offloaded synchronous document loading and chunking to worker threads using `asyncio.to_thread()`.
+- Added configurable per-worker document processing concurrency through `PROCESSING_MAX_CONCURRENCY`.
+- Added Prometheus document processing duration histogram with file type and outcome labels.
+- Added tests for event-loop responsiveness, processing concurrency, and combined file processing.
 - Unified `LLMResult` contract for all LLM provider generation and embedding calls, including latency and token usage
   telemetry (`prompt_tokens`, `completion_tokens`, `total_tokens`).
 - Shared `_safe_call` wrapper in `LLMInterface` enforcing configurable request timeouts (`LLM_REQUEST_TIMEOUT_SEC`),

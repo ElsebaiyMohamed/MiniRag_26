@@ -1,4 +1,7 @@
+import asyncio
 import logging
+import os
+import time
 
 import aiofiles
 from fastapi import APIRouter, Depends, UploadFile, status, Request
@@ -10,6 +13,7 @@ from models import ProjectDataModel, ChunkDataModel, AssetDataModel
 from models.db_schemas import DataChunk, Asset
 from models.enums import ResponseSignal, AssetType, AssetStatus
 from models.schemas import ProcessRequest
+from utils.metrics import DOCUMENT_PROCESSING_DURATION
 
 log_it = logging.getLogger("uvicorn.error")
 
@@ -122,40 +126,69 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
     no_of_records = 0
     total_no_files = len(project_file_ids)
     failed_files = 0
+
     for asset_id, file_id in project_file_ids.items():
-        file_content = processor_controller.get_file_content(file_id)
-        if file_content is None:
-            log_it.error(f"SKIP: File Name: {file_id} not exist")
-            failed_files += 1
-            continue
+        file_type = os.path.splitext(file_id)[-1].lower().lstrip(".")
 
-        file_chunks = processor_controller.process_file_content(
-            file_content=file_content,
-            chunk_size=process_request.chunk_size,
-            overlap_size=process_request.overlap_size,
-        )
+        if file_type not in {"pdf", "txt"}:
+            file_type = "other"
 
-        if file_chunks is None or not file_chunks:
-            failed_files += 1
-            continue
+        start_time = time.perf_counter()
+        outcome = "failure"
 
-        file_chunks_record = [
-            DataChunk(
-                chunk_text=chunk.page_content,
-                chunk_metadata=chunk.metadata,
-                chunk_order=i + 1,
-                chunk_project_id=project.project_id,
-                chunk_asset_id=asset_id,
+        try:
+            # Limit concurrent document-processing operations.
+            async with request.app.processing_semaphore:
+
+                # Loading and splitting happen entirely in a worker thread.
+                file_chunks = await asyncio.to_thread(
+                    processor_controller.process_file,
+                    file_id=file_id,
+                    chunk_size=process_request.chunk_size,
+                    overlap_size=process_request.overlap_size,
+                )
+
+            if not file_chunks:
+                log_it.error(
+                    f"SKIP: File Name: {file_id} could not be processed"
+                )
+                failed_files += 1
+                continue
+
+            # Database operations remain on the event-loop thread.
+            file_chunks_record = [
+                DataChunk(
+                    chunk_text=chunk.page_content,
+                    chunk_metadata=chunk.metadata,
+                    chunk_order=i + 1,
+                    chunk_project_id=project.project_id,
+                    chunk_asset_id=asset_id,
+                )
+                for i, chunk in enumerate(file_chunks)
+            ]
+
+            record_count = await chunk_model.create_many_chunks(
+                chunks=file_chunks_record
             )
-            for i, chunk in enumerate(file_chunks)
-        ]
 
-        record_count =  await chunk_model.create_many_chunks(chunks=file_chunks_record)
-        if record_count == 0:
-            failed_files += 1
-            continue
-        no_of_records += record_count
-        await asset_model.set_asset_status(asset_id, AssetStatus.CHUNKED.value)
+            if record_count == 0:
+                failed_files += 1
+                continue
+
+            no_of_records += record_count
+
+            await asset_model.set_asset_status(
+                asset_id,
+                AssetStatus.CHUNKED.value,
+            )
+
+            outcome = "success"
+
+        finally:
+            DOCUMENT_PROCESSING_DURATION.labels(
+                file_type=file_type,
+                outcome=outcome,
+            ).observe(time.perf_counter() - start_time)
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,

@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env.app"
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     FILE_ALLOWED_EXTENTIONS: list
     FILE_MAX_SIZE_IN_MB: int
     FILE_DEAFAULT_CHINK_SIZE: int
-
+    PROCESSING_MAX_CONCURRENCY: int = Field(default=2, ge=1)
 
     POSTGRES_USERNAME: str
     POSTGRES_PASSWORD: str
