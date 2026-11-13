@@ -17,7 +17,7 @@ sys.path.insert(
 
 from models import AssetDataModel, ChunkDataModel, ProjectDataModel
 from models.enums import AssetStatus, OpenAIEnum, ResponseSignal
-from models.schemas import RetrievedDocument, LLMResult
+from models.schemas import LLMResult, RetrievedDocument
 from routes import data as data_routes
 from routes import nlp as nlp_routes
 from stores.llm.templates import TemplateParser

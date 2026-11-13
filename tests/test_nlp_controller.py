@@ -87,7 +87,7 @@ async def test_answer_returns_error_when_retrieval_finds_no_documents(
         template_parser=SimpleNamespace(),
     )
 
-    answer, embed_res, prompt, history, err = await controller.answer_rag_question(
+    answer, _embed_res, _prompt, _history, err = await controller.answer_rag_question(
         project=SimpleNamespace(project_id=1), query="question"
     )
     assert answer is None
