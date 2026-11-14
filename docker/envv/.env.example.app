@@ -10,7 +10,7 @@ PROCESSING_MAX_CONCURRENCY=2
 # ========================== Database Config ======================
 
 POSTGRES_USERNAME="postgres"
-POSTGRES_PASSWORD=""
+POSTGRES_PASSWORD="minirag"
 POSTGRES_HOST="pgvector"
 POSTGRES_PORT=5432
 POSTGRES_MAIN_DATABASE="minirag26"

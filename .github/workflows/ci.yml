@@ -2,7 +2,7 @@ name: MiniRag CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, "release/1.2.0" ]
   pull_request:
     branches: [ master ]
 
@@ -58,3 +58,25 @@ jobs:
 
       - name: Run ruff
         run: uvx ruff check tests/
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Prepare Compose environment
+        run: |
+          cp docker/envv/.env.example.app docker/envv/.env.app
+          cp docker/envv/.env.example.postgres docker/envv/.env.postgres
+          cp docker/envv/.env.example.postgresexporter docker/envv/.env.postgresexporter
+          cp docker/envv/.env.example.grafana docker/envv/.env.grafana
+
+      - name: Validate Docker Compose configuration
+        run: docker compose -f docker/docker-compose.yml config --quiet
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f docker/minirag/DockerFile \
+            -t minirag-26:ci \
+            .
