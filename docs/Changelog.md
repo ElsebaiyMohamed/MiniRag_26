@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
 
+### Documentation
+
+- Synchronize API endpoint documentation with actual route response signals and HTTP status codes.
+- Add a complete response signal reference and troubleshooting table.
+- Add automated tests to detect API documentation drift against the response enum and OpenAPI schema.
+
+### Added
 
 - Offloaded synchronous document loading and chunking to worker threads using `asyncio.to_thread()`.
 - Added configurable per-worker document processing concurrency through `PROCESSING_MAX_CONCURRENCY`.
