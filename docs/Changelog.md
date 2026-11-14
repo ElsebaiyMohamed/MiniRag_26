@@ -31,6 +31,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Use `pyproject.toml` as the single source of truth for the application version.
+- Expose the application version through FastAPI metadata and `GET /version`.
+- Deprecate and ignore the `APP_VERSION` environment setting.
 - NLP routes (`/index/push`, `/index/info`, `/index/search`, `/index/answer`) now map upstream LLM and vector store
   failures to HTTP `502 Bad Gateway` and return standardized `telemetry` metadata.
 - Processing reset rebuilds chunks for all project files, and PgVector removes vectors associated with deleted chunks.

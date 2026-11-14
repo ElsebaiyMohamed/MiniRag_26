@@ -1,10 +1,12 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
+from __version__ import __version__
 from helpers import get_settings
 from routes import base, data, nlp
 from stores.llm import LLMProviderFactory
@@ -12,12 +14,17 @@ from stores.llm.templates import TemplateParser
 from stores.vectordb import VectorDBProviderFactory
 from utils.metrics import setup_metrics
 
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- STARTUP LOGIC ---
     settings = get_settings()
-
+    logger.info(
+        "Starting %s version %s",
+        settings.APP_NAME,
+        __version__,
+    )
     app.template_parser = TemplateParser(language=settings.PRIMARY_LANG, default_language=settings.DEFAULT_LANG)
     app.processing_semaphore = asyncio.Semaphore(
         settings.PROCESSING_MAX_CONCURRENCY
@@ -56,9 +63,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="MiniRag_26",
-    version="0.1",
+    version=__version__,
     description="Question Answering System",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 setup_metrics(app)
