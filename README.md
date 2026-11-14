@@ -398,7 +398,7 @@ All settings are environment variables (`.env.app`).
 
 | Variable                                                                                             | Description                                                            |
 |------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| `APP_NAME`, `APP_VERSION`, `APP_DESCRIPTION`                                                         | Shown at `GET /`                                                       |
+| `APP_NAME`, `APP_DESCRIPTION`                                                         | Shown at `GET /`                                                       |
 | `FILE_ALLOWED_EXTENTIONS`                                                                            | Allowed upload MIME types, e.g. `["application/pdf", "text/plain"]`    |
 | `FILE_MAX_SIZE_IN_MB`                                                                                | Max upload size (default example: `10`)                                |
 | `FILE_DEAFAULT_CHINK_SIZE`                                                                           | Read size in bytes when streaming uploads to disk                      |
@@ -474,6 +474,7 @@ Add `"debug": true` to an answer request to include the full prompt and chat his
 | Method | Endpoint                                | Purpose                                              |
 |--------|-----------------------------------------|------------------------------------------------------|
 | `GET`  | `/`                                     | App info                                             |
+| `GET` | `/version` | Application version |
 | `GET`  | `/metrics`                              | Prometheus metrics                                   |
 | `POST` | `/api/v1/data/upload/{project_id}`      | Upload a file                                        |
 | `POST` | `/api/v1/data/process/{project_id}`     | Chunk the project's files (`chunk_size`, `do_reset`) |

@@ -78,16 +78,17 @@ Normal processing handles only `UPLOADED` assets; normal indexing handles only `
 
 ## Endpoints
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/` | App name, version, description |
-| `GET` | `/metrics` | Prometheus metrics (not in the OpenAPI schema) |
-| `POST` | `/api/v1/data/upload/{project_id}` | Upload a file |
-| `POST` | `/api/v1/data/process/{project_id}` | Chunk the project's files |
-| `POST` | `/api/v1/nlp/index/push/{project_id}` | Embed chunks and store the vectors |
-| `GET` | `/api/v1/nlp/index/info/{project_id}` | Vector collection information |
-| `POST` | `/api/v1/nlp/index/search/{project_id}` | Semantic search |
-| `POST` | `/api/v1/nlp/index/answer/{project_id}` | RAG answer |
+| Method | Path                                    | Purpose                                        |
+|--------|-----------------------------------------|------------------------------------------------|
+| `GET`  | `/`                                     | App name, version, description                 |
+| `GET`  | `/version`                              | version                                        |
+| `GET`  | `/metrics`                              | Prometheus metrics (not in the OpenAPI schema) |
+| `POST` | `/api/v1/data/upload/{project_id}`      | Upload a file                                  |
+| `POST` | `/api/v1/data/process/{project_id}`     | Chunk the project's files                      |
+| `POST` | `/api/v1/nlp/index/push/{project_id}`   | Embed chunks and store the vectors             |
+| `GET`  | `/api/v1/nlp/index/info/{project_id}`   | Vector collection information                  |
+| `POST` | `/api/v1/nlp/index/search/{project_id}` | Semantic search                                |
+| `POST` | `/api/v1/nlp/index/answer/{project_id}` | RAG answer                                     |
 
 ---
 
@@ -102,6 +103,19 @@ curl http://localhost:8000/
   "app_name": "MiniRag_26",
   "version": "0.1",
   "description": "Question Answering System"
+}
+```
+---
+
+### GET /version
+
+Returns the canonical application version declared in `pyproject.toml`.
+
+**Response: 200 OK**
+
+```json
+{
+  "version": "0.1.0"
 }
 ```
 
