@@ -1,3 +1,4 @@
+
 import tomllib
 from importlib.metadata import PackageNotFoundError
 from pathlib import Path
@@ -18,15 +19,46 @@ def test_version_matches_pyproject():
     assert app.version == expected_version
 
 
-def test_version_fallback_when_package_metadata_missing(monkeypatch):
-    def raise_package_not_found(_package_name):
-        raise PackageNotFoundError
-
-    monkeypatch.setattr(app_version, "version", raise_package_not_found)
+def test_pyproject_version_takes_priority_over_installed_metadata(monkeypatch):
+    monkeypatch.setattr(app_version, "version", lambda _: "0.1")
 
     expected_version = app_version._version_from_pyproject()
 
     assert app_version.get_app_version() == expected_version
+
+
+def test_metadata_fallback_when_pyproject_missing(monkeypatch):
+    def raise_file_not_found():
+        raise FileNotFoundError("pyproject.toml not found")
+
+    monkeypatch.setattr(
+        app_version, "_version_from_pyproject", raise_file_not_found
+    )
+    monkeypatch.setattr(
+        app_version, "version", lambda _: "1.2.0"
+    )
+
+    assert app_version.get_app_version() == "1.2.0"
+
+
+def test_metadata_fallback_raises_when_package_missing(monkeypatch):
+    def raise_file_not_found():
+        raise FileNotFoundError("pyproject.toml not found")
+
+    def raise_package_not_found(_):
+        raise PackageNotFoundError
+
+    monkeypatch.setattr(
+        app_version, "_version_from_pyproject", raise_file_not_found
+    )
+    monkeypatch.setattr(
+        app_version, "version", raise_package_not_found
+    )
+
+    import pytest
+
+    with pytest.raises(RuntimeError, match="Cannot determine application version"):
+        app_version.get_app_version()
 
 
 def test_version_endpoint():
