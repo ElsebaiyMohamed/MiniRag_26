@@ -71,6 +71,7 @@ jobs:
           cp docker/envv/.env.example.postgres docker/envv/.env.postgres
           cp docker/envv/.env.example.postgresexporter docker/envv/.env.postgresexporter
           cp docker/envv/.env.example.grafana docker/envv/.env.grafana
+          cp docker/minirag/alembic.example.ini docker/minirag/alembic.ini
 
       - name: Validate Docker Compose configuration
         run: docker compose -f docker/docker-compose.yml config --quiet
