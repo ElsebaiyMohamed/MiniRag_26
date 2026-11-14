@@ -58,3 +58,28 @@ jobs:
 
       - name: Run ruff
         run: uvx ruff check tests/
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read application version
+        id: version
+        run: |
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f docker/minirag/DockerFile \
+            --build-arg APP_VERSION="${{ steps.version.outputs.version }}" \
+            -t minirag-26:test .
+
+      - name: Verify Docker image version
+        run: |
+          ACTUAL=$(docker image inspect minirag-26:test \
+            --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')
+          test "$ACTUAL" = "${{ steps.version.outputs.version }}"
