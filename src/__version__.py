@@ -1,3 +1,4 @@
+
 import logging
 import tomllib
 from importlib.metadata import PackageNotFoundError, version
@@ -23,13 +24,19 @@ def _version_from_pyproject() -> str:
 
 def get_app_version() -> str:
     try:
-        return version(PACKAGE_NAME)
-    except PackageNotFoundError:
-        logger.debug(
-            "Package metadata for %s not found; reading pyproject.toml",
-            PACKAGE_NAME,
-        )
         return _version_from_pyproject()
+    except FileNotFoundError:
+        logger.warning(
+            "pyproject.toml not found; falling back to installed package metadata"
+        )
+
+    try:
+        return version(PACKAGE_NAME)
+    except PackageNotFoundError as exc:
+        raise RuntimeError(
+            "Cannot determine application version: "
+            "neither pyproject.toml nor package metadata is available"
+        ) from exc
 
 
 __version__ = get_app_version()
