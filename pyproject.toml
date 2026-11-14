@@ -1,6 +1,6 @@
 [project]
 name = "minirag-26"
-version = "0.1.0"
+version = "1.2.0"
 description = "Question Answering System"
 readme = "README.md"
 requires-python = ">=3.13.14"
@@ -10,14 +10,12 @@ dependencies = [
     "asyncpg>=0.31.0",
     "cohere>=7.1.1",
     "fastapi>=0.141.1",
-    "fastapi-health>=0.4.0",
-    "langchain>=1.4.0",
     "langchain-community>=0.4.2",
     "openai>=3.19.0",
-    "pgvector>=0.5.0",
     "prometheus-client>=0.26.0",
     "psycopg>=3.3.8",
     "psycopg2>=2.9.13",
+    "pydantic>=2.14.3",
     "pydantic-settings>=2.15.0",
     "pymupdf>=1.28.2",
     "pytest>=9.2.0",
@@ -25,14 +23,16 @@ dependencies = [
     "python-multipart>=0.0.32",
     "sqlalchemy[asyncio]>=2.0.53",
     "starlette>=1.6.0",
-    "starlette-exporter>=0.24.0",
     "uvicorn>=0.53.0",
 ]
 
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
     "pytest-cov>=7.1.0",
+    "ruff",
 ]
 
 [tool.pytest.ini_options]

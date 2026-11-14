@@ -1,5 +1,4 @@
 APP_NAME="MiniRag_26"
-APP_VERSION="0.1"
 APP_DESCRIPTION="Question Answering System"
 
 

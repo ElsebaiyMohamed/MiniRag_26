@@ -24,6 +24,40 @@ Base URL: `http://localhost:8000` (or `http://localhost` through Nginx).
 
 **Request bodies** are JSON unless noted. Flags such as `do_reset` are integers: `0` or `1`.
 
+
+## Response signal reference
+
+Response signals are returned in the JSON `signal` field. Clients should compare
+the exact string values rather than relying on message wording.
+
+| Enum member                           | Exact response signal                                                   |
+|---------------------------------------|-------------------------------------------------------------------------|
+| `FILE_VALIDATED_SUCCESS`              | `file validated success`                                                |
+| `FILE_TYPE_NOT_SUPPORTED`             | `file type not supported`                                               |
+| `FILE_SIZE_EXCEEDED`                  | `file size exceeded`                                                    |
+| `FILE_UPLOAD_FAILED`                  | `file upload failed`                                                    |
+| `FILE_UPLOAD_SUCCESS`                 | `file upload success`                                                   |
+| `PROJECT_NOT_FOUND`                   | `project not found`                                                     |
+| `NO_FILES_ERROR`                      | `project is empty`                                                      |
+| `FILES_ALREADY_PROCESSED`             | `Project files are already up-to-date. No further processing required.` |
+| `PROCESSING_FAILED`                   | `file chunking failed`                                                  |
+| `PROCESSING_SUCCESS`                  | `file chunking success`                                                 |
+| `FILES_NEED_CHUNKING`                 | `chunk files first before indexing`                                     |
+| `NO_FILES_TO_BE_INDEXED`              | `project chunked files already indexed`                                 |
+| `INSERT_INTO_VECTORDB_ERROR`          | `failed to insert into vector database`                                 |
+| `INSERT_INTO_VECTOR_DATABASE_SUCCESS` | `file indexed successfully`                                             |
+| `VECTORDB_COLLECTION_INFO_RETRIEVED`  | `collection information retrieved successfully`                         |
+| `VECTORDB_COLLECTION_INFO_NOT_FOUND`  | `the collection not found`                                              |
+| `VECTORDB_SEARCH_ERROR`               | `vectordb search error`                                                 |
+| `VECTORDB_SEARCH_SUCCESS`             | `vectordb search success`                                               |
+| `RAG_ANSWER_SUCCESS`                  | `rag answer success`                                                    |
+| `RAG_ANSWER_ERROR`                    | `rag answer error`                                                      |
+
+**Additional runtime signal:** `EMBEDDING_GENERATION_ERROR` is returned by the
+search and answer routes when query embedding fails. It is currently a literal
+string in the routes, not a member of `ResponseSignal`.
+
+
 ## Typical flow
 
 ```text
@@ -44,16 +78,17 @@ Normal processing handles only `UPLOADED` assets; normal indexing handles only `
 
 ## Endpoints
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/` | App name, version, description |
-| `GET` | `/metrics` | Prometheus metrics (not in the OpenAPI schema) |
-| `POST` | `/api/v1/data/upload/{project_id}` | Upload a file |
-| `POST` | `/api/v1/data/process/{project_id}` | Chunk the project's files |
-| `POST` | `/api/v1/nlp/index/push/{project_id}` | Embed chunks and store the vectors |
-| `GET` | `/api/v1/nlp/index/info/{project_id}` | Vector collection information |
-| `POST` | `/api/v1/nlp/index/search/{project_id}` | Semantic search |
-| `POST` | `/api/v1/nlp/index/answer/{project_id}` | RAG answer |
+| Method | Path                                    | Purpose                                        |
+|--------|-----------------------------------------|------------------------------------------------|
+| `GET`  | `/`                                     | App name, version, description                 |
+| `GET`  | `/version`                              | version                                        |
+| `GET`  | `/metrics`                              | Prometheus metrics (not in the OpenAPI schema) |
+| `POST` | `/api/v1/data/upload/{project_id}`      | Upload a file                                  |
+| `POST` | `/api/v1/data/process/{project_id}`     | Chunk the project's files                      |
+| `POST` | `/api/v1/nlp/index/push/{project_id}`   | Embed chunks and store the vectors             |
+| `GET`  | `/api/v1/nlp/index/info/{project_id}`   | Vector collection information                  |
+| `POST` | `/api/v1/nlp/index/search/{project_id}` | Semantic search                                |
+| `POST` | `/api/v1/nlp/index/answer/{project_id}` | RAG answer                                     |
 
 ---
 
@@ -68,6 +103,19 @@ curl http://localhost:8000/
   "app_name": "MiniRag_26",
   "version": "0.1",
   "description": "Question Answering System"
+}
+```
+---
+
+### GET /version
+
+Returns the canonical application version declared in `pyproject.toml`.
+
+**Response: 200 OK**
+
+```json
+{
+  "version": "0.1.0"
 }
 ```
 
@@ -105,7 +153,11 @@ curl -X POST http://localhost:8000/api/v1/data/upload/1 \
 
 ## `POST /api/v1/data/process/{project_id}`
 
-Splits eligible project files into chunks stored in PostgreSQL. Normally, only assets in the `UPLOADED` state are processed. With `do_reset: 1`, all project chunks are deleted and all file assets are processed again. In PgVector, deleting chunks also deletes their associated vector rows through the collection's foreign-key cascade.
+If no assets are waiting for processing, the endpoint returns `200` with `FILES_ALREADY_PROCESSED`.
+
+The current route returns `200` with `PROCESSING_SUCCESS` after processing attempts. Check `no_files_success` and `no_records_added` to determine the outcome. Files that produce no chunks are counted as unsuccessful.
+
+`PROCESSING_FAILED` is declared in `ResponseSignal`, but the current processing route does not return it.
 
 **Body**
 
@@ -139,10 +191,10 @@ If no assets are waiting for processing, the endpoint returns `200` with `FILES_
 
 **Errors**
 
-| Status | `signal` | Cause |
-|---|---|---|
-| `404` | `project not found` | The project does not exist |
-| `404` | `project is empty` | No files uploaded for this project |
+| Status | `signal`            | Cause                              |
+|--------|---------------------|------------------------------------|
+| `404`  | `project not found` | The project does not exist         |
+| `404`  | `project is empty`  | No files uploaded for this project |
 
 ---
 
@@ -193,11 +245,13 @@ When there are no eligible `CHUNKED` assets:
 
 **Errors**
 
-| Status | `signal`                                | Cause                                                                                                      |
-|--------|-----------------------------------------|------------------------------------------------------------------------------------------------------------|
-| `404`  | `project not found`                     | The project does not exist                                                                                 |
-| `404`  | `project is empty`                      | No files uploaded for this project                                                                         |
-| `502`  | `failed to insert into vector database` | No asset was indexed successfully during an indexing attempt (e.g., embedding provider or vector DB error) |
+| Status | `signal`                                | Cause                                                        |
+|--------|-----------------------------------------|--------------------------------------------------------------|
+| `404`  | `project not found`                     | The project does not exist                                   |
+| `404`  | `project is empty`                      | No files uploaded for this project                           |
+| `400`  | `failed to insert into vector database` | No asset was indexed successfully during an indexing attempt |
+
+
 ---
 
 ## `GET /api/v1/nlp/index/info/{project_id}`
@@ -212,7 +266,7 @@ curl http://localhost:8000/api/v1/nlp/index/info/1
 
 ```json
 {
-  "signal": "collection information retrived successfly",
+  "signal": "collection information retrieved successfully",
   "collection_info": {
     "table_info": {
       "schemaname": "public",
@@ -230,10 +284,10 @@ The shape of `collection_info` depends on the vector store.
 
 **Errors**
 
-| Status | `signal`                             | Cause                                                          |
-|--------|--------------------------------------|----------------------------------------------------------------|
-| `404`  | `project not found`                  | The project does not exist                                     |
-| `502`  | `vectordb collection info not found` | The vector collection does not exist or could not be retrieved |
+| Status | `signal`                   | Cause                                                          |
+|--------|----------------------------|----------------------------------------------------------------|
+| `400`  | `project not found`        | The project does not exist                                     |
+| `400`  | `the collection not found` | The vector collection does not exist or could not be retrieved |
 
 ---
 
@@ -288,11 +342,11 @@ Results are sorted best first. A higher `score` means more similar.
 
 **Errors**
 
-| Status | `signal`                     | Cause                                                                         |
-|--------|------------------------------|-------------------------------------------------------------------------------|
-| `400`  | `vectordb search error`      | The collection does not exist (nothing pushed), or embedding the query failed |
-| `502`  | `EMBEDDING_GENERATION_ERROR` | `Upstream embedding provider failed or timed out`                             |
-| `502`  | `vectordb search error`      | `The collection does not exist (nothing pushed) or vector search failed`      |
+| Status | `signal`                     | Cause                                  |
+|--------|------------------------------|----------------------------------------|
+| `404`  | `project not found`          | The project does not exist             |
+| `502`  | `EMBEDDING_GENERATION_ERROR` | The upstream embedding provider failed |
+| `502`  | `vectordb search error`      | Vector search failed                   |
 
 ---
 

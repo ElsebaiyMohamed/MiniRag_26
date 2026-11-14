@@ -6,8 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
+### Documentation
 
+- Synchronize API endpoint documentation with actual route response signals and HTTP status codes.
+- Add a complete response signal reference and troubleshooting table.
+- Add automated tests to detect API documentation drift against the response enum and OpenAPI schema.
+
+### Added
 
 - Offloaded synchronous document loading and chunking to worker threads using `asyncio.to_thread()`.
 - Added configurable per-worker document processing concurrency through `PROCESSING_MAX_CONCURRENCY`.
@@ -26,6 +31,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Use `pyproject.toml` as the single source of truth for the application version.
+- Expose the application version through FastAPI metadata and `GET /version`.
+- Deprecate and ignore the `APP_VERSION` environment setting.
 - NLP routes (`/index/push`, `/index/info`, `/index/search`, `/index/answer`) now map upstream LLM and vector store
   failures to HTTP `502 Bad Gateway` and return standardized `telemetry` metadata.
 - Processing reset rebuilds chunks for all project files, and PgVector removes vectors associated with deleted chunks.
