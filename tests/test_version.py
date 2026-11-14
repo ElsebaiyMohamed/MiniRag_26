@@ -20,7 +20,7 @@ def test_version_matches_pyproject():
 
 
 def test_pyproject_version_takes_priority_over_installed_metadata(monkeypatch):
-    monkeypatch.setattr(app_version, "version", lambda _: "0.1")
+    monkeypatch.setattr(app_version, "version", lambda _: "1.2.0")
 
     expected_version = app_version._version_from_pyproject()
 
