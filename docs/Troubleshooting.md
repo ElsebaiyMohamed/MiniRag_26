@@ -13,6 +13,40 @@ Two endpoints help narrow things down quickly:
 - `GET /` confirms the API is up and shows the loaded app name and version.
 - `GET /api/v1/nlp/index/info/{project_id}` shows whether a project's vector collection exists and how many records it holds.
 
+## API response signal troubleshooting
+
+The API returns a `signal` field describing the outcome. Use this table toidentify the likely cause and corrective action.
+
+| Signal                                  | Likely cause                                                   | Fix                                                                                                               |
+|-----------------------------------------|----------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| `file type not supported`               | Unsupported MIME type or file extension                        | Use a supported `.txt` or `.pdf` file. Set the multipart content type correctly. Check `FILE_ALLOWED_EXTENTIONS`. |
+| `file size exceeded`                    | Uploaded file exceeds the configured limit                     | Reduce the file size or increase `FILE_MAX_SIZE_IN_MB`. Check the Nginx upload limit too.                         |
+| `file upload failed`                    | The API could not write the uploaded file                      | Check the API logs, project storage directory permissions, and available disk space.                              |
+| `project not found`                     | The requested project ID does not exist                        | Upload a file using that project ID first, then reuse the same ID.                                                |
+| `project is empty`                      | No file assets exist for the project                           | Upload at least one supported file before processing or indexing.                                                 |
+| `file chunking failed`                  | A processing operation failed to produce chunks                | Check the file contents and processing logs. The current process route does not emit this signal.                 |
+| `failed to insert into vector database` | No asset was indexed successfully                              | Check embedding provider credentials, model configuration, vector database availability, and API logs.            |
+| `the collection not found`              | The vector collection does not exist or could not be retrieved | Run the indexing step and check the vector database connection.                                                   |
+| `vectordb search error`                 | Vector search failed                                           | Confirm that the project has an indexed collection and inspect API logs.                                          |
+| `rag answer error`                      | Retrieval returned no usable context or generation failed      | Test search first, then verify the generation provider, model, API key, and logs.                                 |
+| `EMBEDDING_GENERATION_ERROR`            | Query embedding failed at the upstream provider                | Verify the embedding API key, provider, model ID, and provider availability.                                      |
+
+### Non-error outcomes
+
+| Signal                                                                  | Meaning                                | Next action                                                                     |
+|-------------------------------------------------------------------------|----------------------------------------|---------------------------------------------------------------------------------|
+| `file upload success`                                                   | File was uploaded successfully         | Process the project files.                                                      |
+| `file chunking success`                                                 | Processing request completed           | Check `no_files_success` and `no_records_added`.                                |
+| `Project files are already up-to-date. No further processing required.` | No assets are waiting for processing   | Upload another file or use reset processing when appropriate.                   |
+| `chunk files first before indexing`                                     | Uploaded files have not been chunked   | Run the processing endpoint first.                                              |
+| `project chunked files already indexed`                                 | No eligible assets remain for indexing | No action is required unless you intend to reset indexing.                      |
+| `file indexed successfully`                                             | Indexing succeeded                     | Verify the collection using the info endpoint.                                  |
+| `collection information retrieved successfully`                         | Collection information was retrieved   | Inspect the collection record count.                                            |
+| `vectordb search success`                                               | Semantic search succeeded              | Review the returned results and similarity scores.                              |
+| `rag answer success`                                                    | RAG answer generation succeeded        | Use the returned answer. Enable `debug` to inspect the prompt and chat history. |
+
+**Note:** `file validated success` is declared in the enum but is not currentlyreturned as a successful upload response. `file chunking failed` is alsodeclared but is not currently emitted by the processing route.
+
 ## Setup and startup
 
 ### `docker compose build` fails: `alembic.ini` not found
