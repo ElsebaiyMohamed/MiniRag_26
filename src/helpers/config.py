@@ -1,16 +1,24 @@
+import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import List
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+logger = logging.getLogger(__name__)
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env.app"
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", case_sensitive=True)
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
+    )
+
 
     APP_NAME: str
-    APP_VERSION: str
     APP_DESCRIPTION: str
 
     FILE_ALLOWED_EXTENTIONS: list
@@ -24,27 +32,28 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
     POSTGRES_MAIN_DATABASE: str
 
-    VECTORDB_BACKEND_LITERAL: List[str] | None = None
-    VECTORDB_BACKEND: str=""
+    VECTORDB_BACKEND_LITERAL: list[str] | None = None
+    VECTORDB_BACKEND: str = ""
     VECTOR_DB_DISTANCE_METRIC: str = "cosine"
     VECTOR_DB_PGVEC_INDEX_THRESHOLD: int
 
-    OPENAI_API_KEY: str= None
+    OPENAI_API_KEY: str = None
     OPENAI_API_URL: str | None = None
-    COHERE_API_KEY: str= None
+    COHERE_API_KEY: str = None
 
     GENERATION_BACKEND: str
     EMBEDDING_BACKEND: str
 
-    LLM_REQUEST_TIMEOUT_SEC: int=60
-    GENERATION_MODEL_ID: str | None=None
-    EMBEDDING_MODEL_ID: str | None=None
-    EMBEDDING_MODEL_SIZE: int| None =None
 
-    INPUT_DEFAULT_MAX_CHAR: int=2048
-    DEAFAULT_MAX_OUTPUT_TOKENS: int=2048
-    GENERATION_DEFAULT_TEMPERATURE: float=0.001
 
+    LLM_REQUEST_TIMEOUT_SEC: int = 60
+    GENERATION_MODEL_ID: str | None = None
+    EMBEDDING_MODEL_ID: str | None = None
+    EMBEDDING_MODEL_SIZE: int | None = None
+
+    INPUT_DEFAULT_MAX_CHAR: int = 2048
+    DEAFAULT_MAX_OUTPUT_TOKENS: int = 2048
+    GENERATION_DEFAULT_TEMPERATURE: float = 0.001
 
     # ========================= Template Configs =========================
     PRIMARY_LANG: str = "en"
@@ -58,6 +67,15 @@ class Settings(BaseSettings):
         if "COHERE" in backends and not self.COHERE_API_KEY:
             raise ValueError("COHERE_API_KEY is required when a backend is COHERE")
         return self
+
+    @model_validator(mode="before")
+    @classmethod
+    def warn_deprecated_app_version(cls, values):
+        if isinstance(values, dict) and "APP_VERSION" in values:
+            logger.warning("APP_VERSION is deprecated and ignored. " "Use the version declared in pyproject.toml.")
+            values.pop("APP_VERSION")
+
+        return values
 
 
 @lru_cache

@@ -42,7 +42,6 @@ Inside the Docker network the database host is `pgvector` and the port is `5432`
 | Variable | Required | Description |
 |---|---|---|
 | `APP_NAME` | yes | Returned by `GET /` |
-| `APP_VERSION` | yes | Returned by `GET /` |
 | `APP_DESCRIPTION` | yes | Returned by `GET /` |
 
 ### File handling

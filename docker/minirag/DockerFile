@@ -1,4 +1,6 @@
+ARG APP_VERSION=unknown
 FROM python:3.13.14-slim-trixie
+LABEL org.opencontainers.image.version="${APP_VERSION}"
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 \

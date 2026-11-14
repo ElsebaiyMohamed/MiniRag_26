@@ -178,3 +178,17 @@ location = /metrics {
 - Indexing a large project sends many embedding requests, so expect provider rate limits.
 - Local models through Ollama need enough RAM or VRAM for both the generation and the embedding model.
 - Postgres memory settings matter once collections grow. Keep the pgvector index threshold in mind. See [Configuration](Configuration.md#vector-database).
+
+## Releasing
+
+1. Move the *Unreleased* entries in `Changelog.md` under a new version heading with the date.
+2. Update the version in `pyproject.toml`.
+3. Commit, then tag: `git tag vX.Y.Z && git push --tags`.
+4. Publish a GitHub release with the changelog section as the notes.
+
+`pyproject.toml` is the single source of truth for the application version.
+Do not update version values in environment files or application code manually.
+
+Versioning follows [Semantic Versioning](https://semver.org).
+
+
