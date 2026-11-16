@@ -30,7 +30,7 @@ def read_golden(path: Path) -> dict:
 
 
 def test_every_supported_fixture_has_a_golden():
-    fixtures = discover_fixtures(DOCS_DIR, include_stress=False)
+    fixtures = discover_fixtures(DOCS_DIR, include_stress=True)
 
     expected = {golden_path_for(path) for path in fixtures}
     actual = set(GOLDEN_DIR.rglob("*.json")) if GOLDEN_DIR.exists() else set()
