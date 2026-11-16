@@ -1,0 +1,13 @@
+FIXTURE: TXT-EN-001 | START
+
+Document ingestion converts source files into normalized text records before downstream indexing. The loader must preserve useful content and attach stable source metadata.
+
+A reliable retrieval pipeline should handle ordinary prose, technical terminology, lists, tables, and documents with uneven text density without silently losing information.
+
+Operational reports often contain timestamps, identifiers, measurements, and repeated headings. These elements are meaningful to users and should remain available after extraction.
+
+The evaluation dataset uses fixed content and stable markers so that changes in extraction can be diagnosed independently from changes in chunking or retrieval.
+
+A source document may be short, very long, multilingual, or structurally unusual. The ingestion layer should either process it predictably or report a clear and actionable error.
+
+FIXTURE: TXT-EN-001 | END
