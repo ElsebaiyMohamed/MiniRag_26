@@ -7,25 +7,44 @@ on:
       - master
       - 'release/**'
 
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Merged PR number to scan for closing keywords'
+        required: true
+        type: number
+
 permissions:
   issues: write
+  pull-requests: read
 
 jobs:
   close-issues:
-    if: github.event.pull_request.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Close linked issues
         uses: actions/github-script@v7
         with:
           script: |
-            const body = context.payload.pull_request.body || '';
+            let body = '';
+            if (context.eventName === 'workflow_dispatch') {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: Number(context.inputs.pr_number)
+              });
+              body = pr.body || '';
+            } else {
+              body = context.payload.pull_request.body || '';
+            }
+
             const regex = /(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/gi;
             let match;
             const issues = new Set();
 
             while ((match = regex.exec(body)) !== null) {
-              issues.add(parseInt(match[1], 10));
+              issues.add(parseInt(match.at(1), 10));
             }
 
             for (const issue_number of issues) {
