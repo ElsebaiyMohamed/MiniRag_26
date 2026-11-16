@@ -1,0 +1,39 @@
+name: Auto Close Issues on Dev Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+      - 'release/**'
+
+permissions:
+  issues: write
+
+jobs:
+  close-issues:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close linked issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const regex = /(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/gi;
+            let match;
+            const issues = new Set();
+
+            while ((match = regex.exec(body)) !== null) {
+              issues.add(parseInt(match[1], 10));
+            }
+
+            for (const issue_number of issues) {
+              console.log(`Closing issue #${issue_number}...`);
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue_number,
+                state: 'closed'
+              });
+            }
