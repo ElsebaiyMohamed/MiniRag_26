@@ -9,6 +9,9 @@ SRC = ROOT / "src"
 DOCS_DIR = ROOT / "tests" / "fixtures" / "docs"
 GOLDEN_DIR = ROOT / "tests" / "fixtures" / "golden"
 
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
