@@ -1,0 +1,47 @@
+{
+  "chunks": [
+    {
+      "metadata": {
+        "source": "txt/small/english_utf8.txt"
+      },
+      "page_content": "FIXTURE: TXT-EN-001 | START\nDocument ingestion converts source files into normalized text records before downstream indexing. The loader must preserve useful content and attach stable source metadata."
+    },
+    {
+      "metadata": {
+        "source": "txt/small/english_utf8.txt"
+      },
+      "page_content": "A reliable retrieval pipeline should handle ordinary prose, technical terminology, lists, tables, and documents with uneven text density without silently losing information."
+    },
+    {
+      "metadata": {
+        "source": "txt/small/english_utf8.txt"
+      },
+      "page_content": "Operational reports often contain timestamps, identifiers, measurements, and repeated headings. These elements are meaningful to users and should remain available after extraction."
+    },
+    {
+      "metadata": {
+        "source": "txt/small/english_utf8.txt"
+      },
+      "page_content": "The evaluation dataset uses fixed content and stable markers so that changes in extraction can be diagnosed independently from changes in chunking or retrieval."
+    },
+    {
+      "metadata": {
+        "source": "txt/small/english_utf8.txt"
+      },
+      "page_content": "A source document may be short, very long, multilingual, or structurally unusual. The ingestion layer should either process it predictably or report a clear and actionable error."
+    },
+    {
+      "metadata": {
+        "source": "txt/small/english_utf8.txt"
+      },
+      "page_content": "FIXTURE: TXT-EN-001 | END"
+    }
+  ],
+  "format": "txt",
+  "parameters": {
+    "chunk_size": 100,
+    "overlap_size": 20
+  },
+  "schema_version": 1,
+  "source": "txt/small/english_utf8.txt"
+}

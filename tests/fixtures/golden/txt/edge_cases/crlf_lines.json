@@ -1,0 +1,17 @@
+{
+  "chunks": [
+    {
+      "metadata": {
+        "source": "txt/edge_cases/crlf_lines.txt"
+      },
+      "page_content": "CRLF-START\nFirst line.\nSecond line.\nCRLF-END"
+    }
+  ],
+  "format": "txt",
+  "parameters": {
+    "chunk_size": 100,
+    "overlap_size": 20
+  },
+  "schema_version": 1,
+  "source": "txt/edge_cases/crlf_lines.txt"
+}

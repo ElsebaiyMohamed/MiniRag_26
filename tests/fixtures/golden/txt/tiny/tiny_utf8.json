@@ -1,0 +1,17 @@
+{
+  "chunks": [
+    {
+      "metadata": {
+        "source": "txt/tiny/tiny_utf8.txt"
+      },
+      "page_content": "tiny"
+    }
+  ],
+  "format": "txt",
+  "parameters": {
+    "chunk_size": 100,
+    "overlap_size": 20
+  },
+  "schema_version": 1,
+  "source": "txt/tiny/tiny_utf8.txt"
+}
