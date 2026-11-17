@@ -1,0 +1,3 @@
+# Tiny fixture
+
+One paragraph.

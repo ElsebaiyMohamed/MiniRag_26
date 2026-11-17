@@ -2,9 +2,9 @@ name: MiniRag CI
 
 on:
   push:
-    branches: [ master, "release/1.2.0" ]
+    branches: [ master, "release/1.2.0", "release/v1.3.0" ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, "release/v1.3.0" ]
 
 jobs:
   test:
@@ -35,12 +35,24 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
           python-version: "3.13.14"   # matches docker/minirag/DockerFile
-
+      - name: Install system dependencies for PDF processing
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmupdf-dev poppler-utils libgl1
+          sudo apt-get install -y \
+                      fontconfig \
+                      fonts-dejavu-core \
+                      fonts-freefont-ttf \
+                      libmupdf-dev \
+                      poppler-utils
       - name: Install dependencies
         run: uv sync --frozen
 
       - name: Configure test environment
         run: cp src/.env.example.app src/.env.app
+
+      - name: Generate golden set
+        run: uv run python scripts/generate_chunker_goldens.py
 
       - name: Run tests
         env:

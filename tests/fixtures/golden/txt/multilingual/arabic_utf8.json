@@ -1,0 +1,41 @@
+{
+  "chunks": [
+    {
+      "metadata": {
+        "source": "txt/multilingual/arabic_utf8.txt"
+      },
+      "page_content": "علامة البداية: TXT-AR-001\nيهدف نظام استيراد المستندات إلى استخراج النصوص والبيانات الوصفية مع الحفاظ على ترتيب المحتوى قدر الإمكان."
+    },
+    {
+      "metadata": {
+        "source": "txt/multilingual/arabic_utf8.txt"
+      },
+      "page_content": "يجب أن يتعامل الاختبار مع الملفات الصغيرة والكبيرة، والنصوص العربية والإنجليزية، والحالات غير المعتادة."
+    },
+    {
+      "metadata": {
+        "source": "txt/multilingual/arabic_utf8.txt"
+      },
+      "page_content": "تساعد العلامات الفريدة في بداية المستند ووسطه ونهايته على التأكد من عدم فقدان أجزاء من المحتوى أثناء المعالجة."
+    },
+    {
+      "metadata": {
+        "source": "txt/multilingual/arabic_utf8.txt"
+      },
+      "page_content": "تحتوي التقارير الفنية عادةً على عناوين وأرقام وتواريخ وقوائم، ويجب أن تظل هذه العناصر قابلة للبحث والاسترجاع."
+    },
+    {
+      "metadata": {
+        "source": "txt/multilingual/arabic_utf8.txt"
+      },
+      "page_content": "علامة النهاية: TXT-AR-001"
+    }
+  ],
+  "format": "txt",
+  "parameters": {
+    "chunk_size": 100,
+    "overlap_size": 20
+  },
+  "schema_version": 1,
+  "source": "txt/multilingual/arabic_utf8.txt"
+}
