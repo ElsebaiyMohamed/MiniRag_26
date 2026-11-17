@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from __version__ import __version__
 from helpers import get_settings
+from ingestion.loaders import create_default_loader_registry
 from routes import base, data, nlp
 from stores.llm import LLMProviderFactory
 from stores.llm.templates import TemplateParser
@@ -38,7 +39,7 @@ async def lifespan(app: FastAPI):
     )
 
 
-
+    app.loader_registry = create_default_loader_registry()
     llm_factory = LLMProviderFactory(settings)
     app.generation_client = llm_factory.create(provider=settings.GENERATION_BACKEND)
     app.generation_client.set_generation_model(model_id=settings.GENERATION_MODEL_ID)
