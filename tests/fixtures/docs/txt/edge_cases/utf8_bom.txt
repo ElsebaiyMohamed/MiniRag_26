@@ -1,3 +1,0 @@
-﻿BOM-START
-A UTF-8 byte order mark precedes this content.
-BOM-END

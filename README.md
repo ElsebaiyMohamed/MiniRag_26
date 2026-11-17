@@ -511,4 +511,3 @@ Issues and ideas are welcome. Please open an issue to discuss larger changes bef
 ## License
 
 [Apache License 2.0](LICENSE)
-
