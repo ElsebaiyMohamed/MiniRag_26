@@ -1,4 +1,0 @@
-CRLF-START
-First line.
-Second line.
-CRLF-END
