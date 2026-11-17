@@ -9,6 +9,9 @@ src/
 ├── main.py            # App creation and startup/shutdown (lifespan)
 ├── routes/            # HTTP endpoints: base, data, nlp
 ├── controllers/       # Business logic
+├── ingestion/         # File loader registry
+│   ├── loaders/       # LoaderRegistry, PdfLoader, TxtLoader, LoadedDocument
+│   └── exceptions.py  # Related exceptions to Ingestion, UnsupportedFileType, ... 
 ├── models/
 │   ├── schemas/       # Pydantic request/response models
 │   ├── enums/         # Response signals, provider names, asset types
@@ -112,14 +115,20 @@ The per-project vector tables created by the pgvector provider are not managed b
 
 See [Adding a provider](Adding%20a%20provider.md).
 
-### Add a new file type (planned work)
+### Add a new file type
 
-Loading happens in `ProcessController._get_file_loader`, which maps a file extension to a loader. A new type needs:
+Document loaders are registered in `src/ingestion/loaders/`. The same registry is used by upload validation and document processing.
 
-1. The extension in `ProcessingEnum`.
-2. The MIME type in `FILE_ALLOWED_EXTENTIONS`.
-3. A branch in `_get_file_loader` returning a loader whose `load()` yields objects with `page_content` and `metadata`.
-4. Documentation updates (README features, [Configuration](Configuration.md), changelog).
+To add a format:
+
+1. Create a loader class implementing `DocumentLoader` from `src/ingestion/loaders/base.py`.
+2. Declare its supported `extensions` and `mime_types`.
+3. Implement `load(path)` and return `LoadedDocument` instances.
+4. Register the loader in `create_default_loader_registry()` in `src/ingestion/loaders/__init__.py`.
+5. Add the MIME type to `FILE_ALLOWED_EXTENTIONS` in the environment examples and update the configuration documentation.
+6. Add loader, registry, upload-validation, and processing tests.
+
+The registry is created once during application startup and injected into the upload and processing controllers. Do not create a global registry at module import time.
 
 ## Testing
 

@@ -123,7 +123,9 @@ Returns the canonical application version declared in `pyproject.toml`.
 
 ## `POST /api/v1/data/upload/{project_id}`
 
-Uploads one file as `multipart/form-data` with the field name `file`. The request must use an allowed MIME type from `FILE_ALLOWED_EXTENTIONS`, a supported `.txt` or `.pdf` filename extension, and stay within `FILE_MAX_SIZE_IN_MB`. See [Configuration](Configuration.md).
+Uploads one file as `multipart/form-data` with the field name `file`. The filename extension and MIME type must match a
+registered document loader, the MIME type must also be allowed by `FILE_ALLOWED_EXTENTIONS`, and the file must stay within
+`FILE_MAX_SIZE_IN_MB`. See [Configuration](Configuration.md).
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/data/upload/1 \

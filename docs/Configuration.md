@@ -48,11 +48,16 @@ Inside the Docker network the database host is `pgvector` and the port is `5432`
 
 | Variable | Required | Description |
 |---|---|---|
-| `FILE_ALLOWED_EXTENTIONS` | yes | JSON list of allowed upload **MIME types**, e.g. `["application/pdf", "text/plain"]`. Files are matched on the content type sent by the client |
+| `FILE_ALLOWED_EXTENTIONS` | yes | Additional allowlist of accepted upload MIME types. A MIME type must be allowed by this setting and must match the loader registered for the filename extension. |
 | `FILE_MAX_SIZE_IN_MB` | yes | Maximum upload size in megabytes |
 | `FILE_DEAFAULT_CHINK_SIZE` | yes | Bytes read per iteration while streaming an upload to disk (for example `256000`) |
 
+Upload validation checks the filename extension and MIME type as a pair against the document loader registry. The 
+`FILE_ALLOWED_EXTENTIONS` setting is retained as an additional MIME-type allowlist; it cannot enable a format that has 
+no registered loader.
+
 If you run behind the bundled Nginx, its own upload limit also applies. See [Deployment](Deployment.md#nginx).
+
 ### Document processing
 
 | Variable                     | Required | Default | Description                                                                                                        |
