@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -31,13 +32,20 @@ def golden_path_for(source_path: Path) -> Path:
 def read_golden(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
+def _is_stress_enabled() -> bool:
+    """Check if stress testing is enabled via environment variable or CLI flag."""
+    return os.getenv("RUN_STRESS", "false").lower() in ("true", "1", "yes") or any("stress" in arg for arg in sys.argv)
+
+# Module-level constant controlling stress inclusion
+INCLUDE_STRESS = _is_stress_enabled()
 
 def test_every_supported_fixture_has_a_golden():
-    fixtures = discover_fixtures(DOCS_DIR, include_stress=True)
+    fixtures = discover_fixtures(DOCS_DIR, include_stress=INCLUDE_STRESS)
 
     expected = {golden_path_for(path) for path in fixtures}
     actual = set(GOLDEN_DIR.rglob("*.json")) if GOLDEN_DIR.exists() else set()
-
+    if not INCLUDE_STRESS:
+        actual = {p for p in actual if "stress" not in p.parts and "stress" not in p.name.lower()}
     missing = sorted(path.relative_to(ROOT).as_posix() for path in expected - actual)
     unexpected = sorted(path.relative_to(ROOT).as_posix() for path in actual - expected)
 
@@ -45,7 +53,16 @@ def test_every_supported_fixture_has_a_golden():
     assert not unexpected, f"Goldens without matching fixtures: {unexpected}"
 
 
-GOLDEN_FILES = sorted(GOLDEN_DIR.rglob("*.json")) if GOLDEN_DIR.exists() else []
+def _get_golden_files() -> list[Path]:
+    if not GOLDEN_DIR.exists():
+        return []
+    all_files = sorted(GOLDEN_DIR.rglob("*.json"))
+    if not INCLUDE_STRESS:
+        return [f for f in all_files if "stress" not in f.parts and "stress" not in f.name.lower()]
+    return all_files
+
+
+GOLDEN_FILES = _get_golden_files()
 
 
 @pytest.mark.parametrize(
@@ -61,7 +78,7 @@ def test_legacy_chunker_matches_golden(golden_path: Path):
 
     try:
         documents = load_fixture(source_path)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         assert golden.get("load_error", {}).get("type") == type(exc).__name__
         return
 

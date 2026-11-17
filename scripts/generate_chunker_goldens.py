@@ -26,7 +26,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--chunk-size", type=int, default=100)
     parser.add_argument("--overlap-size", type=int, default=20)
-    parser.add_argument("--include-stress", action="store_true")
+    parser.add_argument(
+        "--include-stress",
+        action="store_true",
+        help="Include large stress fixtures in golden generation."
+    )
     parser.add_argument(
         "--docs-dir",
         type=Path,
@@ -40,20 +44,21 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def discover_fixtures(docs_dir: Path, include_stress: bool) -> list[Path]:
-    """Discover supported fixtures without maintaining a manual file list."""
-    fixtures = []
+def discover_fixtures(docs_dir: Path, include_stress: bool = False) -> list[Path]:
+    """Discover all supported fixtures, optionally including stress fixtures."""
+    all_files = sorted(docs_dir.rglob("*.*"))
+    supported_extensions = {".txt", ".pdf"}
 
-    for path in sorted(docs_dir.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
-            continue
+    fixtures = [
+        f for f in all_files
+        if f.is_file() and f.suffix.lower() in supported_extensions
+    ]
 
-        relative_parts = path.relative_to(docs_dir).parts
-
-        if not include_stress and "stress" in relative_parts:
-            continue
-
-        fixtures.append(path)
+    if not include_stress:
+        fixtures = [
+            f for f in fixtures
+            if "stress" not in f.parts and "stress" not in f.name.lower()
+        ]
 
     return fixtures
 
