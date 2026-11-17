@@ -7,6 +7,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 from controllers.ProcessController import Document, ProcessController
+from ingestion.loaders import create_default_loader_registry
 
 
 @pytest.fixture
@@ -15,8 +16,10 @@ def processor():
     with patch('controllers.BaseController.BaseController.__init__', return_value=None), \
          patch('controllers.ProcessController.ProjectController') as mock_pc:
         mock_pc.return_value.get_project_path.return_value = '/tmp/fake_project'
-        yield ProcessController(project_id=1)
-
+        yield ProcessController(
+            project_id=1,
+            loader_registry=create_default_loader_registry(),
+        )
 
 def test_groups_short_lines_into_single_chunk(processor):
     """Lines that fit under chunk_size are accumulated into one chunk."""

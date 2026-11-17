@@ -27,7 +27,9 @@ async def upload(
     file: UploadFile,
     app_settings: Settings = Depends(get_settings),
 ):
-    data_contoller = DataController()
+    data_contoller = DataController(
+        loader_registry=request.app.loader_registry
+    )
     is_valid, signal = await data_contoller.validate(file)
 
     if not is_valid:
@@ -74,7 +76,10 @@ async def upload(
 
 @data_router.post("/process/{project_id}")
 async def process_endpoint(request: Request, project_id: int, process_request: ProcessRequest):
-    processor_controller = ProcessController(project_id=project_id)
+    processor_controller = ProcessController(
+        project_id=project_id,
+        loader_registry=request.app.loader_registry,
+    )
     project_model = await ProjectDataModel.create_instance(
         db_client=request.app.db_client
     )
@@ -129,8 +134,7 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
 
     for asset_id, file_id in project_file_ids.items():
         file_type = os.path.splitext(file_id)[-1].lower().lstrip(".")
-
-        if file_type not in {"pdf", "txt"}:
+        if f".{file_type}" not in request.app.loader_registry.supported_extensions():
             file_type = "other"
 
         start_time = time.perf_counter()

@@ -1,15 +1,12 @@
-import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 
-from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
-
-from models.enums import ProcessingEnum
+from ingestion.exceptions import UnsupportedFileType
+from ingestion.loaders import LoaderRegistry
 from .BaseController import BaseController
 from .ProjectController import ProjectController
 
-
-# from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 @dataclass
 class Document:
@@ -18,42 +15,55 @@ class Document:
 
 
 class ProcessController(BaseController):
-    def __init__(self, project_id: int):
+    def __init__(self, project_id: int, loader_registry: LoaderRegistry,):
         super().__init__()
 
         self.project_id = str(project_id)
         self.project_path = ProjectController().get_project_path(self.project_id)
+        self.loader_registry = loader_registry
 
-    def _get_file_ext(self, file_id: str):
-        return os.path.splitext(file_id)[-1]
-
-    def _get_file_loader(self, file_id: str):
-        file_ext = self._get_file_ext(file_id=file_id)
-        file_path = self.join_path(self.project_path, file_id)
-        if not self.file_exist_on_path(file_path=file_path):
-            return None
-
-        if file_ext == ProcessingEnum.TXT.value:
-            return TextLoader(file_path, encoding='utf-8')
-        if file_ext == ProcessingEnum.PDF.value:
-            return PyMuPDFLoader(file_path)
-        return None
 
     def get_file_content(self, file_id: str):
-        loader = self._get_file_loader(file_id=file_id)
-        if loader is not None:
-            return loader.load()
-        return None
+        file_path = Path(self.join_path(self.project_path, file_id))
 
-    def process_file_content(self, file_content: list, chunk_size: int=100, overlap_size: int=20):
-        # text_spliter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap_size, length_function=len)
+        if not self.file_exist_on_path(str(file_path)):
+            return None
 
-        file_text = [t.page_content for t in file_content]
-        file_metadata = [t.metadata for t in file_content]
+        try:
+            loader = self.loader_registry.for_path(file_path)
+        except UnsupportedFileType:
+            return None
 
-        # chunks = text_spliter.create_documents(file_text, metadatas=file_metadata)
-        chunks = self.simple_text_spliter(file_text, file_metadata, chunk_size=chunk_size)
+        return loader.load(file_path)
+
+    def process_file_content(
+        self,
+        file_content: list,
+        chunk_size: int = 100,
+        overlap_size: int = 20,
+    ):
+        # LoadedDocument uses "text".
+        # Legacy characterization fixtures use LangChain's "page_content".
+        file_text = [
+            document.text
+            if hasattr(document, "text")
+            else document.page_content
+            for document in file_content
+        ]
+
+        file_metadata = [
+            document.metadata
+            for document in file_content
+        ]
+
+        chunks = self.simple_text_spliter(
+            file_text,
+            file_metadata,
+            chunk_size=chunk_size,
+        )
+
         return chunks
+
 
     def simple_text_spliter(self, pages: List[str], metadatas: List[dict], chunk_size: int, spliter_tag: str='\n'):
         chunks = []

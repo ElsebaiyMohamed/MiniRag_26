@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - added bug report and feature request templates
 
+### Changed
+
+- Centralized document format support in an injectable loader registry shared by upload validation and processing.
+- Validate upload filename extensions and MIME types as a matching pair against registered loaders.
+- Retained `FILE_ALLOWED_EXTENTIONS` as an additional MIME-type allowlist.
+
 ## [1.2.0]  - 2026-11-14
 
 ### Documentation

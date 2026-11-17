@@ -129,16 +129,11 @@ The stack publishes these host ports: `80` (Nginx), `8000` (API), `5432` (Postgr
 
 ### Upload returns `file type not supported`
 
-**Cause:** the type is not in `FILE_ALLOWED_EXTENTIONS`, or the client sent a different content type (`application/octet-stream` is common).
+**Cause:** the filename extension has no registered loader, the MIME type does not match the selected loader, or the
+MIME type is not included in `FILE_ALLOWED_EXTENTIONS`.
 
-**Fix:** set the content type explicitly:
-
-```bash
-curl -X POST http://localhost:8000/api/v1/data/upload/1 \
-  -F "file=@document.pdf;type=application/pdf"
-```
-
-Only `.txt` and `.pdf` are supported today.
+**Fix:** use a supported extension and its matching MIME type. For example, `.pdf` requires `application/pdf`, while
+`.txt` requires `text/plain`.
 
 ### Upload returns `file size exceeded`
 
