@@ -7,6 +7,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 from controllers.DataController import DataController
+from ingestion.loaders import create_default_loader_registry
 from models.enums import ResponseSignal
 
 
@@ -14,8 +15,9 @@ from models.enums import ResponseSignal
 def controller():
     """Instantiate DataController without triggering BaseController settings loading."""
     with patch('controllers.BaseController.BaseController.__init__', return_value=None):
-        ctrl = DataController()
-        # Settings normally injected by BaseController.__init__
+        ctrl = DataController(
+            loader_registry=create_default_loader_registry()
+        )        # Settings normally injected by BaseController.__init__
         ctrl.app_settings = MagicMock()
         ctrl.app_settings.FILE_ALLOWED_EXTENTIONS = ["application/pdf", "text/plain"]
         ctrl.app_settings.FILE_MAX_SIZE_IN_MB = 10
@@ -113,3 +115,44 @@ def test_gen_unique_filename_increments_on_collision(controller):
 
     assert result == "bb_doc.pdf"
     assert controller._gen_rand_str.call_count == 2
+
+@pytest.mark.asyncio
+async def test_validate_rejects_mismatched_pdf_mime_type(controller):
+    file = _make_upload_file(
+        "document.pdf",
+        "text/plain",
+        size=1024,
+    )
+
+    is_valid, signal = await controller.validate(file)
+
+    assert is_valid is False
+    assert signal == ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
+
+
+@pytest.mark.asyncio
+async def test_validate_rejects_mismatched_txt_mime_type(controller):
+    file = _make_upload_file(
+        "document.txt",
+        "application/pdf",
+        size=1024,
+    )
+
+    is_valid, signal = await controller.validate(file)
+
+    assert is_valid is False
+    assert signal == ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
+
+
+@pytest.mark.asyncio
+async def test_validate_accepts_uppercase_extension(controller):
+    file = _make_upload_file(
+        "document.PDF",
+        "application/pdf",
+        size=1024,
+    )
+
+    is_valid, signal = await controller.validate(file)
+
+    assert is_valid is True
+    assert signal == ResponseSignal.FILE_VALIDATED_SUCCESS.value

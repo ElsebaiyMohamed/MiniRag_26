@@ -15,6 +15,7 @@ sys.path.insert(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"))
 )
 
+from ingestion.loaders import create_default_loader_registry
 from models import AssetDataModel, ChunkDataModel, ProjectDataModel
 from models.enums import AssetStatus, OpenAIEnum, ResponseSignal
 from models.schemas import LLMResult, RetrievedDocument
@@ -77,6 +78,8 @@ class FakeChunkModel:
 
 
 class FakeUploadController:
+    def __init__(self, loader_registry):
+        self.loader_registry = loader_registry
     async def validate(self, upload):
         if (
             upload.filename.endswith(".txt")
@@ -293,7 +296,7 @@ async def test_upload_process_index_search_answer_workflow(
     monkeypatch.setattr(
         data_routes,
         "ProcessController",
-        lambda project_id: process_controller,
+        lambda project_id, loader_registry: process_controller,
     )
 
     app = FastAPI()
@@ -301,11 +304,12 @@ async def test_upload_process_index_search_answer_workflow(
     # The processing semaphore is normally initialized by the
     # application's lifespan. This test creates FastAPI directly,
     # so we initialize it here.
+
     app.processing_semaphore = asyncio.Semaphore(2)
 
     app.include_router(data_routes.data_router)
     app.include_router(nlp_routes.nlp_router)
-
+    app.loader_registry = create_default_loader_registry()
     app.db_client = object()
     app.vectordb_client = FakeVectorDB()
     app.embedding_client = FakeEmbeddingClient()

@@ -7,6 +7,7 @@ from unittest.mock import Mock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 from controllers.ProcessController import Document, ProcessController
+from ingestion.loaders import create_default_loader_registry
 
 process_controller_module = importlib.import_module("controllers.ProcessController")
 
@@ -14,6 +15,7 @@ process_controller_module = importlib.import_module("controllers.ProcessControll
 def make_controller(project_path):
     controller = ProcessController.__new__(ProcessController)
     controller.project_path = str(project_path)
+    controller.loader_registry = create_default_loader_registry()
     return controller
 
 
@@ -74,8 +76,19 @@ def test_get_file_content_uses_pdf_loader(tmp_path, monkeypatch):
     loader = Mock()
     loader.load.return_value = loaded_documents
     pdf_loader = Mock(return_value=loader)
-    monkeypatch.setattr(process_controller_module, "PyMuPDFLoader", pdf_loader)
+    pdf_loader_module = importlib.import_module(
+        "ingestion.loaders.pdf"
+    )
+    monkeypatch.setattr(
+        pdf_loader_module,
+        "PyMuPDFLoader",
+        pdf_loader,
+    )
+    result = controller.get_file_content("source.pdf")
 
-    assert controller.get_file_content("source.pdf") == loaded_documents
+    assert len(result) == 1
+    assert result[0].text == loaded_documents[0].page_content
+    assert result[0].metadata == loaded_documents[0].metadata
+
     pdf_loader.assert_called_once_with(str(pdf_file))
     loader.load.assert_called_once_with()
