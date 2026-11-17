@@ -51,6 +51,9 @@ jobs:
       - name: Configure test environment
         run: cp src/.env.example.app src/.env.app
 
+      - name: Generate golden set
+        run: uv run python scripts/generate_chunker_goldens.py
+
       - name: Run tests
         env:
           COHERE_API_KEY: test-cohere-key
