@@ -35,7 +35,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
           python-version: "3.13.14"   # matches docker/minirag/DockerFile
-
+      - name: Install system dependencies for PDF processing
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmupdf-dev poppler-utils libgl1
       - name: Install dependencies
         run: uv sync --frozen
 
