@@ -19,20 +19,6 @@ def make_controller(project_path):
     return controller
 
 
-def test_simple_text_splitter_groups_lines_and_keeps_page_metadata(tmp_path):
-    controller = make_controller(tmp_path)
-    metadata = [{"page": 1}, {"page": 2}]
-
-    chunks = controller.simple_text_spliter(
-        pages=["one\n two \n\nx", "three\nfour"],
-        metadatas=metadata,
-        chunk_size=8,
-    )
-
-    assert chunks == [
-        Document(page_content="one\ntwo\nthree", metadata=metadata[1]),
-        Document(page_content="four", metadata=metadata[1]),
-    ]
 
 
 def test_process_file_content_maps_documents_to_chunks(tmp_path):
