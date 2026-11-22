@@ -10,7 +10,6 @@ dependencies = [
     "asyncpg>=0.31.0",
     "cohere>=7.1.1",
     "fastapi>=0.141.1",
-    "langchain-community>=0.4.2",
     "openai>=3.19.0",
     "prometheus-client>=0.26.0",
     "psycopg>=3.3.8",

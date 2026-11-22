@@ -8,11 +8,6 @@ class LoadedDocument:
     text: str
     metadata: dict
 
-    @property
-    def page_content(self) -> str:
-        """Compatibility with LangChain Document."""
-        return self.text
-
 
 class DocumentLoader(Protocol):
     extensions: Tuple[str, ...]
