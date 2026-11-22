@@ -6,8 +6,9 @@ from unittest.mock import Mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
-from controllers.ProcessController import Document, ProcessController
-from ingestion.loaders import create_default_loader_registry
+from controllers.ProcessController import ProcessController
+from ingestion.chunkers import Chunk, create_default_chunker_factory
+from ingestion.loaders import LoadedDocument, create_default_loader_registry
 
 process_controller_module = importlib.import_module("controllers.ProcessController")
 
@@ -16,37 +17,25 @@ def make_controller(project_path):
     controller = ProcessController.__new__(ProcessController)
     controller.project_path = str(project_path)
     controller.loader_registry = create_default_loader_registry()
+    controller.chunker_factory = create_default_chunker_factory()
     return controller
 
 
-def test_simple_text_splitter_groups_lines_and_keeps_page_metadata(tmp_path):
-    controller = make_controller(tmp_path)
-    metadata = [{"page": 1}, {"page": 2}]
-
-    chunks = controller.simple_text_spliter(
-        pages=["one\n two \n\nx", "three\nfour"],
-        metadatas=metadata,
-        chunk_size=8,
-    )
-
-    assert chunks == [
-        Document(page_content="one\ntwo\nthree", metadata=metadata[1]),
-        Document(page_content="four", metadata=metadata[1]),
-    ]
 
 
 def test_process_file_content_maps_documents_to_chunks(tmp_path):
     controller = make_controller(tmp_path)
     documents = [
-        Document(page_content="first line\nsecond line", metadata={"page": 1}),
+        LoadedDocument(text="first line\nsecond line", metadata={"page": 1}),
     ]
 
     chunks = controller.process_file_content(documents, chunk_size=100)
 
     assert chunks == [
-        Document(
-            page_content="first line\nsecond line",
+        Chunk(
+            text="first line\nsecond line",
             metadata={"page": 1},
+            order=1
         )
     ]
 

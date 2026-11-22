@@ -9,9 +9,10 @@ src/
 ├── main.py            # App creation and startup/shutdown (lifespan)
 ├── routes/            # HTTP endpoints: base, data, nlp
 ├── controllers/       # Business logic
-├── ingestion/         # File loader registry
+├── ingestion/         # Document loading and chunking
 │   ├── loaders/       # LoaderRegistry, PdfLoader, TxtLoader, LoadedDocument
-│   └── exceptions.py  # Related exceptions to Ingestion, UnsupportedFileType, ... 
+│   ├── chunkers/      # Chunker protocol, Chunk, strategies, and factory
+│   └── exceptions.py  # Ingestion-related exceptions
 ├── models/
 │   ├── schemas/       # Pydantic request/response models
 │   ├── enums/         # Response signals, provider names, asset types
@@ -129,6 +130,19 @@ To add a format:
 6. Add loader, registry, upload-validation, and processing tests.
 
 The registry is created once during application startup and injected into the upload and processing controllers. Do not create a global registry at module import time.
+
+### Add a chunking strategy
+
+Chunkers implement the `Chunker` protocol in `src/ingestion/chunkers/base.py`. A chunker accepts
+loaded documents, `chunk_size`, and `chunk_overlap`, and returns ordered `Chunk` objects containing
+text and metadata.
+
+1. Implement the protocol in `src/ingestion/chunkers/`.
+2. Register the strategy name in `create_default_chunker_factory()` in `src/ingestion/chunkers/__init__.py`.
+3. Add tests for chunk boundaries, ordering, metadata, and overlap behavior.
+4. Document the strategy name and behavior in the API reference.
+
+The built-in factory currently registers only the newline-based `default` strategy. Its `chunk_overlap` argument is accepted but not applied.
 
 ## Testing
 

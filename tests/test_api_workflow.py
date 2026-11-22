@@ -10,6 +10,8 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+from ingestion.chunkers import Chunk, create_default_chunker_factory
+
 sys.path.insert(
     0,
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"))
@@ -105,8 +107,10 @@ class FakeProcessController:
     def process_file(
         self,
         file_id,
+        chunker: str = 'default',
         chunk_size=100,
         overlap_size=20,
+
     ):
         # Record the thread that executes document processing.
         self.processing_thread_id = threading.get_ident()
@@ -119,8 +123,9 @@ class FakeProcessController:
         content = path.read_text(encoding="utf-8")
 
         return [
-            SimpleNamespace(
-                page_content=content.strip(),
+            Chunk(
+                text=content.strip(),
+                order=1,
                 metadata={"source": "upload"},
             )
         ]
@@ -296,7 +301,7 @@ async def test_upload_process_index_search_answer_workflow(
     monkeypatch.setattr(
         data_routes,
         "ProcessController",
-        lambda project_id, loader_registry: process_controller,
+        lambda project_id, loader_registry, chunker_factory: process_controller,
     )
 
     app = FastAPI()
@@ -310,6 +315,7 @@ async def test_upload_process_index_search_answer_workflow(
     app.include_router(data_routes.data_router)
     app.include_router(nlp_routes.nlp_router)
     app.loader_registry = create_default_loader_registry()
+    app.chunker_factory = create_default_chunker_factory()
     app.db_client = object()
     app.vectordb_client = FakeVectorDB()
     app.embedding_client = FakeEmbeddingClient()

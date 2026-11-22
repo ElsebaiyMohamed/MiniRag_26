@@ -353,6 +353,18 @@
       },
       "ProcessRequest": {
         "properties": {
+          "chunker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunker",
+            "default": "default"
+          },
           "chunk_size": {
             "anyOf": [
               {

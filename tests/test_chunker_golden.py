@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from ingestion.chunkers import create_default_chunker_factory
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 DOCS_DIR = ROOT / "tests" / "fixtures" / "docs"
@@ -85,16 +87,16 @@ def test_legacy_chunker_matches_golden(golden_path: Path):
     assert "load_error" not in golden
 
     processor = object.__new__(ProcessController)
-
+    processor.chunker_factory = create_default_chunker_factory()
     chunks = processor.process_file_content(
-        file_content=documents,
+        documents=documents,
         chunk_size=golden["parameters"]["chunk_size"],
         overlap_size=golden["parameters"]["overlap_size"],
     )
 
     actual_chunks = [
         {
-            "page_content": chunk.page_content,
+            "text": chunk.text,
             "metadata": normalize_metadata(chunk.metadata, DOCS_DIR),
         }
         for chunk in chunks

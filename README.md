@@ -31,7 +31,7 @@ It is now being developed beyond the course: new file formats, advanced chunking
 
 - **Document ingestion:** upload `.txt` and `.pdf` files (max 10 MB, configurable)
 - **Project-based isolation:** each `project_id` has its own files, chunks and vector collection
-- **Chunking:** line-aware text chunking with configurable chunk size
+- **Chunking:** a strategy-based interface with a registered `default` newline-based chunker and configurable chunk size
 - **Pluggable LLM providers:** Cohere and any OpenAI-compatible API (including local models via [Ollama](#using-a-local-model-with-ollama))
 - **Vector search:** PostgreSQL + pgvector (the only supported vector backend today)
 - **Semantic search** and **RAG answering** with localized prompt templates (English and Arabic)
@@ -102,6 +102,10 @@ flowchart TB
         nc["NLPController<br/>index, search, answer"]
     end
 
+    subgraph ingestion["Ingestion"]
+        cf["ChunkerFactory<br/>default newline chunker"]
+    end
+
     subgraph persistence["Models"]
         dm["Data models<br/>Project, Asset, Chunk"]
         orm[("SQLAlchemy + Alembic")]
@@ -117,9 +121,10 @@ flowchart TB
     end
 
     routes --> dc & pc & nc
+    pc --> cf
     dc & pc & nc --> dm --> orm
     nc --> llmi & vi & tpl
-    main -.-> llmf & vf
+    main -.-> llmf & vf & cf
 ```
 
 ### Ingestion flow
@@ -130,6 +135,7 @@ sequenceDiagram
     actor C as Client
     participant API as FastAPI
     participant FS as File storage
+    participant CH as ChunkerFactory
     participant DB as PostgreSQL
     participant EMB as Embedding provider
     participant VDB as Vector store
@@ -142,7 +148,8 @@ sequenceDiagram
 
     C ->> API: POST /data/process/{project_id}
     API ->> FS: load TXT or PDF
-    API ->> API: split into chunks
+    API ->> CH: select strategy and chunk documents
+    CH -->> API: ordered chunks with metadata
     API ->> DB: store chunks
     API -->> C: file and chunk counts
 
@@ -451,7 +458,7 @@ curl -X POST http://localhost:8000/api/v1/data/upload/1 -F "file=@document.pdf"
 # 2. Chunk all files in the project
 curl -X POST http://localhost:8000/api/v1/data/process/1 \
   -H "Content-Type: application/json" \
-  -d '{"chunk_size": 1000, "do_reset": 0}'
+  -d '{"chunker": "default", "chunk_size": 1000, "overlap_size": 20, "do_reset": 0}'
 
 # 3. Embed and index the chunks
 curl -X POST http://localhost:8000/api/v1/nlp/index/push/1 \
@@ -477,7 +484,7 @@ Add `"debug": true` to an answer request to include the full prompt and chat his
 | `GET` | `/version` | Application version |
 | `GET`  | `/metrics`                              | Prometheus metrics                                   |
 | `POST` | `/api/v1/data/upload/{project_id}`      | Upload a file                                        |
-| `POST` | `/api/v1/data/process/{project_id}`     | Chunk the project's files (`chunk_size`, `do_reset`) |
+| `POST` | `/api/v1/data/process/{project_id}`     | Chunk the project's files (`chunker`, `chunk_size`, `overlap_size`, `do_reset`) |
 | `POST` | `/api/v1/nlp/index/push/{project_id}`   | Embed chunks and store vectors (`do_reset`)          |
 | `GET`  | `/api/v1/nlp/index/info/{project_id}`   | Vector collection info                               |
 | `POST` | `/api/v1/nlp/index/search/{project_id}` | Semantic search (`text`, `limit`)                    |
@@ -511,4 +518,3 @@ Issues and ideas are welcome. Please open an issue to discuss larger changes bef
 ## License
 
 [Apache License 2.0](LICENSE)
-

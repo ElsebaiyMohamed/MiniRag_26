@@ -9,10 +9,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Add chunking abstraction package under `src/ingestion/chunkers/` (`__init__.py`, `base.py`, `default.py`, `factory.py`) with `DefaultChunker` reproducing newline-based splitting behavior (`#101`).
+- Integrate the chunker abstraction and factory into `ProcessController.process_file_content`, `src/main.py`, `src/models/schemas/data.py`, and `src/routes/data.py` (`#101`).
+- Update chunker and controller test suites in `tests/test_chunker.py` and `tests/test_process_controller.py` to use `LoadedDocument` and `process_file_content` (`#101`).
 - added bug report and feature request templates
+
+### Deleted
+
+- Split text directly in `ProcessController.simple_text_spliter`.
 
 ### Changed
 
+- Replace `ProcessController.simple_text_spliter` usage with `ProcessController.process_file_content` and factory-selected chunkers while preserving existing splitting and metadata behavior (`#101`).
 - Centralized document format support in an injectable loader registry shared by upload validation and processing.
 - Validate upload filename extensions and MIME types as a matching pair against registered loaders.
 - Retained `FILE_ALLOWED_EXTENTIONS` as an additional MIME-type allowlist.

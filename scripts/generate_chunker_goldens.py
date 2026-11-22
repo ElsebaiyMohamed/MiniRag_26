@@ -15,7 +15,8 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from controllers.ProcessController import ProcessController  # noqa: E402
-
+from ingestion.chunkers import DefaultChunker
+from ingestion.loaders import LoadedDocument
 
 SUPPORTED_EXTENSIONS = {".txt", ".pdf"}
 
@@ -74,7 +75,15 @@ def load_fixture(path: Path):
     else:
         raise ValueError(f"Unsupported fixture format: {path.suffix}")
 
-    return loader.load()
+    documents = loader.load()
+
+    return [
+        LoadedDocument(
+            text=document.page_content,
+            metadata=document.metadata,
+        )
+        for document in documents
+    ]
 
 
 def normalize_metadata(value: Any, docs_dir: Path) -> Any:
@@ -139,15 +148,15 @@ def build_golden(
     # state. Avoid __init__, which creates project/settings side effects.
     processor = object.__new__(ProcessController)
 
-    chunks = processor.process_file_content(
-        file_content=documents,
+    chunks = DefaultChunker().chunk(
+        documents=documents,
         chunk_size=chunk_size,
-        overlap_size=overlap_size,
+        chunk_overlap=overlap_size,
     )
 
     golden["chunks"] = [
         {
-            "page_content": chunk.page_content,
+            "text": chunk.text,
             "metadata": normalize_metadata(chunk.metadata, docs_dir),
         }
         for chunk in chunks
