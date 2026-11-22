@@ -7,8 +7,8 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 from controllers.ProcessController import ProcessController
-from ingestion.loaders import create_default_loader_registry, LoadedDocument
 from ingestion.chunkers import create_default_chunker_factory
+from ingestion.loaders import LoadedDocument, create_default_loader_registry
 
 
 @pytest.fixture
