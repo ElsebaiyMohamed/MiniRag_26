@@ -52,7 +52,6 @@ class ProcessController(BaseController):
     ) -> List[Chunk]:
 
         # LoadedDocument uses "text".
-        # Legacy characterization fixtures use LangChain's "page_content".
         chunker = self.chunker_factory.get_chunker(name=chunker)
         return chunker.chunk(
             documents,

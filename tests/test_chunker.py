@@ -33,7 +33,7 @@ def test_groups_short_lines_into_single_chunk(processor):
     chunks = processor.process_file_content(documents, chunk_size=1000)
 
     assert len(chunks) == 1
-    assert chunks[0].page_content == "line one here\nline two here"
+    assert chunks[0].text == "line one here\nline two here"
     assert chunks[0].metadata == {"page": 1}
 
 
@@ -48,7 +48,7 @@ def test_drops_single_char_lines(processor):
 
     assert len(chunks) == 1
     # 'a' is dropped, only 'bb' and 'ccc' remain
-    assert chunks[0].page_content == "bb\nccc"
+    assert chunks[0].text == "bb\nccc"
 
 
 def test_chunk_can_exceed_chunk_size_soft_limit(processor):
@@ -62,7 +62,7 @@ def test_chunk_can_exceed_chunk_size_soft_limit(processor):
     chunks = processor.process_file_content(documents, chunk_size=50)
 
     assert len(chunks) == 1
-    assert len(chunks[0].page_content) > 50  # soft limit, exceeds requested size
+    assert len(chunks[0].text) > 50  # soft limit, exceeds requested size
 
 
 def test_flushes_chunk_when_exceeding_size(processor):
@@ -76,8 +76,8 @@ def test_flushes_chunk_when_exceeding_size(processor):
 
     # line1+line2 exceed 15 -> flushed; line3 flushed at the end
     assert len(chunks) == 2
-    assert chunks[0].page_content == "aaaaaaaaaa\nbbbbbbbbbb"
-    assert chunks[1].page_content == "cccccccccc"
+    assert chunks[0].text == "aaaaaaaaaa\nbbbbbbbbbb"
+    assert chunks[1].text == "cccccccccc"
 
 
 def test_metadata_passed_through(processor):
@@ -101,4 +101,4 @@ def test_process_file_content_overlap_has_no_effect(processor):
     chunks_no_overlap = processor.process_file_content(documents, chunk_size=1000, overlap_size=0)
     chunks_with_overlap = processor.process_file_content(documents, chunk_size=1000, overlap_size=50)
 
-    assert [c.page_content for c in chunks_no_overlap] == [c.page_content for c in chunks_with_overlap]
+    assert [c.text for c in chunks_no_overlap] == [c.text for c in chunks_with_overlap]

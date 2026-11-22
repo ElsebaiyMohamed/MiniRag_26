@@ -6,8 +6,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
-
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 
@@ -16,7 +14,7 @@ if str(SRC) not in sys.path:
 
 from controllers.ProcessController import ProcessController  # noqa: E402
 from ingestion.chunkers import DefaultChunker
-from ingestion.loaders import LoadedDocument
+from ingestion.loaders import PdfLoader, TxtLoader
 
 SUPPORTED_EXTENSIONS = {".txt", ".pdf"}
 
@@ -69,21 +67,14 @@ def load_fixture(path: Path):
     extension = path.suffix.lower()
 
     if extension == ".txt":
-        loader = TextLoader(str(path), encoding="utf-8")
+        loader = TxtLoader()
     elif extension == ".pdf":
-        loader = PyMuPDFLoader(str(path))
+        loader =  PdfLoader()
     else:
         raise ValueError(f"Unsupported fixture format: {path.suffix}")
 
-    documents = loader.load()
+    return loader.load(path)
 
-    return [
-        LoadedDocument(
-            text=document.page_content,
-            metadata=document.metadata,
-        )
-        for document in documents
-    ]
 
 
 def normalize_metadata(value: Any, docs_dir: Path) -> Any:

@@ -1,7 +1,6 @@
 import importlib
 import os
 import sys
-from types import SimpleNamespace
 from unittest.mock import Mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
@@ -50,34 +49,27 @@ def test_get_file_content_loads_text_and_returns_none_for_missing_or_unsupported
 
     documents = controller.get_file_content("source.txt")
 
-    assert [document.page_content for document in documents] == [
+    assert [document.text for document in documents] == [
         "first line\nsecond line"
     ]
     assert controller.get_file_content("missing.txt") is None
     assert controller.get_file_content("unsupported.csv") is None
 
 
-def test_get_file_content_uses_pdf_loader(tmp_path, monkeypatch):
+def test_get_file_content_uses_pdf_loader(tmp_path):
     controller = make_controller(tmp_path)
+
     pdf_file = tmp_path / "source.pdf"
     pdf_file.write_bytes(b"placeholder")
-    loaded_documents = [SimpleNamespace(page_content="pdf text", metadata={})]
+
+    loaded_documents = [LoadedDocument(text="pdf text", metadata={})]
+
     loader = Mock()
     loader.load.return_value = loaded_documents
-    pdf_loader = Mock(return_value=loader)
-    pdf_loader_module = importlib.import_module(
-        "ingestion.loaders.pdf"
-    )
-    monkeypatch.setattr(
-        pdf_loader_module,
-        "PyMuPDFLoader",
-        pdf_loader,
-    )
+
+    controller.loader_registry._loaders[".pdf"] = loader
+
     result = controller.get_file_content("source.pdf")
 
-    assert len(result) == 1
-    assert result[0].text == loaded_documents[0].page_content
-    assert result[0].metadata == loaded_documents[0].metadata
-
-    pdf_loader.assert_called_once_with(str(pdf_file))
-    loader.load.assert_called_once_with()
+    assert result == loaded_documents
+    loader.load.assert_called_once_with(pdf_file)

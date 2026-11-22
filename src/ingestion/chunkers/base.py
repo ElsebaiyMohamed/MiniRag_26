@@ -11,10 +11,6 @@ class Chunk:
     order: int
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    @property
-    def page_content(self) -> str:
-        """Compatibility with LangChain Document."""
-        return self.text
 
 
 class Chunker(Protocol):

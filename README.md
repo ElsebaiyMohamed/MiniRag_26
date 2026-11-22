@@ -2,16 +2,16 @@
 
 ## Tech stack
 
-|   | Layer                    | Tools                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|:--|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|   | **Language and tooling** | ![Python](https://img.shields.io/badge/Python-3.13.14-3776AB?logo=python&logoColor=white) ![uv](https://img.shields.io/badge/uv-package_manager-DE5FE9?logo=uv&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)                                                                                                                                                                                                                                        |
-|   | **API**                  | ![FastAPI](https://img.shields.io/badge/FastAPI-0.162.2-009688?logo=fastapi&logoColor=white) ![Uvicorn](https://img.shields.io/badge/Uvicorn-0.54.0-499848) ![Pydantic](https://img.shields.io/badge/Pydantic-2.14.3-E92063?logo=pydantic&logoColor=white) ![Pydantic Settings](https://img.shields.io/badge/Pydantic_Settings-2.16.2-E92063?logo=pydantic&logoColor=white)                                                                                                                                      |
-|   | **Database and ORM**     | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white) ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.1.8-D71F00?logo=sqlalchemy&logoColor=white) ![Alembic](https://img.shields.io/badge/Alembic-1.20.1-6BA81E) ![asyncpg](https://img.shields.io/badge/asyncpg-0.32.0-4169E1) ![psycopg2](https://img.shields.io/badge/psycopg2-2.9.13-4169E1)                                             |
-|   | **Vector search**        | ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791)                                                                                                                                                                                                                                                                               |
-|   | **LLM providers**        | ![Cohere](https://img.shields.io/badge/Cohere_SDK-7.3.1-39594D?logo=cohere&logoColor=white) ![OpenAI](https://img.shields.io/badge/OpenAI_SDK-3.48.0-412991?logo=openai&logoColor=white) ![Ollama](https://img.shields.io/badge/Ollama-local_models-000000?logo=ollama&logoColor=white)                                                                                                                                                                                                                          |
-|   | **Document processing**  | ![LangChain](https://img.shields.io/badge/LangChain-1.4.9-1C3C3C?logo=langchain&logoColor=white) ![LangChain Community](https://img.shields.io/badge/LangChain_Community-0.4.2-1C3C3C?logo=langchain&logoColor=white) ![PyMuPDF](https://img.shields.io/badge/PyMuPDF-2.1-CC2927)                                                                                                                                                                                                                             |
-|   | **Serving**              | ![Nginx](https://img.shields.io/badge/Nginx-1.30.5-009639?logo=nginx&logoColor=white)                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|   | **Monitoring**           | ![Prometheus](https://img.shields.io/badge/Prometheus-3.13.4-E6522C?logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-13.0-F46800?logo=grafana&logoColor=white) ![Node Exporter](https://img.shields.io/badge/Node_Exporter-1.12.1-E6522C?logo=prometheus&logoColor=white) ![Postgres Exporter](https://img.shields.io/badge/Postgres_Exporter-0.20.1-4169E1?logo=postgresql&logoColor=white) ![prometheus_client](https://img.shields.io/badge/prometheus__client-0.26.0-E6522C) |
+| Layer | Tools |
+|---|---|
+| **Language and tooling** | ![Python](https://img.shields.io/badge/Python-3.13.14-3776AB?logo=python&logoColor=white) ![uv](https://img.shields.io/badge/uv-package_manager-DE5FE9?logo=uv&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white) |
+| **API** | ![FastAPI](https://img.shields.io/badge/FastAPI-0.162.2-009688?logo=fastapi&logoColor=white) ![Uvicorn](https://img.shields.io/badge/Uvicorn-0.54.0-499848) ![Pydantic](https://img.shields.io/badge/Pydantic-2.14.3-E92063?logo=pydantic&logoColor=white) ![Pydantic Settings](https://img.shields.io/badge/Pydantic_Settings-2.16.2-E92063?logo=pydantic&logoColor=white) |
+| **Database and ORM** | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white) ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.1.8-D71F00?logo=sqlalchemy&logoColor=white) ![Alembic](https://img.shields.io/badge/Alembic-1.20.1-6BA81E) ![asyncpg](https://img.shields.io/badge/asyncpg-0.32.0-4169E1) ![psycopg2](https://img.shields.io/badge/psycopg2-2.9.13-4169E1) |
+| **Vector search** | ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791) |
+| **LLM providers** | ![Cohere](https://img.shields.io/badge/Cohere_SDK-7.3.1-39594D?logo=cohere&logoColor=white) ![OpenAI](https://img.shields.io/badge/OpenAI_SDK-3.48.0-412991?logo=openai&logoColor=white) ![Ollama](https://img.shields.io/badge/Ollama-local_models-000000?logo=ollama&logoColor=white) |
+| **Document processing** | Python standard library (TXT) ![PyMuPDF](https://img.shields.io/badge/PyMuPDF-2.1-CC2927) |
+| **Serving** | ![Nginx](https://img.shields.io/badge/Nginx-1.30.5-009639?logo=nginx&logoColor=white) |
+| **Monitoring** | ![Prometheus](https://img.shields.io/badge/Prometheus-3.13.4-E6522C?logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-13.0-F46800?logo=grafana&logoColor=white) ![Node Exporter](https://img.shields.io/badge/Node_Exporter-1.12.1-E6522C?logo=prometheus&logoColor=white) ![Postgres Exporter](https://img.shields.io/badge/Postgres_Exporter-0.20.1-4169E1?logo=postgresql&logoColor=white) ![prometheus_client](https://img.shields.io/badge/prometheus__client-0.26.0-E6522C) |
 
 Python dependency versions are tracked in `uv.lock`.
 
@@ -29,14 +29,17 @@ It is now being developed beyond the course: new file formats, advanced chunking
 
 **Available today**
 
-- **Document ingestion:** upload `.txt` and `.pdf` files (max 10 MB, configurable)
-- **Project-based isolation:** each `project_id` has its own files, chunks and vector collection
-- **Chunking:** a strategy-based interface with a registered `default` newline-based chunker and configurable chunk size
-- **Pluggable LLM providers:** Cohere and any OpenAI-compatible API (including local models via [Ollama](#using-a-local-model-with-ollama))
-- **Vector search:** PostgreSQL + pgvector (the only supported vector backend today)
-- **Semantic search** and **RAG answering** with localized prompt templates (English and Arabic)
-- **Observability:** Prometheus metrics, Grafana, node-exporter and Postgres exporter included
-- **Containerized:** one `docker compose` command brings up the full stack, with Alembic migrations run on startup
+- **Document ingestion:** upload `.txt` and `.pdf` files (max 10 MB, configurable).
+  - TXT files are read directly using Python's standard library with UTF-8 encoding.
+  - PDFs are processed directly with PyMuPDF, extracting text page by page.
+  - No external document-loading framework is required.
+- **Project-based isolation:** each `project_id` has its own files, chunks and vector collection.
+- **Chunking:** a strategy-based interface with a registered `default` newline-based chunker and configurable chunk size.
+- **Pluggable LLM providers:** Cohere and any OpenAI-compatible API (including local models via [Ollama](#using-a-local-model-with-ollama)).
+- **Vector search:** PostgreSQL + pgvector (the only supported vector backend today).
+- **Semantic search** and **RAG answering** with localized prompt templates (English and Arabic).
+- **Observability:** Prometheus metrics, Grafana, node-exporter and Postgres exporter included.
+- **Containerized:** one `docker compose` command brings up the full stack, with Alembic migrations run on startup.
 
 ## Architecture
 
@@ -88,6 +91,8 @@ flowchart LR
 
 LLM providers sit behind an interface and factory, so generation and embedding providers can be selected independently through configuration. The vector-store interface currently has one implementation: pgvector.
 
+Document ingestion uses a dedicated loader registry. The registry resolves the appropriate loader based on the file extension. TXT files use Python's standard library, while PDF files are processed directly with PyMuPDF. Loaded documents are then passed to the selected chunking strategy.
+
 ```mermaid
 flowchart TB
     main["main.py<br/>lifespan builds clients on startup"]
@@ -103,7 +108,13 @@ flowchart TB
     end
 
     subgraph ingestion["Ingestion"]
+        lr["LoaderRegistry<br/>resolve loader by extension"]
+        txt["TxtLoader<br/>Python standard library"]
+        pdf["PdfLoader<br/>PyMuPDF"]
         cf["ChunkerFactory<br/>default newline chunker"]
+
+        lr --> txt
+        lr --> pdf
     end
 
     subgraph persistence["Models"]
@@ -121,6 +132,7 @@ flowchart TB
     end
 
     routes --> dc & pc & nc
+    pc --> lr
     pc --> cf
     dc & pc & nc --> dm --> orm
     nc --> llmi & vi & tpl
@@ -129,40 +141,56 @@ flowchart TB
 
 ### Ingestion flow
 
+The upload endpoint validates the file type and size before storing the file. During processing, `ProcessController` uses the shared loader registry to select the correct native loader. PDF extraction produces one loaded document per page, preserving page-level metadata. The resulting documents are passed to the configured chunker.
+
 ```mermaid
 sequenceDiagram
     autonumber
     actor C as Client
     participant API as FastAPI
     participant FS as File storage
+    participant LR as LoaderRegistry
+    participant TL as TxtLoader
+    participant PL as PdfLoader
     participant CH as ChunkerFactory
     participant DB as PostgreSQL
     participant EMB as Embedding provider
     participant VDB as Vector store
 
     C ->> API: POST /data/upload/{project_id}
-    API ->> API: validate type and size
-    API ->> FS: stream file to disk
-    API ->> DB: create Asset
+    API ->> API: Validate type and size
+    API ->> FS: Stream file to disk
+    API ->> DB: Create Asset
     API -->> C: file_id
 
     C ->> API: POST /data/process/{project_id}
-    API ->> FS: load TXT or PDF
-    API ->> CH: select strategy and chunk documents
-    CH -->> API: ordered chunks with metadata
-    API ->> DB: store chunks
-    API -->> C: file and chunk counts
+    API ->> FS: Read stored file
+    API ->> LR: Resolve loader by extension
+
+    alt TXT file
+        LR ->> TL: load(path)
+        TL -->> LR: LoadedDocument
+    else PDF file
+        LR ->> PL: load(path)
+        PL -->> LR: Page-level LoadedDocuments
+    end
+
+    LR -->> API: Loaded documents
+    API ->> CH: Select strategy and chunk documents
+    CH -->> API: Ordered chunks with metadata
+    API ->> DB: Store chunks
+    API -->> C: File and chunk counts
 
     C ->> API: POST /nlp/index/push/{project_id}
 
-    loop each page of chunks
-        API ->> DB: read chunks
-        API ->> EMB: embed batch as documents
-        EMB -->> API: vectors
-        API ->> VDB: insert vectors
+    loop Each page of chunks
+        API ->> DB: Read chunks
+        API ->> EMB: Embed batch as documents
+        EMB -->> API: Vectors
+        API ->> VDB: Insert vectors
     end
 
-    API -->> C: success
+    API -->> C: Success
 ```
 
 ### Question answering flow
@@ -177,14 +205,14 @@ sequenceDiagram
     participant LLM as Generation provider
 
     C ->> API: POST /nlp/index/answer/{project_id}
-    API ->> EMB: embed question as query
-    EMB -->> API: query vector
-    API ->> VDB: top-k similarity search
-    VDB -->> API: chunks and scores
-    API ->> API: build prompt from en or ar template
-    API ->> LLM: generate answer from documents
-    LLM -->> API: answer
-    API -->> C: answer (debug fields are optional)
+    API ->> EMB: Embed question as query
+    EMB -->> API: Query vector
+    API ->> VDB: Top-k similarity search
+    VDB -->> API: Chunks and scores
+    API ->> API: Build prompt from en or ar template
+    API ->> LLM: Generate answer from documents
+    LLM -->> API: Answer
+    API -->> C: Answer (debug fields are optional)
 ```
 
 ### Data model
@@ -245,7 +273,7 @@ flowchart TB
 
     subgraph ingest["Ingestion pipeline"]
         direction LR
-        src["TXT and PDF upload"]:::done
+        src["TXT and PDF upload<br/>Native loaders"]:::done
         newsrc["MD, CSV, Excel, Word, EPUB<br/>URL ingestion"]:::planned
         img["Images and embedded<br/>document images"]:::planned
         ocr["OCR"]:::planned
@@ -279,32 +307,38 @@ flowchart TB
 
 ```text
 src/
-├── routes/        # HTTP endpoints (base, data, nlp)
-├── controllers/   # Business logic (processing, NLP/RAG, projects)
-├── models/        # SQLAlchemy models, Alembic migrations, schemas, enums
+├── main.py          # App creation and startup/shutdown
+├── routes/          # HTTP endpoints (base, data, nlp)
+├── controllers/     # Business logic (processing, NLP/RAG, projects)
+├── ingestion/
+│   ├── loaders/     # DocumentLoader, LoaderRegistry, TxtLoader, PdfLoader
+│   ├── chunkers/    # Chunker protocol, Chunk, strategies, and factory
+│   └── exceptions.py
+├── models/          # SQLAlchemy models, Alembic migrations, schemas, enums
 ├── stores/
-│   ├── llm/       # Provider interface, factory, Cohere/OpenAI providers, prompt templates (en, ar)
-│   └── vectordb/  # Vector DB interface, factory, pgvector provider
-├── helpers/       # Settings (pydantic-settings)
-└── utils/         # Prometheus metrics middleware
-docker/            # Compose stack, Dockerfile, Nginx, Prometheus config, env examples
+│   ├── llm/         # Provider interface, factory, Cohere/OpenAI providers, prompt templates (en, ar)
+│   └── vectordb/    # Vector DB interface, factory, pgvector provider
+├── helpers/         # Settings (pydantic-settings)
+└── utils/           # Prometheus metrics middleware
+docker/              # Compose stack, Dockerfile, Nginx, Prometheus config, env examples
+docs/                # Project documentation
 ```
 
 ## Prerequisites
 
 **Both paths**
 
-- An LLM provider: a [Cohere](https://cohere.com) API key, an OpenAI-compatible API key, or a local [Ollama](https://ollama.com) server
+- An LLM provider: a [Cohere](https://cohere.com) API key, an OpenAI-compatible API key, or a local [Ollama](https://ollama.com) server.
 
 **Docker path**
 
-- Docker Engine and Docker Compose v2
+- Docker Engine and Docker Compose v2.
 
 **Dev path**
 
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) (it installs the pinned Python 3.13 for you)
-- PostgreSQL with the [pgvector](https://github.com/pgvector/pgvector) extension available
-- Build dependencies (Debian/Ubuntu): `sudo apt update && sudo apt install libpq-dev gcc python3-dev`
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (it installs the pinned Python 3.13 for you).
+- PostgreSQL with the [pgvector](https://github.com/pgvector/pgvector) extension available.
+- Build dependencies (Debian/Ubuntu): `sudo apt update && sudo apt install libpq-dev gcc python3-dev`.
 
 ## Quickstart (Docker)
 
@@ -320,22 +354,22 @@ cd MiniRag_26/docker
 **2. Create your config files from the examples.** The repository ships example configuration files, not populated secret files. Real config files contain secrets and are git-ignored, so you must create them:
 
 ```bash
-cp envv/.env.example.app              envv/.env.app
+cp envv/.env.example.app                  envv/.env.app
 cp envv/.env.example.postgres             envv/.env.postgres
 cp envv/.env.example.postgresexporter     envv/.env.postgresexporter
 cp envv/.env.example.grafana              envv/.env.grafana
-cp minirag/alembic.example.ini        minirag/alembic.ini
+cp minirag/alembic.example.ini            minirag/alembic.ini
 ```
 
 **3. Edit them.** Use the same database credentials everywhere:
 
-| File                         | Set                                                                                                                                                                                                            |
-|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `envv/.env.postgres`         | `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_DB=minirag26`                                                                                                                              |
-| `envv/.env.postgresexporter` | `DATA_SOURCE_USER=postgres`, `DATA_SOURCE_PASS=<password>`                                                                                                                                                     |
-| `envv/.env.app`              | `POSTGRES_USERNAME=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_HOST=pgvector`, `POSTGRES_PORT=5432`, `POSTGRES_MAIN_DATABASE=minirag26`, plus your LLM settings (see [Configuration](#configuration)) |
-| `envv/.env.grafana`          | Change the admin password                                                                                                                                                                                      |
-| `minirag/alembic.ini`        | `sqlalchemy.url = postgresql://postgres:<password>@pgvector:5432/minirag26`                                                                                                                                    |
+| File | Set |
+|---|---|
+| `envv/.env.postgres` | `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_DB=minirag26` |
+| `envv/.env.postgresexporter` | `DATA_SOURCE_USER=postgres`, `DATA_SOURCE_PASS=<password>` |
+| `envv/.env.app` | `POSTGRES_USERNAME=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_HOST=pgvector`, `POSTGRES_PORT=5432`, `POSTGRES_MAIN_DATABASE=minirag26`, plus your LLM settings (see [Configuration](#configuration)) |
+| `envv/.env.grafana` | Change the admin password |
+| `minirag/alembic.ini` | `sqlalchemy.url = postgresql://postgres:<password>@pgvector:5432/minirag26` |
 
 **4. Start the stack**
 
@@ -351,13 +385,13 @@ Database migrations run automatically when the `fastapi` container starts.
 curl http://localhost:8000/
 ```
 
-| Service              | URL                        |
-|----------------------|----------------------------|
-| API (direct)         | http://localhost:8000      |
-| API (via Nginx)      | http://localhost           |
+| Service | URL |
+|---|---|
+| API (direct) | http://localhost:8000 |
+| API (via Nginx) | http://localhost |
 | Interactive API docs | http://localhost:8000/docs |
-| Grafana              | http://localhost:3000      |
-| Prometheus           | http://localhost:9090      |
+| Grafana | http://localhost:3000 |
+| Prometheus | http://localhost:9090 |
 
 ## Local development (uv)
 
@@ -403,24 +437,24 @@ Open http://localhost:8000/docs.
 
 All settings are environment variables (`.env.app`).
 
-| Variable                                                                                             | Description                                                            |
-|------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| `APP_NAME`, `APP_DESCRIPTION`                                                         | Shown at `GET /`                                                       |
-| `FILE_ALLOWED_EXTENTIONS`                                                                            | Allowed upload MIME types, e.g. `["application/pdf", "text/plain"]`    |
-| `FILE_MAX_SIZE_IN_MB`                                                                                | Max upload size (default example: `10`)                                |
-| `FILE_DEAFAULT_CHINK_SIZE`                                                                           | Read size in bytes when streaming uploads to disk                      |
-| `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_MAIN_DATABASE` | PostgreSQL connection                                                  |
-| `VECTORDB_BACKEND`                                                                                   | `PGVECTOR`                                                             |
-| `VECTOR_DB_DISTANCE_METRIC`                                                                          | `cosine` or `dot`                                                      |
-| `VECTOR_DB_PGVEC_INDEX_THRESHOLD`                                                                    | Row count at which a pgvector index is created                         |
-| `GENERATION_BACKEND`, `EMBEDDING_BACKEND`                                                            | `COHERE` or `OPENAI` (OpenAI-compatible, including Ollama)             |
-| `GENERATION_MODEL_ID`, `EMBEDDING_MODEL_ID`                                                          | Model names for the chosen backends                                    |
-| `EMBEDDING_MODEL_SIZE`                                                                               | Embedding dimension. Must match the embedding model                    |
-| `COHERE_API_KEY`                                                                                     | Cohere key                                                             |
-| `LLM_REQUEST_TIMEOUT_SEC`                                                                            | Request timeout in seconds for LLM provider calls (defaults to `60.0`) |
-| `OPENAI_API_KEY`, `OPENAI_API_URL`                                                                   | Key and base URL for OpenAI or any compatible server                   |
-| `INPUT_DEFAULT_MAX_CHAR`, `DEAFAULT_MAX_OUTPUT_TOKENS`, `GENERATION_DEFAULT_TEMPERATURE`             | Generation defaults                                                    |
-| `PRIMARY_LANG`, `DEFAULT_LANG`                                                                       | Prompt template language (`ar` or `en`) and fallback                   |
+| Variable | Description |
+|---|---|
+| `APP_NAME`, `APP_DESCRIPTION` | Shown at `GET /` |
+| `FILE_ALLOWED_EXTENTIONS` | Additional upload MIME-type allowlist, e.g. `["application/pdf", "text/plain"]`. The MIME type must also match a registered loader for the filename extension. |
+| `FILE_MAX_SIZE_IN_MB` | Maximum upload size (default example: `10`) |
+| `FILE_DEAFAULT_CHINK_SIZE` | Read size in bytes when streaming uploads to disk |
+| `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_MAIN_DATABASE` | PostgreSQL connection |
+| `VECTORDB_BACKEND` | `PGVECTOR` |
+| `VECTOR_DB_DISTANCE_METRIC` | `cosine` or `dot` |
+| `VECTOR_DB_PGVEC_INDEX_THRESHOLD` | Row count at which a pgvector index is created |
+| `GENERATION_BACKEND`, `EMBEDDING_BACKEND` | `COHERE` or `OPENAI` (OpenAI-compatible, including Ollama) |
+| `GENERATION_MODEL_ID`, `EMBEDDING_MODEL_ID` | Model names for the chosen backends |
+| `EMBEDDING_MODEL_SIZE` | Embedding dimension. Must match the embedding model |
+| `COHERE_API_KEY` | Cohere key |
+| `LLM_REQUEST_TIMEOUT_SEC` | Request timeout in seconds for LLM provider calls (defaults to `60.0`) |
+| `OPENAI_API_KEY`, `OPENAI_API_URL` | Key and base URL for OpenAI or any compatible server |
+| `INPUT_DEFAULT_MAX_CHAR`, `DEAFAULT_MAX_OUTPUT_TOKENS`, `GENERATION_DEFAULT_TEMPERATURE` | Generation defaults |
+| `PRIMARY_LANG`, `DEFAULT_LANG` | Prompt template language (`ar` or `en`) and fallback |
 
 > **Notes**
 > - For Arabic documents, choose a **multilingual** embedding model and set `EMBEDDING_MODEL_SIZE` to match.
@@ -478,36 +512,41 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/answer/1 \
 
 Add `"debug": true` to an answer request to include the full prompt and chat history in its response. These potentially sensitive details are omitted by default.
 
-| Method | Endpoint                                | Purpose                                              |
-|--------|-----------------------------------------|------------------------------------------------------|
-| `GET`  | `/`                                     | App info                                             |
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/` | App info |
 | `GET` | `/version` | Application version |
-| `GET`  | `/metrics`                              | Prometheus metrics                                   |
-| `POST` | `/api/v1/data/upload/{project_id}`      | Upload a file                                        |
-| `POST` | `/api/v1/data/process/{project_id}`     | Chunk the project's files (`chunker`, `chunk_size`, `overlap_size`, `do_reset`) |
-| `POST` | `/api/v1/nlp/index/push/{project_id}`   | Embed chunks and store vectors (`do_reset`)          |
-| `GET`  | `/api/v1/nlp/index/info/{project_id}`   | Vector collection info                               |
-| `POST` | `/api/v1/nlp/index/search/{project_id}` | Semantic search (`text`, `limit`)                    |
-| `POST` | `/api/v1/nlp/index/answer/{project_id}` | RAG answer (`text`, `limit`)                         |
+| `GET` | `/metrics` | Prometheus metrics |
+| `POST` | `/api/v1/data/upload/{project_id}` | Upload a file |
+| `POST` | `/api/v1/data/process/{project_id}` | Chunk the project's files (`chunker`, `chunk_size`, `overlap_size`, `do_reset`) |
+| `POST` | `/api/v1/nlp/index/push/{project_id}` | Embed chunks and store vectors (`do_reset`) |
+| `GET` | `/api/v1/nlp/index/info/{project_id}` | Vector collection info |
+| `POST` | `/api/v1/nlp/index/search/{project_id}` | Semantic search (`text`, `limit`) |
+| `POST` | `/api/v1/nlp/index/answer/{project_id}` | RAG answer (`text`, `limit`) |
 
 ## Roadmap
 
-| Area             | Planned                                                           | Status  |
-|------------------|-------------------------------------------------------------------|---------|
-| **File formats** | Markdown, CSV, Excel, Word, EPUB                                  | Planned |
-|                  | Ingest content from a URL / link                                  | Planned |
-| **Chunking**     | Additional chunking strategies, benchmarked for retrieval quality | Planned |
-| **Vision**       | Image input                                                       | Planned |
-|                  | Extract images from documents                                     | Planned |
-|                  | OCR                                                               | Planned |
-| **Voice**        | Voice input (speech-to-text), English and Arabic                  | Planned |
-|                  | Spoken answers (text-to-speech), English and Arabic               | Planned |
-| **Quality**      | Unit, API workflow, and pgvector integration tests; CI            | Done    |
-|                  | API authentication                                                | Planned |
+| Area | Planned | Status |
+|---|---|---|
+| **File formats** | Markdown, CSV, Excel, Word, EPUB | Planned |
+| | Ingest content from a URL / link | Planned |
+| **Chunking** | Additional chunking strategies, benchmarked for retrieval quality | Planned |
+| **Vision** | Image input | Planned |
+| | Extract images from documents | Planned |
+| | OCR | Planned |
+| **Voice** | Voice input (speech-to-text), English and Arabic | Planned |
+| | Spoken answers (text-to-speech), English and Arabic | Planned |
+| **Quality** | Unit, API workflow, and pgvector integration tests; CI | Done |
+| | API authentication | Planned |
 
 ## Known limitations
 
 - Only `.txt` and `.pdf` are supported; uploads must pass both MIME-type and filename-extension checks.
+- TXT files are read as UTF-8. Files using a different encoding may fail to load.
+- PDF extraction is text-based and page-by-page. Scanned or image-only PDFs do not undergo OCR and may produce empty extracted text.
+- Encrypted PDFs are not supported.
+- Corrupted PDFs that cannot be opened, or that contain no recoverable pages, are rejected.
+- PDF metadata is preserved where available, including source path, file path, page number, total page count, and normalized creation/modification dates.
 - No authentication. Don't expose the service to the public internet as-is.
 - `overlap_size` is accepted by the process endpoint but not applied yet.
 
