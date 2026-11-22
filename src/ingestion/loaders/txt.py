@@ -1,8 +1,6 @@
 from pathlib import Path
 from typing import List
 
-from langchain_community.document_loaders import TextLoader
-
 from .base import LoadedDocument
 
 
@@ -11,15 +9,11 @@ class TxtLoader:
     mime_types = ("text/plain",)
 
     def load(self, path: Path) -> List[LoadedDocument]:
-        documents = TextLoader(
-            str(path),
-            encoding="utf-8",
-        ).load()
+        text = path.read_text(encoding="utf-8")
 
         return [
             LoadedDocument(
-                text=document.page_content,
-                metadata=document.metadata,
+                text=text,
+                metadata={"source": str(path)},
             )
-            for document in documents
         ]
