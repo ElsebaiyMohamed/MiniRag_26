@@ -116,6 +116,30 @@ The per-project vector tables created by the pgvector provider are not managed b
 
 See [Adding a provider](Adding%20a%20provider.md).
 
+### Built-in document loaders
+
+The default loader registry currently supports:
+
+| Loader      | Format | Implementation                                         | Output                            |
+|-------------|--------|--------------------------------------------------------|-----------------------------------|
+| `TxtLoader` | `.txt` | Python standard library (`Path.read_text`) using UTF-8 | One `LoadedDocument` per file     |
+| `PdfLoader` | `.pdf` | PyMuPDF (`pymupdf`)                                    | One `LoadedDocument` per PDF page |
+
+Each `LoadedDocument` contains extracted text and metadata. PDF metadata includes the resolved source path, file path, zero-based page number, and total page count. Available PDF creation and modification dates are normalized to ISO format.
+
+PDF handling behavior:
+
+- Encrypted PDFs raise `UnsupportedFile`.
+- PDFs that cannot be opened raise `UnsupportedFile`.
+- Repaired PDFs with no recoverable pages are rejected.
+- Image-only or scanned PDFs are not OCR-processed. Their pages are returned with empty extracted text.
+- Pages with no text are preserved rather than silently discarded.
+
+`UnsupportedFile` represents a supported format that could not be processed. `UnsupportedFileType` represents a file extension for which no loader is registered.
+
+The golden fixture generator in `scripts/generate_chunker_goldens.py` uses the same native loaders as the application. When loader behavior intentionally changes, regenerate and review the affected golden fixtures.
+
+
 ### Add a new file type
 
 Document loaders are registered in `src/ingestion/loaders/`. The same registry is used by upload validation and document processing.
