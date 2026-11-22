@@ -8,9 +8,6 @@ from typing import Any
 
 from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
 
-from ingestion.chunkers import DefaultChunker
-from ingestion.loaders import LoadedDocument
-
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 
@@ -18,7 +15,8 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from controllers.ProcessController import ProcessController  # noqa: E402
-
+from ingestion.chunkers import DefaultChunker
+from ingestion.loaders import LoadedDocument
 
 SUPPORTED_EXTENSIONS = {".txt", ".pdf"}
 
