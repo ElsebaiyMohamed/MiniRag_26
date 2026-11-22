@@ -80,7 +80,7 @@ class ProcessController(BaseController):
             return None
 
         return self.process_file_content(
-            file_content=file_content,
+            documents=file_content,
             chunker=chunker,
             chunk_size=chunk_size,
             overlap_size=overlap_size,

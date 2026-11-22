@@ -4,7 +4,7 @@ from .factory import ChunkerFactory
 
 def create_default_chunker_factory() -> ChunkerFactory:
     chunker_factory = ChunkerFactory()
-    chunker_factory.register(name='default', chunker=DefaultChunker)
+    chunker_factory.register(name='default', chunker=DefaultChunker())
     # new register per chunkers
 
     return chunker_factory

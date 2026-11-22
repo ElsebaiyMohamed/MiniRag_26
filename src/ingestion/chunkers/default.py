@@ -17,7 +17,7 @@ class DefaultChunker:
         chunks: List[Chunk] = []
         current_chunk_text = ""
         current_metadata = {}
-        order = 0
+        order = 1
 
         for doc in documents:
             doc_text = doc.text or ""
@@ -30,8 +30,16 @@ class DefaultChunker:
                 if len(cleaned_line) <= 1:
                     continue
 
+                # Append line to current chunk
+                if current_chunk_text:
+                    current_chunk_text += "\n" + cleaned_line
+                else:
+                    current_chunk_text = cleaned_line
+                    # Preserve the metadata of the page/document that triggers the flush / starts the chunk
+                    current_metadata = doc_metadata
+
                 # If adding this line exceeds chunk_size and we already have text, flush current chunk
-                if len(current_chunk_text) + len(cleaned_line) > chunk_size and current_chunk_text:
+                if len(current_chunk_text) > chunk_size:
                     chunks.append(
                         Chunk(
                             text=current_chunk_text.strip(),
@@ -42,13 +50,7 @@ class DefaultChunker:
                     order += 1
                     current_chunk_text = ""
 
-                # Append line to current chunk
-                if current_chunk_text:
-                    current_chunk_text += "\n" + cleaned_line
-                else:
-                    current_chunk_text = cleaned_line
-                    # Preserve the metadata of the page/document that triggers the flush / starts the chunk
-                    current_metadata = doc_metadata
+
 
         # Flush any remaining text in the buffer
         if current_chunk_text:

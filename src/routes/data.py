@@ -164,7 +164,7 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
             # Database operations remain on the event-loop thread.
             file_chunks_record = [
                 DataChunk(
-                    chunk_text=chunk.page_content,
+                    chunk_text=chunk.text,
                     chunk_metadata=chunk.metadata,
                     chunk_order=chunk.order,
                     chunk_project_id=project.project_id,

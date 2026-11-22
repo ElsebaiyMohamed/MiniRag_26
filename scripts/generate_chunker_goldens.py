@@ -8,6 +8,9 @@ from typing import Any
 
 from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
 
+from ingestion.chunkers import DefaultChunker
+from ingestion.loaders import LoadedDocument
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 
@@ -74,7 +77,15 @@ def load_fixture(path: Path):
     else:
         raise ValueError(f"Unsupported fixture format: {path.suffix}")
 
-    return loader.load()
+    documents = loader.load()
+
+    return [
+        LoadedDocument(
+            text=document.page_content,
+            metadata=document.metadata,
+        )
+        for document in documents
+    ]
 
 
 def normalize_metadata(value: Any, docs_dir: Path) -> Any:
@@ -139,15 +150,15 @@ def build_golden(
     # state. Avoid __init__, which creates project/settings side effects.
     processor = object.__new__(ProcessController)
 
-    chunks = processor.process_file_content(
-        file_content=documents,
+    chunks = DefaultChunker().chunk(
+        documents=documents,
         chunk_size=chunk_size,
-        overlap_size=overlap_size,
+        chunk_overlap=overlap_size,
     )
 
     golden["chunks"] = [
         {
-            "page_content": chunk.page_content,
+            "text": chunk.text,
             "metadata": normalize_metadata(chunk.metadata, docs_dir),
         }
         for chunk in chunks
