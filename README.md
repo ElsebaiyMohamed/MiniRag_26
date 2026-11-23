@@ -29,9 +29,11 @@ It is now being developed beyond the course: new file formats, advanced chunking
 
 **Available today**
 
-- **Document ingestion:** upload `.txt` and `.pdf` files (max 10 MB, configurable).
+- **Document ingestion:** upload `.txt`, `.pdf`, `.md`, and `.markdown` files (max 10 MB, configurable).
   - TXT files are read directly using Python's standard library with UTF-8 encoding.
   - PDFs are processed directly with PyMuPDF, extracting text page by page.
+  - Markdown files are loaded as a single document, preserving headings, lists, tables, and code blocks.
+  - Markdown YAML front matter and HTML comments are removed during loading.
   - No external document-loading framework is required.
 - **Project-based isolation:** each `project_id` has its own files, chunks and vector collection.
 - **Chunking:** a strategy-based interface with a registered `default` newline-based chunker and configurable chunk size.
@@ -486,7 +488,7 @@ When the API runs **inside Docker**, `localhost` points at the container. Use `h
 Replace `1` with any project ID.
 
 ```bash
-# 1. Upload a file (.txt or .pdf)
+# 1. Upload a file (.txt, .pdf, .md, or .markdown)
 curl -X POST http://localhost:8000/api/v1/data/upload/1 -F "file=@document.pdf"
 
 # 2. Chunk all files in the project
@@ -528,7 +530,7 @@ Add `"debug": true` to an answer request to include the full prompt and chat his
 
 | Area | Planned | Status |
 |---|---|---|
-| **File formats** | Markdown, CSV, Excel, Word, EPUB | Planned |
+| **File formats** | CSV, Excel, Word, EPUB | Planned |
 | | Ingest content from a URL / link | Planned |
 | **Chunking** | Additional chunking strategies, benchmarked for retrieval quality | Planned |
 | **Vision** | Image input | Planned |
@@ -541,8 +543,8 @@ Add `"debug": true` to an answer request to include the full prompt and chat his
 
 ## Known limitations
 
-- Only `.txt` and `.pdf` are supported; uploads must pass both MIME-type and filename-extension checks.
-- TXT files are read as UTF-8. Files using a different encoding may fail to load.
+- Supported formats are `.txt`, `.pdf`, `.md`, and `.markdown`; uploads must pass both MIME-type and filename-extension checks.
+- TXT files are read as UTF-8. Markdown files support automatic encoding detection.
 - PDF extraction is text-based and page-by-page. Scanned or image-only PDFs do not undergo OCR and may produce empty extracted text.
 - Encrypted PDFs are not supported.
 - Corrupted PDFs that cannot be opened, or that contain no recoverable pages, are rejected.
