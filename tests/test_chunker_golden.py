@@ -45,7 +45,12 @@ def test_every_supported_fixture_has_a_golden():
     fixtures = discover_fixtures(DOCS_DIR, include_stress=INCLUDE_STRESS)
 
     expected = {golden_path_for(path) for path in fixtures}
-    actual = set(GOLDEN_DIR.rglob("*.json")) if GOLDEN_DIR.exists() else set()
+    actual = {
+        path
+        for path in GOLDEN_DIR.rglob("*.json")
+        if path.name not in {"MANIFEST.json", "README.json"}
+    } if GOLDEN_DIR.exists() else set()
+
     if not INCLUDE_STRESS:
         actual = {p for p in actual if "stress" not in p.parts and "stress" not in p.name.lower()}
     missing = sorted(path.relative_to(ROOT).as_posix() for path in expected - actual)
@@ -58,18 +63,18 @@ def test_every_supported_fixture_has_a_golden():
 def _get_golden_files() -> list[Path]:
     if not GOLDEN_DIR.exists():
         return []
-    all_files = sorted(GOLDEN_DIR.rglob("*.json"))
+    all_files = sorted(
+        path
+        for path in GOLDEN_DIR.rglob("*.json")
+        if path.name not in {"MANIFEST.json", "README.json"}
+    )
     if not INCLUDE_STRESS:
         return [f for f in all_files if "stress" not in f.parts and "stress" not in f.name.lower()]
     return all_files
 
 
 GOLDEN_FILES = _get_golden_files()
-GOLDEN_FILES = sorted(
-    path
-    for path in GOLDEN_DIR.rglob("*.json")
-    if path.name not in {"MANIFEST.json", "README.json"}
-)
+
 
 
 @pytest.mark.parametrize(

@@ -5,6 +5,7 @@ import sys
 import threading
 from pathlib import Path
 from types import SimpleNamespace
+from typing import ClassVar
 
 import httpx
 import pytest
@@ -180,9 +181,9 @@ class FakeEmbeddingClient:
 class FakeRankingEmbeddingClient:
     embedding_size = 2
 
-    QUERY_VECTOR = [1.0, 0.0]
-    TARGET_VECTOR = [1.0, 0.0]
-    DISTRACTOR_VECTOR = [0.0, 1.0]
+    QUERY_VECTOR: ClassVar[list[float]] = [1.0, 0.0]
+    TARGET_VECTOR: ClassVar[list[float]] = [1.0, 0.0]
+    DISTRACTOR_VECTOR: ClassVar[list[float]] = [0.0, 1.0]
 
     async def embed_text(self, prompts, document_type=None):
         def embed(text):
