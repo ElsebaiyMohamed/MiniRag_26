@@ -2,9 +2,9 @@ name: MiniRag CI
 
 on:
   push:
-    branches: [ master, "release/1.2.0" ]
+    branches: [ master, dev, "release/**" ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, dev ]
 
 jobs:
   test:
