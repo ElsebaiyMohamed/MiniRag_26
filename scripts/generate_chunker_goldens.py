@@ -50,7 +50,8 @@ def discover_fixtures(docs_dir: Path, include_stress: bool = False) -> list[Path
 
     fixtures = [
         f for f in all_files
-        if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
+        if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS and f.name not in {"MANIFEST.json",
+                                                               "README.json"}
     ]
 
     if not include_stress:
