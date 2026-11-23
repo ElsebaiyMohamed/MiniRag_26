@@ -14,9 +14,10 @@ if str(SRC) not in sys.path:
 
 from controllers.ProcessController import ProcessController  # noqa: E402
 from ingestion.chunkers import DefaultChunker
-from ingestion.loaders import PdfLoader, TxtLoader
+from ingestion.loaders import create_default_loader_registry
 
-SUPPORTED_EXTENSIONS = {".txt", ".pdf"}
+LOADER_REGISTRY = create_default_loader_registry()
+SUPPORTED_EXTENSIONS = LOADER_REGISTRY.supported_extensions()
 
 
 def parse_args() -> argparse.Namespace:
@@ -46,11 +47,10 @@ def parse_args() -> argparse.Namespace:
 def discover_fixtures(docs_dir: Path, include_stress: bool = False) -> list[Path]:
     """Discover all supported fixtures, optionally including stress fixtures."""
     all_files = sorted(docs_dir.rglob("*.*"))
-    supported_extensions = {".txt", ".pdf"}
 
     fixtures = [
         f for f in all_files
-        if f.is_file() and f.suffix.lower() in supported_extensions
+        if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
     ]
 
     if not include_stress:
@@ -63,16 +63,8 @@ def discover_fixtures(docs_dir: Path, include_stress: bool = False) -> list[Path
 
 
 def load_fixture(path: Path):
-    """Use the same document loaders as ProcessController."""
-    extension = path.suffix.lower()
-
-    if extension == ".txt":
-        loader = TxtLoader()
-    elif extension == ".pdf":
-        loader =  PdfLoader()
-    else:
-        raise ValueError(f"Unsupported fixture format: {path.suffix}")
-
+    """Load fixtures using the production document loader registry."""
+    loader = LOADER_REGISTRY.for_path(path)
     return loader.load(path)
 
 

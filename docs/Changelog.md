@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Add Markdown ingestion support for `.md` and `.markdown` files, including encoding detection, YAML front matter removal, HTML comment stripping, and preservation of Markdown structure (`#63`).
+- Add Markdown loader, registry, upload validation, and end-to-end workflow tests covering processing, indexing, and ranked search (`#63`).
 - Add dedicated PDF loader tests covering multi-page extraction, encrypted PDFs, corrupted PDFs, image-only PDFs, and empty-text pages (`#62`).
 - Add chunking abstraction package under `src/ingestion/chunkers/` (`__init__.py`, `base.py`, `default.py`, `factory.py`) with `DefaultChunker` reproducing newline-based splitting behavior (`#101`).
 - Integrate the chunker abstraction and factory into `ProcessController.process_file_content`, `src/main.py`, `src/models/schemas/data.py`, and `src/routes/data.py` (`#101`).
@@ -18,7 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-
+- Extend the shared loader registry and upload validation to support Markdown MIME types and filename extensions (`#63`).
+- Update README documentation to reflect Markdown ingestion support (`#63`).
 - Replace LangChain-based TXT and PDF loading with native loaders: Python standard-library UTF-8 reading for TXT files and direct PyMuPDF extraction for PDFs (`#62`).
 - Extract PDF content page by page while preserving page-level metadata and normalized creation/modification dates (`#62`).
 - Update the golden fixture generator to use the application's native TXT and PDF loaders (`#62`).
