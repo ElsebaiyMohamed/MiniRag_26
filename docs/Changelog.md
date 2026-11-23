@@ -4,6 +4,39 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+
+### Added
+
+- Add Markdown ingestion support for `.md` and `.markdown` files, including encoding detection, YAML front matter removal, HTML comment stripping, and preservation of Markdown structure (`#63`).
+- Add Markdown loader, registry, upload validation, and end-to-end workflow tests covering processing, indexing, and ranked search (`#63`).
+- Add dedicated PDF loader tests covering multi-page extraction, encrypted PDFs, corrupted PDFs, image-only PDFs, and empty-text pages (`#62`).
+- Add chunking abstraction package under `src/ingestion/chunkers/` (`__init__.py`, `base.py`, `default.py`, `factory.py`) with `DefaultChunker` reproducing newline-based splitting behavior (`#101`).
+- Integrate the chunker abstraction and factory into `ProcessController.process_file_content`, `src/main.py`, `src/models/schemas/data.py`, and `src/routes/data.py` (`#101`).
+- Update chunker and controller test suites in `tests/test_chunker.py` and `tests/test_process_controller.py` to use `LoadedDocument` and `process_file_content` (`#101`).
+- added bug report and feature request templates
+
+
+### Changed
+
+- Extend the shared loader registry and upload validation to support Markdown MIME types and filename extensions (`#63`).
+- Update README documentation to reflect Markdown ingestion support (`#63`).
+- Replace LangChain-based TXT and PDF loading with native loaders: Python standard-library UTF-8 reading for TXT files and direct PyMuPDF extraction for PDFs (`#62`).
+- Extract PDF content page by page while preserving page-level metadata and normalized creation/modification dates (`#62`).
+- Update the golden fixture generator to use the application's native TXT and PDF loaders (`#62`).
+- Replace `ProcessController.simple_text_spliter` usage with `ProcessController.process_file_content` and factory-selected chunkers while preserving existing splitting and metadata behavior (`#101`).
+- Centralized document format support in an injectable loader registry shared by upload validation and processing.
+- Validate upload filename extensions and MIME types as a matching pair against registered loaders.
+- Retained `FILE_ALLOWED_EXTENTIONS` as an additional MIME-type allowlist.
+
+
+### Removed
+
+- Remove LangChain and LangChain Community dependencies; document loading no longer relies on LangChain (`#62`).
+- Split text directly in `ProcessController.simple_text_spliter`.
+
+
 ## [1.2.0]  - 2026-11-14
 
 ### Documentation

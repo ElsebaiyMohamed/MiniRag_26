@@ -123,7 +123,9 @@ Returns the canonical application version declared in `pyproject.toml`.
 
 ## `POST /api/v1/data/upload/{project_id}`
 
-Uploads one file as `multipart/form-data` with the field name `file`. The request must use an allowed MIME type from `FILE_ALLOWED_EXTENTIONS`, a supported `.txt` or `.pdf` filename extension, and stay within `FILE_MAX_SIZE_IN_MB`. See [Configuration](Configuration.md).
+Uploads one file as `multipart/form-data` with the field name `file`. The filename extension and MIME type must match a
+registered document loader, the MIME type must also be allowed by `FILE_ALLOWED_EXTENTIONS`, and the file must stay within
+`FILE_MAX_SIZE_IN_MB`. See [Configuration](Configuration.md).
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/data/upload/1 \
@@ -163,14 +165,19 @@ The current route returns `200` with `PROCESSING_SUCCESS` after processing attem
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `chunk_size` | integer | `100` | Target chunk length in characters. The default is small, so set it explicitly |
+| `chunker` | string | `"default"` | Name of the chunking strategy. The default factory currently registers `default` |
+| `chunk_size` | integer | `100` | Character threshold for the default chunker. Lines are kept whole, so an individual long line can exceed it; set this explicitly |
 | `overlap_size` | integer | `20` | Accepted but not applied yet |
 | `do_reset` | integer | `0` | `1` deletes the project's existing chunks and reprocesses all files |
+
+The `default` strategy splits documents on newline boundaries, trims each line, drops lines with one or
+fewer characters, and groups the remaining lines into ordered chunks. The strategy interface allows
+additional chunkers to be registered; only `default` is registered by the built-in factory today.
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/data/process/1 \
   -H "Content-Type: application/json" \
-  -d '{"chunk_size": 1000, "do_reset": 1}'
+  -d '{"chunker": "default", "chunk_size": 1000, "overlap_size": 20, "do_reset": 1}'
 ```
 
 **200**

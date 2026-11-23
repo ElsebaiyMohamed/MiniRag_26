@@ -27,7 +27,9 @@ async def upload(
     file: UploadFile,
     app_settings: Settings = Depends(get_settings),
 ):
-    data_contoller = DataController()
+    data_contoller = DataController(
+        loader_registry=request.app.loader_registry
+    )
     is_valid, signal = await data_contoller.validate(file)
 
     if not is_valid:
@@ -74,7 +76,11 @@ async def upload(
 
 @data_router.post("/process/{project_id}")
 async def process_endpoint(request: Request, project_id: int, process_request: ProcessRequest):
-    processor_controller = ProcessController(project_id=project_id)
+    processor_controller = ProcessController(
+        project_id=project_id,
+        loader_registry=request.app.loader_registry,
+        chunker_factory=request.app.chunker_factory
+    )
     project_model = await ProjectDataModel.create_instance(
         db_client=request.app.db_client
     )
@@ -129,8 +135,7 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
 
     for asset_id, file_id in project_file_ids.items():
         file_type = os.path.splitext(file_id)[-1].lower().lstrip(".")
-
-        if file_type not in {"pdf", "txt"}:
+        if f".{file_type}" not in request.app.loader_registry.supported_extensions():
             file_type = "other"
 
         start_time = time.perf_counter()
@@ -144,6 +149,7 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
                 file_chunks = await asyncio.to_thread(
                     processor_controller.process_file,
                     file_id=file_id,
+                    chunker=process_request.chunker,
                     chunk_size=process_request.chunk_size,
                     overlap_size=process_request.overlap_size,
                 )
@@ -158,13 +164,13 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
             # Database operations remain on the event-loop thread.
             file_chunks_record = [
                 DataChunk(
-                    chunk_text=chunk.page_content,
+                    chunk_text=chunk.text,
                     chunk_metadata=chunk.metadata,
-                    chunk_order=i + 1,
+                    chunk_order=chunk.order,
                     chunk_project_id=project.project_id,
                     chunk_asset_id=asset_id,
                 )
-                for i, chunk in enumerate(file_chunks)
+                for chunk in file_chunks
             ]
 
             record_count = await chunk_model.create_many_chunks(

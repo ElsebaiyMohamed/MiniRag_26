@@ -1,0 +1,9 @@
+MIXED-START
+
+The ingestion pipeline يستقبل ملفات متعددة اللغات ويحافظ على النصوص كما وردت في المصدر.
+
+Case ID: MIX-2048 — حالة الاختبار: استخراج النص العربي والإنجليزي من مستند واحد.
+
+Metadata fields include source_name, page_number, language_hint, and ingestion_status.
+
+MIXED-END

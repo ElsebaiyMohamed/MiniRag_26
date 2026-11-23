@@ -9,6 +9,10 @@ src/
 ├── main.py            # App creation and startup/shutdown (lifespan)
 ├── routes/            # HTTP endpoints: base, data, nlp
 ├── controllers/       # Business logic
+├── ingestion/         # Document loading and chunking
+│   ├── loaders/       # LoaderRegistry, PdfLoader, TxtLoader, LoadedDocument
+│   ├── chunkers/      # Chunker protocol, Chunk, strategies, and factory
+│   └── exceptions.py  # Ingestion-related exceptions
 ├── models/
 │   ├── schemas/       # Pydantic request/response models
 │   ├── enums/         # Response signals, provider names, asset types
@@ -112,14 +116,57 @@ The per-project vector tables created by the pgvector provider are not managed b
 
 See [Adding a provider](Adding%20a%20provider.md).
 
-### Add a new file type (planned work)
+### Built-in document loaders
 
-Loading happens in `ProcessController._get_file_loader`, which maps a file extension to a loader. A new type needs:
+The default loader registry currently supports:
 
-1. The extension in `ProcessingEnum`.
-2. The MIME type in `FILE_ALLOWED_EXTENTIONS`.
-3. A branch in `_get_file_loader` returning a loader whose `load()` yields objects with `page_content` and `metadata`.
-4. Documentation updates (README features, [Configuration](Configuration.md), changelog).
+| Loader      | Format | Implementation                                         | Output                            |
+|-------------|--------|--------------------------------------------------------|-----------------------------------|
+| `TxtLoader` | `.txt` | Python standard library (`Path.read_text`) using UTF-8 | One `LoadedDocument` per file     |
+| `PdfLoader` | `.pdf` | PyMuPDF (`pymupdf`)                                    | One `LoadedDocument` per PDF page |
+
+Each `LoadedDocument` contains extracted text and metadata. PDF metadata includes the resolved source path, file path, zero-based page number, and total page count. Available PDF creation and modification dates are normalized to ISO format.
+
+PDF handling behavior:
+
+- Encrypted PDFs raise `UnsupportedFile`.
+- PDFs that cannot be opened raise `UnsupportedFile`.
+- Repaired PDFs with no recoverable pages are rejected.
+- Image-only or scanned PDFs are not OCR-processed. Their pages are returned with empty extracted text.
+- Pages with no text are preserved rather than silently discarded.
+
+`UnsupportedFile` represents a supported format that could not be processed. `UnsupportedFileType` represents a file extension for which no loader is registered.
+
+The golden fixture generator in `scripts/generate_chunker_goldens.py` uses the same native loaders as the application. When loader behavior intentionally changes, regenerate and review the affected golden fixtures.
+
+
+### Add a new file type
+
+Document loaders are registered in `src/ingestion/loaders/`. The same registry is used by upload validation and document processing.
+
+To add a format:
+
+1. Create a loader class implementing `DocumentLoader` from `src/ingestion/loaders/base.py`.
+2. Declare its supported `extensions` and `mime_types`.
+3. Implement `load(path)` and return `LoadedDocument` instances.
+4. Register the loader in `create_default_loader_registry()` in `src/ingestion/loaders/__init__.py`.
+5. Add the MIME type to `FILE_ALLOWED_EXTENTIONS` in the environment examples and update the configuration documentation.
+6. Add loader, registry, upload-validation, and processing tests.
+
+The registry is created once during application startup and injected into the upload and processing controllers. Do not create a global registry at module import time.
+
+### Add a chunking strategy
+
+Chunkers implement the `Chunker` protocol in `src/ingestion/chunkers/base.py`. A chunker accepts
+loaded documents, `chunk_size`, and `chunk_overlap`, and returns ordered `Chunk` objects containing
+text and metadata.
+
+1. Implement the protocol in `src/ingestion/chunkers/`.
+2. Register the strategy name in `create_default_chunker_factory()` in `src/ingestion/chunkers/__init__.py`.
+3. Add tests for chunk boundaries, ordering, metadata, and overlap behavior.
+4. Document the strategy name and behavior in the API reference.
+
+The built-in factory currently registers only the newline-based `default` strategy. Its `chunk_overlap` argument is accepted but not applied.
 
 ## Testing
 
