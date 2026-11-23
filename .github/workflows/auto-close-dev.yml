@@ -1,8 +1,9 @@
-name: Auto Close Issues on Dev Merge
+name: Auto Close Issues on Stable Merge
 
 on:
   pull_request:
-    branches: [ master, dev, "release/**" ]
+    types: [ closed ]
+    branches: [ master, main, "release/**" ]
 
   workflow_dispatch:
     inputs:
