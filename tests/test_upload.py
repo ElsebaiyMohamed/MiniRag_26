@@ -19,7 +19,12 @@ def controller():
             loader_registry=create_default_loader_registry()
         )        # Settings normally injected by BaseController.__init__
         ctrl.app_settings = MagicMock()
-        ctrl.app_settings.FILE_ALLOWED_EXTENTIONS = ["application/pdf", "text/plain"]
+        ctrl.app_settings.FILE_ALLOWED_EXTENTIONS = [
+            "application/pdf",
+            "text/plain",
+            "text/markdown",
+            "text/x-markdown",
+        ]
         ctrl.app_settings.FILE_MAX_SIZE_IN_MB = 10
         yield ctrl
 
@@ -47,6 +52,25 @@ async def test_validate_accepts_allowed_pdf(controller):
 async def test_validate_accepts_allowed_txt(controller):
     file = _make_upload_file("notes.txt", "text/plain", size=512)
     is_valid, signal = await controller.validate(file)
+    assert is_valid is True
+    assert signal == ResponseSignal.FILE_VALIDATED_SUCCESS.value
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("filename", "content_type"),
+    [
+        ("document.md", "text/markdown"),
+        ("document.md", "text/x-markdown"),
+        ("document.md", "text/plain"),
+        ("document.markdown", "text/markdown"),
+        ("document.markdown", "text/x-markdown"),
+    ],
+)
+async def test_validate_accepts_markdown(controller, filename, content_type):
+    file = _make_upload_file(filename, content_type, size=1024)
+
+    is_valid, signal = await controller.validate(file)
+
     assert is_valid is True
     assert signal == ResponseSignal.FILE_VALIDATED_SUCCESS.value
 

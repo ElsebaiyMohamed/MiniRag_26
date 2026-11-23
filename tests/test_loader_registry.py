@@ -68,6 +68,8 @@ def test_supported_extensions():
     assert registry.supported_extensions() == {
         ".txt",
         ".pdf",
+        ".md",
+        ".markdown",
     }
 
 
@@ -77,4 +79,6 @@ def test_supported_mime_types():
     assert registry.supported_mime_types() == {
         "text/plain",
         "application/pdf",
+        "text/markdown",
+        "text/x-markdown",
     }

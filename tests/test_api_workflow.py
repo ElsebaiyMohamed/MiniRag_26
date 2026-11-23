@@ -10,7 +10,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from ingestion.chunkers import Chunk, create_default_chunker_factory
+from ingestion.chunkers import create_default_chunker_factory
 
 sys.path.insert(
     0,
@@ -82,11 +82,24 @@ class FakeChunkModel:
 class FakeUploadController:
     def __init__(self, loader_registry):
         self.loader_registry = loader_registry
+
     async def validate(self, upload):
-        if (
-            upload.filename.endswith(".txt")
-            and upload.content_type == "text/plain"
-        ):
+        supported_types = {
+            ".txt": {"text/plain"},
+            ".md": {
+                "text/markdown",
+                "text/x-markdown",
+                "text/plain",
+            },
+            ".markdown": {
+                "text/markdown",
+                "text/x-markdown",
+            },
+        }
+
+        extension = Path(upload.filename).suffix.lower()
+
+        if upload.content_type in supported_types.get(extension, set()):
             return True, ResponseSignal.FILE_VALIDATED_SUCCESS.value
 
         return False, ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
@@ -100,35 +113,44 @@ class FakeUploadController:
 
 
 class FakeProcessController:
-    def __init__(self, project_id, assets_path):
+    def __init__(
+        self,
+        project_id,
+        assets_path,
+        loader_registry,
+        chunker_factory,
+    ):
         self.assets_path = assets_path
+        self.loader_registry = loader_registry
+        self.chunker_factory = chunker_factory
         self.processing_thread_id = None
 
     def process_file(
         self,
         file_id,
-        chunker: str = 'default',
+        chunker="default",
         chunk_size=100,
         overlap_size=20,
-
     ):
-        # Record the thread that executes document processing.
         self.processing_thread_id = threading.get_ident()
 
-        path = Path(self.assets_path) / str(1) / file_id
+        file_path = Path(self.assets_path) / str(1) / file_id
 
-        if not path.exists():
+        if not file_path.exists():
             return None
 
-        content = path.read_text(encoding="utf-8")
+        loader = self.loader_registry.for_path(file_path)
+        documents = loader.load(file_path)
 
-        return [
-            Chunk(
-                text=content.strip(),
-                order=1,
-                metadata={"source": "upload"},
-            )
-        ]
+        selected_chunker = self.chunker_factory.get_chunker(
+            name=chunker
+        )
+
+        return selected_chunker.chunk(
+            documents,
+            chunk_size=chunk_size,
+            chunk_overlap=overlap_size,
+        )
 
 
 class FakeEmbeddingClient:
@@ -155,6 +177,39 @@ class FakeEmbeddingClient:
             total_tokens=4,
         )
 
+class FakeRankingEmbeddingClient:
+    embedding_size = 2
+
+    QUERY_VECTOR = [1.0, 0.0]
+    TARGET_VECTOR = [1.0, 0.0]
+    DISTRACTOR_VECTOR = [0.0, 1.0]
+
+    async def embed_text(self, prompts, document_type=None):
+        def embed(text):
+            if document_type == "query":
+                return self.QUERY_VECTOR
+
+            if "vector indexing verification" in text:
+                return self.TARGET_VECTOR
+
+            return self.DISTRACTOR_VECTOR
+
+        content = (
+            embed(prompts)
+            if isinstance(prompts, str)
+            else [embed(text) for text in prompts]
+        )
+
+        return LLMResult(
+            content=content,
+            provider="fake",
+            model="deterministic-ranking",
+            operation="embed_text",
+            latency_ms=0.0,
+            success=True,
+            prompt_tokens=0,
+            total_tokens=0,
+        )
 
 class FakeGenerationClient:
     enum = OpenAIEnum
@@ -178,7 +233,13 @@ class FakeGenerationClient:
 
 
 class FakeVectorDB:
-    def __init__(self):
+    def __init__(self, distance_method="cosine"):
+        if distance_method not in {"cosine", "dot"}:
+            raise ValueError(
+                f"Unsupported distance method: {distance_method}"
+            )
+
+        self.distance_method = distance_method
         self.records = []
 
     async def create_collection(
@@ -207,10 +268,39 @@ class FakeVectorDB:
 
         return {"success": len(texts), "failed": 0}
 
+    def _calculate_score(self, first, second):
+        dot_product = sum(
+            left * right
+            for left, right in zip(first, second)
+        )
+
+        if self.distance_method == "dot":
+            return dot_product
+
+        first_norm = sum(value ** 2 for value in first) ** 0.5
+        second_norm = sum(value ** 2 for value in second) ** 0.5
+
+        if first_norm == 0 or second_norm == 0:
+            return 0.0
+
+        return dot_product / (first_norm * second_norm)
+
     async def search_by_vector(self, collection_name, vector, limit):
+        ranked_records = sorted(
+            self.records,
+            key=lambda record: self._calculate_score(
+                record[1],
+                vector,
+            ),
+            reverse=True,
+        )
+
         return [
-            RetrievedDocument(text=text, score=1.0)
-            for text, _ in self.records[:limit]
+            RetrievedDocument(
+                text=text,
+                score=self._calculate_score(record_vector, vector),
+            )
+            for text, record_vector in ranked_records[:limit]
         ]
 
     async def delete_embeddings_by_asset_id(self, collection_name, asset_id):
@@ -222,7 +312,6 @@ class FakeVectorDB:
 
     async def get_collection_info(self, collection_name):
         return {"record_count": len(self.records)}
-
 
 @pytest.fixture
 def workflow_models(monkeypatch):
@@ -296,6 +385,8 @@ async def test_upload_process_index_search_answer_workflow(
     process_controller = FakeProcessController(
         1,
         project_assets,
+        create_default_loader_registry(),
+        create_default_chunker_factory(),
     )
 
     monkeypatch.setattr(
@@ -439,5 +530,204 @@ async def test_upload_process_index_search_answer_workflow(
         assert "full_prompt" in answer
         assert "chat_history" in answer
         assert "telemetry" in answer
+
+    assert projects.project.project_id == 1
+
+
+@pytest.mark.asyncio
+async def test_markdown_upload_process_index_search_workflow(
+    tmp_path,
+    monkeypatch,
+    workflow_models,
+    settings_stub,
+):
+    projects, assets, chunks = workflow_models
+
+    project_assets = tmp_path / "assets"
+    project_assets.mkdir()
+
+    monkeypatch.setattr(
+        data_routes,
+        "DataController",
+        FakeUploadController,
+    )
+
+    def get_project_path(project_id):
+        project_path = project_assets / str(project_id)
+        project_path.mkdir(exist_ok=True)
+        return str(project_path)
+
+    monkeypatch.setattr(
+        data_routes,
+        "ProjectController",
+        lambda: SimpleNamespace(get_project_path=get_project_path),
+    )
+
+    process_controller = FakeProcessController(
+        1,
+        project_assets,
+        create_default_loader_registry(),
+        create_default_chunker_factory(),
+    )
+
+    monkeypatch.setattr(
+        data_routes,
+        "ProcessController",
+        lambda project_id, loader_registry, chunker_factory: process_controller,
+    )
+
+    app = FastAPI()
+    app.processing_semaphore = asyncio.Semaphore(2)
+
+    app.include_router(data_routes.data_router)
+    app.include_router(nlp_routes.nlp_router)
+
+    app.loader_registry = create_default_loader_registry()
+    app.chunker_factory = create_default_chunker_factory()
+    app.db_client = object()
+    app.vectordb_client = FakeVectorDB(distance_method="cosine")
+    app.embedding_client = FakeRankingEmbeddingClient()
+    app.generation_client = FakeGenerationClient()
+    app.template_parser = TemplateParser(language="en")
+
+    app.dependency_overrides[data_routes.get_settings] = (
+        lambda: SimpleNamespace(FILE_DEAFAULT_CHINK_SIZE=16)
+    )
+
+    markdown_content = b"""---
+title: Markdown Test
+language: en
+---
+
+# Markdown Ingestion
+
+This document contains a unique phrase: **vector indexing verification**.
+
+## Implementation
+
+- Markdown headings are preserved.
+- Lists are preserved.
+
+<!-- This comment must not appear in the indexed content. -->
+
+```python
+def markdown_example():
+    return "structured content"
+```
+
+| Component | Status |
+|---|---|
+| Loader | Ready |
+| Indexing | Ready |
+"""
+
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://test",
+    ) as client:
+
+        # 1. Upload Markdown.
+        upload_response = await client.post(
+            "/api/v1/data/upload/1",
+            files={
+                "file": (
+                    "guide.md",
+                    markdown_content,
+                    "text/markdown",
+                )
+            },
+        )
+
+        assert upload_response.status_code == 200
+        assert (
+            upload_response.json()["signal"]
+            == ResponseSignal.FILE_UPLOAD_SUCCESS.value
+        )
+        distractors = {
+            "database.md": (
+                "# Database Setup\n\n"
+                "Configure PostgreSQL connections and database migrations."
+            ),
+            "deployment.md": (
+                "# Deployment Guide\n\n"
+                "Build Docker images and configure production environments."
+            ),
+            "authentication.md": (
+                "# Authentication\n\n"
+                "Configure API keys, access tokens, and user permissions."
+            ),
+            "monitoring.md": (
+                "# Monitoring\n\n"
+                "Track application logs, metrics, and service health."
+            ),
+        }
+
+        for filename, content in distractors.items():
+            response = await client.post(
+                "/api/v1/data/upload/1",
+                files={
+                    "file": (
+                        filename,
+                        content.encode("utf-8"),
+                        "text/markdown",
+                    )
+                },
+            )
+
+            assert response.status_code == 200
+        # 2. Process Markdown.
+        process_response = await client.post(
+            "/api/v1/data/process/1",
+            json={"chunk_size": 500, "overlap_size": 20},
+        )
+
+        assert process_response.status_code == 200
+        assert process_response.json()["no_files_success"] == 5
+        assert len(chunks.chunks) == 5
+
+        processed_text = chunks.chunks[0].chunk_text
+
+        assert "# Markdown Ingestion" in processed_text
+        assert "## Implementation" in processed_text
+        assert "vector indexing verification" in processed_text
+        assert "```python" in processed_text
+        assert "| Component | Status |" in processed_text
+        assert "Markdown Test" not in processed_text
+        assert "This comment must not appear" not in processed_text
+
+        # 3. Index Markdown.
+        push_response = await client.post(
+            "/api/v1/nlp/index/push/1",
+            json={},
+        )
+
+        assert push_response.status_code == 200
+        assert (
+            push_response.json()["signal"]
+            == ResponseSignal.INSERT_INTO_VECTOR_DATABASE_SUCCESS.value
+        )
+
+        assert assets.assets[0].asset_status == AssetStatus.INDEXED.value
+
+        # 4. Search Markdown content.
+        search_response = await client.post(
+            "/api/v1/nlp/index/search/1",
+            json={
+                "text": "vector indexing verification",
+                "limit": 3,
+            },
+        )
+
+        assert search_response.status_code == 200
+
+        results = search_response.json()["result"]
+
+        assert len(results) == 3
+        assert any(
+            "vector indexing verification" in result["text"]
+            for result in results
+        )
 
     assert projects.project.project_id == 1
