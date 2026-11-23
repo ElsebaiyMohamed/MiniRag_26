@@ -1,0 +1,4 @@
+2026-11-16T08:30:00Z INFO ingestion.started source=report-17
+2026-11-16T08:30:01Z INFO loader.selected extension=.txt
+2026-11-16T08:30:02Z WARN metadata.missing field=author
+2026-11-16T08:30:03Z INFO ingestion.completed pages=1 status=success
