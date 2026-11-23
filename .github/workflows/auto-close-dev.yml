@@ -2,10 +2,7 @@ name: Auto Close Issues on Dev Merge
 
 on:
   pull_request:
-    types: [closed]
-    branches:
-      - master
-      - 'release/**'
+    branches: [ master, dev, "release/**" ]
 
   workflow_dispatch:
     inputs:
