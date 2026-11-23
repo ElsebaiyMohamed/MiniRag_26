@@ -65,6 +65,11 @@ def _get_golden_files() -> list[Path]:
 
 
 GOLDEN_FILES = _get_golden_files()
+GOLDEN_FILES = sorted(
+    path
+    for path in GOLDEN_DIR.rglob("*.json")
+    if path.name not in {"MANIFEST.json", "README.json"}
+)
 
 
 @pytest.mark.parametrize(
