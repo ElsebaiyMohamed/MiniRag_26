@@ -91,123 +91,194 @@ flowchart LR
 
 ### Code structure
 
-The application follows a ports-and-adapters structure for file ingestion.
+The application combines a ports-and-adapters architecture for document ingestion and asset processing with the existing controller-based NLP and RAG workflows.
 
-The upload route delegates validation and ingestion orchestration to the `IngestFile` use case. The use case depends on application-level ports rather than FastAPI, SQLAlchemy, or concrete storage implementations.
+The HTTP layer exposes the base, data, and NLP routes. The data routes delegate file uploads to the `IngestFile` use case and stored asset processing to the `ProcessAsset` use case. Both use application-level ports to keep their business logic independent of infrastructure implementations.
 
-The `LoaderRegistry` resolves the loader for the uploaded filename. The `FileStorage` port handles file persistence, while the project and asset repository ports handle project and asset records.
+The infrastructure adapters implement file storage, asset file resolution, and database persistence. The shared `LoaderRegistry` resolves document loaders, while the configured `ChunkerFactory` provides the chunking strategy. The asset processing repository persists generated chunks and updates the asset status transactionally.
 
-Infrastructure adapters provide the concrete implementations: `LocalFileStorage` stores uploaded files on disk, and the SQLAlchemy repositories persist project and asset records.
+The NLP routes retain the existing `NLPController` workflow for indexing, semantic search, and RAG answer generation. This workflow uses the configured embedding, vector database, and generation clients, backed by their respective provider interfaces and factories.
 
-The existing processing flow remains separate: `ProcessController` loads stored files through the shared loader registry and passes the resulting documents to the configured chunker.
+The existing SQLAlchemy models and PostgreSQL database remain the persistence foundation for projects, assets, chunks, and vector data.
 
 ```mermaid
 flowchart TB
-    main["main.py<br/>Application startup"]
+    main["main.py<br/>Application startup and lifecycle"]
 
     subgraph http["HTTP layer"]
-        routes["FastAPI routes<br/>data, nlp"]
+        base["Base routes"]
+        data["Data routes<br/>Upload and process"]
+        nlp["NLP routes<br/>Index, info, search, answer"]
     end
 
     subgraph application["Application layer"]
         ingest["IngestFile<br/>Upload orchestration"]
-        ports["Application ports<br/>FileStorage, ProjectRepository,<br/>AssetRepository, LoaderResolver"]
+        process["ProcessAsset<br/>Per-asset processing"]
+        ports["Application ports and DTOs<br/>FileStorage, ProjectRepository,<br/>AssetRepository, LoaderResolver,<br/>AssetFileResolver, ChunkerResolver,<br/>AssetProcessingRepository, NewChunk"]
+    end
+
+    subgraph controllers["Controller layer"]
+        nlp_controller["NLPController<br/>Indexing, search, answer generation"]
     end
 
     subgraph infrastructure["Infrastructure adapters"]
         storage["LocalFileStorage"]
+        file_resolver["LocalAssetFileResolver"]
         project_repo["SqlAlchemyProjectRepository"]
         asset_repo["SqlAlchemyAssetRepository"]
+        processing_repo["SqlAlchemyAssetProcessingRepository"]
     end
 
     subgraph ingestion["Document ingestion"]
         registry["LoaderRegistry"]
-        loaders["TxtLoader / PdfLoader"]
+        loaders["Document loaders<br/>TxtLoader / PdfLoader"]
         chunker["ChunkerFactory"]
+        strategies["Chunking strategies"]
+
         registry --> loaders
+        chunker --> strategies
+    end
+
+    subgraph stores["LLM and vector stores"]
+        llm_interface["LLM interface and factory"]
+        llm_providers["LLM providers<br/>Cohere / OpenAI-compatible"]
+        embedding["Embedding client/provider"]
+        prompt_templates["Prompt templates<br/>English / Arabic"]
+        vector_interface["VectorDB interface and factory"]
+        vector_providers["VectorDB providers<br/>pgvector"]
+
+        llm_interface --> llm_providers
+        llm_interface --> prompt_templates
+        vector_interface --> vector_providers
     end
 
     subgraph persistence["Persistence"]
         models["SQLAlchemy data models"]
-        db[("PostgreSQL")]
+        db[("PostgreSQL + pgvector")]
         models --> db
     end
 
-    subgraph processing["Existing processing"]
-        process["ProcessController"]
-    end
+    data --> ingest
+    data --> process
+    nlp --> nlp_controller
 
-    routes --> ingest
     ingest --> ports
-    ports --> storage
-    ports --> project_repo
-    ports --> asset_repo
-    ports --> registry
+    process --> ports
+
+    storage -.-> ports
+    file_resolver -.-> ports
+    project_repo -.-> ports
+    asset_repo -.-> ports
+    processing_repo -.-> ports
+    registry -.-> ports
+    chunker -.-> ports
 
     project_repo --> models
     asset_repo --> models
+    processing_repo --> models
 
-    routes --> process
-    process --> registry
-    process --> chunker
-    process --> models
+    nlp_controller --> embedding
+    nlp_controller --> vector_interface
+    nlp_controller --> llm_interface
+    nlp_controller --> models
 
     main -.-> registry
+    main -.-> llm_interface
+    main -.-> embedding
+    main -.-> vector_interface
 ```
 
 ### Ingestion flow
 
 File upload and document processing are separate application operations.
 
-During upload, the FastAPI route delegates to `IngestFile`. The use case resolves the appropriate loader through the shared `LoaderRegistry`, validates the MIME type and configured size limit, ensures the project exists, stores the uploaded file through the storage port, and creates its asset record through the asset repository.
+During upload, the FastAPI data route delegates to `IngestFile`. The use case resolves the appropriate loader through the shared `LoaderRegistry`, validates the MIME type and configured size limit, ensures the project exists, stores the uploaded file through the storage port, and creates its asset record through the asset repository.
 
-The infrastructure adapters implement local file storage and SQLAlchemy-backed project and asset persistence. The use case itself does not depend on FastAPI or SQLAlchemy.
+After upload, the process endpoint delegates each selected asset to the `ProcessAsset` use case. The use case resolves the stored file path through `LocalAssetFileResolver`, selects the appropriate loader through the shared `LoaderRegistry`, and generates chunks using the configured `ChunkerFactory`.
 
-After upload, the existing process endpoint uses `ProcessController` to load the stored file and generate chunks using the configured chunking strategy.
+Document loading and chunking run in a worker thread so synchronous operations do not block the asynchronous request flow. The use case converts the generated chunks into application-level data objects and delegates persistence to `SqlAlchemyAssetProcessingRepository`.
+
+The repository persists the chunks and updates the asset status to `CHUNKED` within one database transaction. If persistence fails, the transaction is rolled back. Per-asset failures are reflected in the existing processing result, preserving the process endpoint's response contract and asset status behavior.
+
+The NLP indexing and question-answering workflows remain separate from this ingestion and processing flow.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor C as Client
     participant API as FastAPI
-    participant UC as IngestFile
+    participant IU as IngestFile
     participant LR as LoaderRegistry
     participant PR as ProjectRepository
-    participant FS as FileStorage
+    participant FS as LocalFileStorage
     participant AR as AssetRepository
     participant DB as PostgreSQL
+    participant PU as ProcessAsset
+    participant FR as LocalAssetFileResolver
+    participant DL as DocumentLoader
+    participant CF as ChunkerFactory
+    participant RR as AssetProcessingRepository
+    participant CH as Chunker
 
     C ->> API: POST /data/upload/{project_id}
-    API ->> UC: execute(IngestFileCommand)
+    API ->> IU: execute(IngestFileCommand)
 
-    UC ->> LR: Resolve loader by filename
-    LR -->> UC: Loader information
+    IU ->> LR: Resolve loader by filename
+    LR -->> IU: Loader information
 
-    UC ->> UC: Validate MIME type and file size
+    IU ->> IU: Validate MIME type and file size
 
-    UC ->> PR: get_or_create(project_id)
+    IU ->> PR: get_or_create(project_id)
     PR ->> DB: Get or create project
     DB -->> PR: Project
-    PR -->> UC: Project ID
+    PR -->> IU: Project ID
 
-    UC ->> FS: store(project_id, filename, file)
-    FS -->> UC: Stored filename
+    IU ->> FS: store(project_id, filename, file)
+    FS -->> IU: Stored filename
 
-    UC ->> AR: create(NewAsset)
+    IU ->> AR: create(NewAsset)
     AR ->> DB: Insert asset record
     DB -->> AR: Created asset
-    AR -->> UC: AssetRecord
+    AR -->> IU: AssetRecord
 
-    UC -->> API: IngestFileResult(file_id)
+    IU -->> API: IngestFileResult(file_id)
     API -->> C: Upload success + file_id
 
     C ->> API: POST /data/process/{project_id}
-    API ->> API: ProcessController
-    API ->> LR: Resolve loader
-    LR -->> API: Loaded documents
-    API ->> API: Chunk documents
-    API ->> DB: Store chunks
-    API -->> C: File and chunk counts
+    API ->> API: Select assets to process
+
+    loop Each selected asset
+        API ->> PU: ProcessAsset.execute(command)
+
+        PU ->> FR: Resolve asset file path
+        FR -->> PU: File path
+
+        PU ->> LR: for_path(file_path)
+        LR -->> PU: Document loader
+
+        Note over PU: Loading runs in a worker thread
+        PU ->> DL: load(file_path)
+        DL -->> PU: Loaded documents
+
+        PU ->> CF: get_chunker(name)
+        CF -->> PU: Configured chunker
+
+        Note over PU,CH: Chunking runs in a worker thread
+        PU ->> CH: chunk(documents, chunk_size, chunk_overlap)
+        CH -->> PU: Generated chunks
+
+        PU ->> RR: persist(asset_id, chunks)
+        RR ->> DB: Insert chunks and update asset status
+
+        Note over RR,DB: Single database transaction
+
+        DB -->> RR: Commit or rollback
+        RR -->> PU: Persisted chunk count
+
+        PU -->> API: ProcessAssetResult
+    end
+
+    API -->> C: Existing processing response and counts
 ```
 
 ### Question answering flow
@@ -325,12 +396,17 @@ flowchart TB
 ```text
 src/
 ├── main.py          # App creation and startup/shutdown
-├── application/     # Business logic
+├── application/     # Application use cases and ports
 │   ├── errors.py
 │   ├── ports.py
 │   └── use_cases/
-├── infrastructure/
+│       ├── ingest_file.py
+│       └── process_asset.py
+├── infrastructure/  # Implementations of application ports
 │   └── adapters/
+│       ├── asset_file_resolver.py
+│       ├── file_storage.py
+│       └── repositories.py
 ├── routes/          # HTTP endpoints (base, data, nlp)
 ├── controllers/     # Business logic (processing, NLP/RAG, projects)
 ├── ingestion/

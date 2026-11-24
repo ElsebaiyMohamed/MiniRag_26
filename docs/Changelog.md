@@ -6,9 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Add the application-layer `ProcessAsset` use case to coordinate per-asset document loading, chunking, and persistence.
+- Add `LocalAssetFileResolver` to resolve stored asset paths safely and prevent path traversal.
+- Add transactional asset processing persistence to insert chunks and update the asset status to `CHUNKED` atomically.
+- Add unit, adapter, repository integration, and API workflow tests for the asset processing flow.
 
 ### Changed
 
+- Integrate `ProcessAsset` into the data processing route while preserving the existing API response contract and per-asset failure behavior.
 - Refactor file upload handling into an application-layer `IngestFile` use case, separating upload validation, file storage, and asset creation from the FastAPI route.
 - Introduce storage and repository ports with infrastructure adapters for local file storage and SQLAlchemy persistence.
 - Add unit tests for the ingestion use case using fake dependencies.
