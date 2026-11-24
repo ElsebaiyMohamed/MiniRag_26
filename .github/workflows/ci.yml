@@ -42,6 +42,28 @@ jobs:
       - name: Configure test environment
         run: cp src/.env.example.app src/.env.app
 
+      - name: Enable pgvector extension
+        run: |
+          uv run python - <<'PY'
+          import asyncio
+          import os
+
+          from sqlalchemy import text
+          from sqlalchemy.ext.asyncio import create_async_engine
+
+          async def main():
+              engine = create_async_engine(
+                  os.environ["PGVECTOR_TEST_DATABASE_URL"]
+              )
+              async with engine.begin() as connection:
+                  await connection.execute(
+                      text("CREATE EXTENSION IF NOT EXISTS vector")
+                  )
+              await engine.dispose()
+
+          asyncio.run(main())
+          PY
+
       - name: Generate chunker golden files
         run: uv run python scripts/generate_chunker_goldens.py
 
