@@ -3,7 +3,7 @@ name: Auto Close Issues on Stable Merge
 on:
   pull_request:
     types: [ closed ]
-    branches: [ master, main, "release/**" ]
+    branches: [ master, main, dev, "release/**" ]
 
   workflow_dispatch:
     inputs:
