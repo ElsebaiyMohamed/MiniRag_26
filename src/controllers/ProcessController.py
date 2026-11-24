@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Iterable
 
+from application.errors import UnsupportedUploadType
 from ingestion.chunkers import ChunkerFactory, Chunk
-from ingestion.exceptions import UnsupportedFileType
 from ingestion.loaders import LoaderRegistry, LoadedDocument
 from .BaseController import BaseController
 from .ProjectController import ProjectController
@@ -38,7 +38,7 @@ class ProcessController(BaseController):
 
         try:
             loader = self.loader_registry.for_path(file_path)
-        except UnsupportedFileType:
+        except UnsupportedUploadType:
             return None
 
         return loader.load(file_path)

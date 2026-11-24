@@ -7,6 +7,15 @@ How the code is organized, how to run it while you work on it, and the recipes f
 ```text
 src/
 ├── main.py            # App creation and startup/shutdown (lifespan)
+├── application/       # Application use cases and ports
+│   ├── errors.py
+│   ├── ports.py
+│   └── use_cases/
+│       └── ingest_file.py
+├── infrastructure/   # Implementations of application ports
+│   └── adapters/
+│       ├── file_storage.py
+│       └── repositories.py
 ├── routes/            # HTTP endpoints: base, data, nlp
 ├── controllers/       # Business logic
 ├── ingestion/         # Document loading and chunking
@@ -29,16 +38,15 @@ docs/                  # This documentation
 
 ### How a request flows
 
-```text
-route  ->  controller  ->  data model (PostgreSQL)
-                      ->  LLM client / vector store client  (created once at startup)
-```
+Routes handle HTTP concerns and delegate application operations to the appropriate component.
 
-- **Routes** validate input, call controllers, and build the JSON response with a `signal`.
-- **Controllers** hold the logic. `ProcessController` loads and chunks files, `NLPController` indexes, searches, and answers, and `DataController` validates uploads.
-- **Clients** (`app.generation_client`, `app.embedding_client`, `app.vectordb_client`, `app.db_client`) are created in the lifespan function in `main.py` and read by routes through `request.app`.
+- **Routes** validate HTTP input, invoke the relevant use case or controller, and build the JSON response with a `signal`.
+- **Application layer** contains use cases and port definitions. `IngestFile` coordinates upload validation, project existence, file storage, and asset creation without depending on FastAPI or SQLAlchemy.
+- **Infrastructure adapters** implement application ports. `LocalFileStorage` handles file storage, while SQLAlchemy repositories handle project and asset persistence.
+- **Controllers** handle the existing processing and NLP workflows. `ProcessController` loads and chunks files, while `NLPController` indexes, searches, and answers.
+- **Clients** (`app.generation_client`, `app.embedding_client`, `app.vectordb_client`, `app.db_client`, and `app.loader_registry`) are initialized during application startup and accessed through `request.app`.
 
-The architecture diagrams are in the README.
+- The architecture diagrams are in the README.
 
 ## Running locally
 
@@ -92,6 +100,17 @@ Open http://localhost:8000/docs to try every endpoint from the browser.
 
 Signal strings are part of the public API. Changing an existing one is a breaking change and belongs in the changelog.
 
+### Add an application use case
+
+1. Define the use case in `src/application/use_cases/`.
+2. Define the required interfaces in `src/application/ports.py`. Keep the use case independent of infrastructure implementations.
+3. Add application-specific exceptions to `src/application/errors.py` when needed.
+4. Implement the required ports in `src/infrastructure/adapters/`.
+5. Wire the use case into the relevant route or application entry point.
+6. Add unit tests for the use case using fake or in-memory port implementations, and add API workflow tests for the integration.
+
+Application use cases must not depend on FastAPI or SQLAlchemy. Infrastructure adapters are responsible for database and filesystem operations.
+
 ### Add a setting
 
 Follow the steps in [Configuration](Configuration.md#adding-a-new-setting).
@@ -135,7 +154,7 @@ PDF handling behavior:
 - Image-only or scanned PDFs are not OCR-processed. Their pages are returned with empty extracted text.
 - Pages with no text are preserved rather than silently discarded.
 
-`UnsupportedFile` represents a supported format that could not be processed. `UnsupportedFileType` represents a file extension for which no loader is registered.
+`UnsupportedFile` represents a supported format that could not be processed. `UnsupportedUploadType` represents a file extension for which no loader is registered.
 
 The golden fixture generator in `scripts/generate_chunker_goldens.py` uses the same native loaders as the application. When loader behavior intentionally changes, regenerate and review the affected golden fixtures.
 
@@ -170,22 +189,31 @@ The built-in factory currently registers only the newline-based `default` strate
 
 ## Testing
 
-Run the unit and API workflow tests with:
+Run the test suite with:
 
-```bash
+\`\`\`bash
 uv run pytest tests/ --cov=src --cov-report=term-missing
 uvx ruff check tests/
-```
+\`\`\`
 
-The API workflow and provider tests use fakes, so they need neither API keys nor a database. The pgvector integration test uses a real PostgreSQL database with the pgvector extension; it is skipped locally unless `PGVECTOR_TEST_DATABASE_URL` is set. CI provides this service automatically. Provider tests use mocked SDK clients and do not make network calls.
+The test suite includes application use-case unit tests, API workflow tests, and provider tests.
+
+- Application use-case tests use fake implementations of the required ports.
+- API workflow and provider tests use fakes or mocked SDK clients and do not require API keys or external network calls.
+- The pgvector integration test uses a real PostgreSQL database with the pgvector extension. It is skipped locally unless `PGVECTOR_TEST_DATABASE_URL` is set.
+- CI starts a PostgreSQL pgvector service for integration testing.
+
+The integration test fixture creates its database schema using SQLAlchemy metadata. It does not test Alembic migrations.
 
 ## Code style
 
 Ruff is used in CI for the test suite. Until source-wide linting is enabled, match the style of the surrounding code, and keep these conventions:
 
-- Routes stay thin. Logic belongs in controllers.
+- Routes stay thin. Application operations belong in use cases; existing processing and NLP workflows remain in controllers.
+- Application use cases depend on ports, not infrastructure implementations.
+- Infrastructure adapters implement the application ports and contain database and filesystem-specific operations.
 - Provider-specific code stays inside `stores/`. Controllers talk to interfaces only.
-- I/O methods on stores and data models are `async`, so always `await` them.
+- I/O methods on stores, repositories, and storage adapters are `async`, so always `await` them.
 - Return a clear `signal` for every failure path in a route, and log the underlying error.
 
 Expanding Ruff coverage to application source requires resolving the existing lint findings there.

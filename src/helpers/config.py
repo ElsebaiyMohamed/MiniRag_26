@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     FILE_ALLOWED_EXTENTIONS: list
     FILE_MAX_SIZE_IN_MB: int
-    FILE_DEAFAULT_CHINK_SIZE: int
+    FILE_DEAFAULT_CHUNK_SIZE: int
     PROCESSING_MAX_CONCURRENCY: int = Field(default=2, ge=1)
 
     POSTGRES_USERNAME: str
