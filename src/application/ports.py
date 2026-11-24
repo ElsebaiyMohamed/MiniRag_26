@@ -1,7 +1,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Iterable, Protocol
 
 
 class UploadSource(Protocol):
@@ -14,11 +14,19 @@ class UploadSource(Protocol):
     async def read(self, size: int = -1) -> bytes:
         ...
 
+class LoadedDocumentInfo(Protocol):
+    """Framework-independent loaded document representation."""
+
+    text: str
+    metadata: dict
 
 class DocumentLoaderInfo(Protocol):
-    """Metadata exposed by a registered document loader."""
+    """Metadata and loading interface exposed by a registered loader."""
 
     mime_types: tuple[str, ...]
+
+    def load(self, path: Path) -> list[LoadedDocumentInfo]:
+        ...
 
 
 class LoaderResolver(Protocol):
@@ -66,4 +74,59 @@ class AssetRepository(Protocol):
     """Persists asset records."""
 
     async def create(self, asset: NewAsset) -> AssetRecord:
+        ...
+
+class AssetFileResolver(Protocol):
+    """Resolves the physical path of a stored asset."""
+
+    def resolve(self, project_id: int, asset_name: str) -> Path:
+        ...
+
+
+class ChunkInfo(Protocol):
+    """Framework-independent chunk representation."""
+
+    text: str
+    order: int
+    metadata: dict[str, Any]
+
+
+class ChunkerInfo(Protocol):
+    """Interface exposed by a configured chunker."""
+
+    def chunk(
+        self,
+        documents: Iterable[LoadedDocumentInfo],
+        chunk_size: int,
+        chunk_overlap: int,
+    ) -> list[ChunkInfo]:
+        ...
+
+
+class ChunkerResolver(Protocol):
+    """Resolves a configured chunker."""
+
+    def get_chunker(self, name: str) -> ChunkerInfo:
+        ...
+
+
+@dataclass(frozen=True)
+class NewChunk:
+    """Application-level representation of a chunk to persist."""
+
+    project_id: int
+    asset_id: int
+    text: str
+    order: int
+    metadata: dict[str, Any]
+
+
+class AssetProcessingRepository(Protocol):
+    """Persists an asset's chunks and updates its processing status."""
+
+    async def persist(
+        self,
+        asset_id: int,
+        chunks: list[NewChunk],
+    ) -> int:
         ...

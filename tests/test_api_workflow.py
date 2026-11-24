@@ -19,6 +19,9 @@ sys.path.insert(
 )
 
 from application.ports import AssetRecord
+from infrastructure.adapters.asset_file_resolver import (
+    LocalAssetFileResolver as RealLocalAssetFileResolver,
+)
 from infrastructure.adapters.file_storage import (
     LocalFileStorage as RealLocalFileStorage,
 )
@@ -144,46 +147,65 @@ class FakeUploadController:
         return os.path.join(project_path, filename)
 
 
-class FakeProcessController:
-    def __init__(
-        self,
-        project_id,
-        assets_path,
-        loader_registry,
-        chunker_factory,
-    ):
-        self.assets_path = assets_path
-        self.loader_registry = loader_registry
-        self.chunker_factory = chunker_factory
+class TrackingLoaderRegistry:
+    """Wrap the real registry and record the document-loading thread."""
+
+    def __init__(self, registry):
+        self.registry = registry
         self.processing_thread_id = None
 
-    def process_file(
-        self,
-        file_id,
-        chunker="default",
-        chunk_size=100,
-        overlap_size=20,
-    ):
-        self.processing_thread_id = threading.get_ident()
+    def supported_extensions(self):
+        return self.registry.supported_extensions()
 
-        file_path = Path(self.assets_path) / str(1) / file_id
+    def for_path(self, path):
+        loader = self.registry.for_path(path)
+        registry = self
 
-        if not file_path.exists():
-            return None
+        class TrackingLoader:
+            def load(self, file_path):
+                registry.processing_thread_id = threading.get_ident()
+                return loader.load(file_path)
 
-        loader = self.loader_registry.for_path(file_path)
-        documents = loader.load(file_path)
+            @property
+            def mime_types(self):
+                return loader.mime_types
 
-        selected_chunker = self.chunker_factory.get_chunker(
-            name=chunker
+        return TrackingLoader()
+
+
+class FakeAssetProcessingRepository:
+    """Fake atomic persistence adapter for API workflow tests."""
+
+    def __init__(self, assets, chunks_model):
+        self.assets = assets
+        self.chunks_model = chunks_model
+
+    async def persist(self, asset_id, chunks):
+        asset = next(
+            (
+                item
+                for item in self.assets.assets
+                if item.asset_id == asset_id
+            ),
+            None,
         )
 
-        return selected_chunker.chunk(
-            documents,
-            chunk_size=chunk_size,
-            chunk_overlap=overlap_size,
-        )
+        if asset is None or not chunks:
+            return 0
 
+        for chunk in chunks:
+            db_chunk = SimpleNamespace(
+                chunk_id=len(self.chunks_model.chunks) + 1,
+                chunk_project_id=chunk.project_id,
+                chunk_asset_id=chunk.asset_id,
+                chunk_text=chunk.text,
+                chunk_order=chunk.order,
+                chunk_metadata=chunk.metadata,
+            )
+            self.chunks_model.chunks.append(db_chunk)
+
+        asset.asset_status = AssetStatus.CHUNKED.value
+        return len(chunks)
 
 class FakeEmbeddingClient:
     embedding_size = 2
@@ -586,19 +608,24 @@ async def test_upload_process_index_search_answer_workflow(
         lambda db_client: FakeAssetRepository(assets),
     )
 
-    # Keep a reference to the fake controller so we can inspect
-    # which thread performed the document processing.
-    process_controller = FakeProcessController(
-        1,
-        project_assets,
-        create_default_loader_registry(),
-        create_default_chunker_factory(),
+    # Use the test upload directory for asset resolution.
+    monkeypatch.setattr(
+        data_routes,
+        "LocalAssetFileResolver",
+        lambda base_dir: RealLocalAssetFileResolver(tmp_path),
     )
 
     monkeypatch.setattr(
         data_routes,
-        "ProcessController",
-        lambda project_id, loader_registry, chunker_factory: process_controller,
+        "SqlAlchemyAssetProcessingRepository",
+        lambda db_client: FakeAssetProcessingRepository(
+            assets,
+            chunks,
+        ),
+    )
+
+    tracking_registry = TrackingLoaderRegistry(
+        create_default_loader_registry()
     )
 
     app = FastAPI()
@@ -611,7 +638,7 @@ async def test_upload_process_index_search_answer_workflow(
 
     app.include_router(data_routes.data_router)
     app.include_router(nlp_routes.nlp_router)
-    app.loader_registry = create_default_loader_registry()
+    app.loader_registry = tracking_registry
     app.chunker_factory = create_default_chunker_factory()
     app.db_client = object()
     app.vectordb_client = FakeVectorDB()
@@ -673,12 +700,12 @@ async def test_upload_process_index_search_answer_workflow(
 
         # 4. Verify that processing ran in a worker thread,
         #    not in the event-loop thread.
-        assert process_controller.processing_thread_id is not None
+        assert tracking_registry.processing_thread_id is not None
 
         assert (
-            process_controller.processing_thread_id
-            != event_loop_thread_id
-        ), "Document processing blocked the event-loop thread!"
+                tracking_registry.processing_thread_id
+                != event_loop_thread_id
+        ), "Document loading blocked the event-loop thread!"
 
         assert len(chunks.chunks) == 1
 
@@ -778,19 +805,20 @@ async def test_markdown_upload_process_index_search_workflow(
         lambda db_client: FakeAssetRepository(assets),
     )
 
-    process_controller = FakeProcessController(
-        1,
-        project_assets,
-        create_default_loader_registry(),
-        create_default_chunker_factory(),
+    monkeypatch.setattr(
+        data_routes,
+        "LocalAssetFileResolver",
+        lambda base_dir: RealLocalAssetFileResolver(tmp_path),
     )
 
     monkeypatch.setattr(
         data_routes,
-        "ProcessController",
-        lambda project_id, loader_registry, chunker_factory: process_controller,
+        "SqlAlchemyAssetProcessingRepository",
+        lambda db_client: FakeAssetProcessingRepository(
+            assets,
+            chunks,
+        ),
     )
-
     app = FastAPI()
     app.processing_semaphore = asyncio.Semaphore(2)
 

@@ -1,14 +1,18 @@
+from sqlalchemy import update
 
 from application.ports import (
     AssetRecord,
     AssetRepository,
     NewAsset,
     ProjectRepository,
+    AssetProcessingRepository,
+    NewChunk,
 )
 
 from models.AssetDataModel import AssetDataModel
 from models.ProjectDataModel import ProjectDataModel
-from models.db_schemas import Asset
+from models.db_schemas import Asset, DataChunk
+from models.enums.AssetTypeEnums import AssetStatus
 
 
 class SqlAlchemyProjectRepository(ProjectRepository):
@@ -38,3 +42,53 @@ class SqlAlchemyAssetRepository(AssetRepository):
         created_asset = await self.model.create_asset(db_asset)
 
         return AssetRecord(asset_name=created_asset.asset_name)
+
+class SqlAlchemyAssetProcessingRepository(
+    AssetProcessingRepository
+):
+    def __init__(self, db_client):
+        self.db_client = db_client
+
+    async def persist(
+        self,
+        asset_id: int,
+        chunks: list[NewChunk],
+    ) -> int:
+        if not chunks:
+            return 0
+        if any(chunk.asset_id != asset_id for chunk in chunks):
+            return 0
+        try:
+            async with self.db_client() as session:
+                async with session.begin():
+                    stmt = (
+                        update(Asset)
+                        .where(Asset.asset_id == asset_id)
+                        .values(
+                            asset_status=AssetStatus.CHUNKED.value
+                        )
+                    )
+
+                    result = await session.execute(stmt)
+
+                    if result.rowcount == 0:
+                        return 0
+
+                    db_chunks = [
+                        DataChunk(
+                            chunk_project_id=chunk.project_id,
+                            chunk_asset_id=chunk.asset_id,
+                            chunk_text=chunk.text,
+                            chunk_order=chunk.order,
+                            chunk_metadata=chunk.metadata,
+                        )
+                        for chunk in chunks
+                    ]
+
+                    session.add_all(db_chunks)
+                    await session.flush()
+
+                return len(db_chunks)
+
+        except Exception:
+            return 0

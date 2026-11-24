@@ -11,29 +11,31 @@ src/
 │   ├── errors.py
 │   ├── ports.py
 │   └── use_cases/
-│       └── ingest_file.py
-├── infrastructure/   # Implementations of application ports
+│       ├── ingest_file.py
+│       └── process_asset.py
+├── infrastructure/    # Implementations of application ports
 │   └── adapters/
+│       ├── asset_file_resolver.py
 │       ├── file_storage.py
 │       └── repositories.py
-├── routes/            # HTTP endpoints: base, data, nlp
-├── controllers/       # Business logic
-├── ingestion/         # Document loading and chunking
-│   ├── loaders/       # LoaderRegistry, PdfLoader, TxtLoader, LoadedDocument
-│   ├── chunkers/      # Chunker protocol, Chunk, strategies, and factory
-│   └── exceptions.py  # Ingestion-related exceptions
+├── routes/             # HTTP endpoints: base, data, nlp
+├── controllers/        # Existing controller-based workflows
+├── ingestion/          # Document loading and chunking
+│   ├── loaders/        # LoaderRegistry, PdfLoader, TxtLoader, LoadedDocument
+│   ├── chunkers/       # Chunker protocol, Chunk, strategies, and factory
+│   └── exceptions.py   # Ingestion-related exceptions
 ├── models/
-│   ├── schemas/       # Pydantic request/response models
-│   ├── enums/         # Response signals, provider names, asset types
-│   ├── db_schemas/    # SQLAlchemy tables and Alembic migrations
-│   └── *DataModel.py  # Database access for projects, assets, chunks
+│   ├── schemas/        # Pydantic request/response models
+│   ├── enums/          # Response signals, provider names, asset types
+│   ├── db_schemas/     # SQLAlchemy tables and Alembic migrations
+│   └── *DataModel.py   # Database access for projects, assets, chunks
 ├── stores/
-│   ├── llm/           # LLM interface, factory, providers, prompt templates
-│   └── vectordb/      # Vector store interface, factory, providers
-├── helpers/config.py  # Settings
-└── utils/metrics.py   # Prometheus middleware
-docker/                # Compose stack, Dockerfile, Nginx, Prometheus, env examples
-docs/                  # This documentation
+│   ├── llm/            # LLM interface, factory, providers, prompt templates
+│   └── vectordb/       # Vector store interface, factory, providers
+├── helpers/config.py   # Settings
+└── utils/metrics.py    # Prometheus middleware
+docker/                 # Compose stack, Dockerfile, Nginx, Prometheus, env examples
+docs/                   # This documentation
 ```
 
 ### How a request flows
@@ -41,9 +43,10 @@ docs/                  # This documentation
 Routes handle HTTP concerns and delegate application operations to the appropriate component.
 
 - **Routes** validate HTTP input, invoke the relevant use case or controller, and build the JSON response with a `signal`.
-- **Application layer** contains use cases and port definitions. `IngestFile` coordinates upload validation, project existence, file storage, and asset creation without depending on FastAPI or SQLAlchemy.
-- **Infrastructure adapters** implement application ports. `LocalFileStorage` handles file storage, while SQLAlchemy repositories handle project and asset persistence.
-- **Controllers** handle the existing processing and NLP workflows. `ProcessController` loads and chunks files, while `NLPController` indexes, searches, and answers.
+- **Application layer** contains use cases and port definitions. `IngestFile` coordinates upload validation, project existence, file storage, and asset creation. `ProcessAsset` coordinates per-asset document loading, chunking, and persistence. Both use cases depend on application-level ports rather than FastAPI or SQLAlchemy.
+- **Infrastructure adapters** implement application ports. `LocalFileStorage` handles uploaded file storage, `LocalAssetFileResolver` resolves stored asset paths, and SQLAlchemy repositories handle database persistence.
+- **Document ingestion** provides the shared `LoaderRegistry` and configured `ChunkerFactory`. The registry resolves the appropriate loader, and the factory provides the configured chunking strategy.
+- **Controllers** retain the existing controller-based workflows. `NLPController` handles indexing, semantic search, and RAG answer generation.
 - **Clients** (`app.generation_client`, `app.embedding_client`, `app.vectordb_client`, `app.db_client`, and `app.loader_registry`) are initialized during application startup and accessed through `request.app`.
 
 - The architecture diagrams are in the README.
@@ -111,6 +114,8 @@ Signal strings are part of the public API. Changing an existing one is a breakin
 
 Application use cases must not depend on FastAPI or SQLAlchemy. Infrastructure adapters are responsible for database and filesystem operations.
 
+For asset processing, `ProcessAsset` resolves the stored file path, selects a document loader and chunker, and delegates persistence to the asset processing repository. Synchronous document loading and chunking run in a worker thread. The repository handles chunk insertion and the asset status update within one database transaction.
+
 ### Add a setting
 
 Follow the steps in [Configuration](Configuration.md#adding-a-new-setting).
@@ -172,7 +177,7 @@ To add a format:
 5. Add the MIME type to `FILE_ALLOWED_EXTENTIONS` in the environment examples and update the configuration documentation.
 6. Add loader, registry, upload-validation, and processing tests.
 
-The registry is created once during application startup and injected into the upload and processing controllers. Do not create a global registry at module import time.
+The registry is created once during application startup and shared by upload validation and the `ProcessAsset` use case. Do not create a global registry at module import time.
 
 ### Add a chunking strategy
 
@@ -196,11 +201,13 @@ uv run pytest tests/ --cov=src --cov-report=term-missing
 uvx ruff check tests/
 \`\`\`
 
-The test suite includes application use-case unit tests, API workflow tests, and provider tests.
+The test suite includes application use-case unit tests, infrastructure adapter tests, API workflow tests, and provider tests.
 
-- Application use-case tests use fake implementations of the required ports.
+- Application use-case tests use fake implementations of the required ports. `ProcessAsset` tests cover successful processing, missing files, empty documents, empty chunks, unsupported loaders, loader failures, and persistence failures.
+- Asset file resolver tests cover stored path resolution and invalid or unsafe paths.
+- Asset processing repository integration tests verify chunk persistence and transactional asset status updates against PostgreSQL.
 - API workflow and provider tests use fakes or mocked SDK clients and do not require API keys or external network calls.
-- The pgvector integration test uses a real PostgreSQL database with the pgvector extension. It is skipped locally unless `PGVECTOR_TEST_DATABASE_URL` is set.
+- The pgvector integration tests use a real PostgreSQL database with the pgvector extension. They are skipped locally unless `PGVECTOR_TEST_DATABASE_URL` is set.
 - CI starts a PostgreSQL pgvector service for integration testing.
 
 The integration test fixture creates its database schema using SQLAlchemy metadata. It does not test Alembic migrations.
@@ -209,11 +216,11 @@ The integration test fixture creates its database schema using SQLAlchemy metada
 
 Ruff is used in CI for the test suite. Until source-wide linting is enabled, match the style of the surrounding code, and keep these conventions:
 
-- Routes stay thin. Application operations belong in use cases; existing processing and NLP workflows remain in controllers.
+- Routes stay thin. Application operations such as file ingestion and asset processing belong in use cases. The existing NLP workflow remains in `NLPController`.
 - Application use cases depend on ports, not infrastructure implementations.
-- Infrastructure adapters implement the application ports and contain database and filesystem-specific operations.
+- Infrastructure adapters implement application ports and contain database and filesystem-specific operations.
 - Provider-specific code stays inside `stores/`. Controllers talk to interfaces only.
-- I/O methods on stores, repositories, and storage adapters are `async`, so always `await` them.
+- Async I/O methods on stores, repositories, and storage adapters must be awaited. Synchronous document loading and chunking in `ProcessAsset` run through `asyncio.to_thread`.
 - Return a clear `signal` for every failure path in a route, and log the underlying error.
 
 Expanding Ruff coverage to application source requires resolving the existing lint findings there.
