@@ -36,13 +36,13 @@ dev = [
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
 
-[build-system]
-requires = ["setuptools>=69"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-py-modules = ["main"]
-
-[tool.setuptools.packages.find]
-where = ["src"]
+#[build-system]
+#requires = ["setuptools>=69"]
+#build-backend = "setuptools.build_meta"
+#
+#[tool.setuptools]
+#package-dir = {"" = "src"}
+#py-modules = ["main"]
+#
+#[tool.setuptools.packages.find]
+#where = ["src"]
