@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+
+### Changed
+
+- Refactor file upload handling into an application-layer `IngestFile` use case, separating upload validation, file storage, and asset creation from the FastAPI route.
+- Introduce storage and repository ports with infrastructure adapters for local file storage and SQLAlchemy persistence.
+- Add unit tests for the ingestion use case using fake dependencies.
+
 ## [1.3.0]  - 2026-11-23
 
 ### Added

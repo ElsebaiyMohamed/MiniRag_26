@@ -18,6 +18,10 @@ sys.path.insert(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"))
 )
 
+from application.ports import AssetRecord
+from infrastructure.adapters.file_storage import (
+    LocalFileStorage as RealLocalFileStorage,
+)
 from ingestion.loaders import create_default_loader_registry
 from models import AssetDataModel, ChunkDataModel, ProjectDataModel
 from models.enums import AssetStatus, OpenAIEnum, ResponseSignal
@@ -62,6 +66,33 @@ class FakeAssetModel:
             if asset.asset_id == asset_id
         ).asset_status = status
 
+class FakeProjectRepository:
+    def __init__(self, projects):
+        self.projects = projects
+
+    async def get_or_create(self, project_id):
+        project = await self.projects.get_project_or_create_one(
+            project_id=project_id
+        )
+        return project.project_id
+
+
+class FakeAssetRepository:
+    def __init__(self, assets):
+        self.assets = assets
+
+    async def create(self, asset):
+        db_asset = SimpleNamespace(
+            asset_project_id=asset.project_id,
+            asset_type=asset.asset_type,
+            asset_name=asset.asset_name,
+            asset_size=asset.asset_size,
+            asset_status=asset.asset_status,
+        )
+
+        created_asset = await self.assets.create_asset(db_asset)
+
+        return AssetRecord(asset_name=created_asset.asset_name)
 
 class FakeChunkModel:
     def __init__(self):
@@ -350,6 +381,181 @@ def workflow_models(monkeypatch):
     return projects, assets, chunks
 
 
+@pytest.fixture
+def upload_api(tmp_path, monkeypatch, workflow_models):
+    projects, assets, _ = workflow_models
+
+    monkeypatch.setattr(
+        data_routes,
+        "LocalFileStorage",
+        lambda base_dir: RealLocalFileStorage(tmp_path),
+    )
+    monkeypatch.setattr(
+        data_routes,
+        "SqlAlchemyProjectRepository",
+        lambda db_client: FakeProjectRepository(projects),
+    )
+    monkeypatch.setattr(
+        data_routes,
+        "SqlAlchemyAssetRepository",
+        lambda db_client: FakeAssetRepository(assets),
+    )
+
+    app = FastAPI()
+    app.include_router(data_routes.data_router)
+
+    app.loader_registry = create_default_loader_registry()
+    app.db_client = object()
+
+    settings = SimpleNamespace(
+        FILE_DEAFAULT_CHUNK_SIZE=16,
+        FILE_ALLOWED_EXTENTIONS=[
+            "text/plain",
+            "text/markdown",
+            "text/x-markdown",
+        ],
+        FILE_MAX_SIZE_IN_MB=10,
+    )
+
+    app.dependency_overrides[data_routes.get_settings] = (
+        lambda: settings
+    )
+
+    return app, settings
+
+
+@pytest.mark.asyncio
+async def test_upload_route_success(upload_api):
+    app, _ = upload_api
+
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/api/v1/data/upload/1",
+            files={
+                "file": (
+                    "source.txt",
+                    b"Upload API test.",
+                    "text/plain",
+                )
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["signal"] == (
+        ResponseSignal.FILE_UPLOAD_SUCCESS.value
+    )
+    assert response.json()["file_id"]
+    assert response.json()["file_id"].endswith("_source.txt")
+
+
+@pytest.mark.asyncio
+async def test_upload_route_rejects_unsupported_type(upload_api):
+    app, _ = upload_api
+
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/api/v1/data/upload/1",
+            files={
+                "file": (
+                    "unsupported.pdf",
+                    b"PDF content",
+                    "application/pdf",
+                )
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "signal": ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
+    }
+
+
+@pytest.mark.asyncio
+async def test_upload_route_rejects_oversized_file(upload_api):
+    app, settings = upload_api
+
+    # A zero-MB limit makes any non-empty upload oversized.
+    settings.FILE_MAX_SIZE_IN_MB = 0
+
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/api/v1/data/upload/1",
+            files={
+                "file": (
+                    "source.txt",
+                    b"Non-empty file",
+                    "text/plain",
+                )
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "signal": ResponseSignal.FILE_SIZE_EXCEEDED.value
+    }
+
+
+@pytest.mark.asyncio
+async def test_upload_route_handles_storage_failure(
+    upload_api,
+    monkeypatch,
+):
+    app, _ = upload_api
+
+    class FailingFileStorage:
+        async def store(
+            self,
+            project_id,
+            original_filename,
+            source,
+            chunk_size,
+        ):
+            raise OSError("Simulated storage failure")
+
+    monkeypatch.setattr(
+        data_routes,
+        "LocalFileStorage",
+        lambda base_dir: FailingFileStorage(),
+    )
+
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/api/v1/data/upload/1",
+            files={
+                "file": (
+                    "source.txt",
+                    b"Upload storage failure test.",
+                    "text/plain",
+                )
+            },
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "signal": ResponseSignal.FILE_UPLOAD_FAILED.value
+    }
+
+
 @pytest.mark.asyncio
 async def test_upload_process_index_search_answer_workflow(
     tmp_path,
@@ -359,26 +565,25 @@ async def test_upload_process_index_search_answer_workflow(
 ):
     projects, assets, chunks = workflow_models
 
-    project_assets = tmp_path / "assets"
-    project_assets.mkdir()
+    project_assets = tmp_path / "assets" / "files"
+    project_assets.mkdir(parents=True)
 
     monkeypatch.setattr(
         data_routes,
-        "DataController",
-        FakeUploadController,
+        "LocalFileStorage",
+        lambda base_dir: RealLocalFileStorage(tmp_path),
     )
 
-    def get_project_path(project_id):
-        project_path = project_assets / str(project_id)
-        project_path.mkdir(exist_ok=True)
-        return str(project_path)
+    monkeypatch.setattr(
+        data_routes,
+        "SqlAlchemyProjectRepository",
+        lambda db_client: FakeProjectRepository(projects),
+    )
 
     monkeypatch.setattr(
         data_routes,
-        "ProjectController",
-        lambda: SimpleNamespace(
-            get_project_path=get_project_path
-        ),
+        "SqlAlchemyAssetRepository",
+        lambda db_client: FakeAssetRepository(assets),
     )
 
     # Keep a reference to the fake controller so we can inspect
@@ -415,7 +620,15 @@ async def test_upload_process_index_search_answer_workflow(
     app.template_parser = TemplateParser(language="en")
 
     app.dependency_overrides[data_routes.get_settings] = (
-        lambda: SimpleNamespace(FILE_DEAFAULT_CHINK_SIZE=16)
+        lambda: SimpleNamespace(
+            FILE_DEAFAULT_CHUNK_SIZE=16,
+            FILE_ALLOWED_EXTENTIONS=[
+                "text/plain",
+                "text/markdown",
+                "text/x-markdown",
+            ],
+            FILE_MAX_SIZE_IN_MB=10,
+        )
     )
 
     transport = httpx.ASGITransport(app=app)
@@ -544,24 +757,25 @@ async def test_markdown_upload_process_index_search_workflow(
 ):
     projects, assets, chunks = workflow_models
 
-    project_assets = tmp_path / "assets"
-    project_assets.mkdir()
+    project_assets = tmp_path / "assets" / "files"
+    project_assets.mkdir(parents=True)
 
     monkeypatch.setattr(
         data_routes,
-        "DataController",
-        FakeUploadController,
+        "LocalFileStorage",
+        lambda base_dir: RealLocalFileStorage(tmp_path),
     )
 
-    def get_project_path(project_id):
-        project_path = project_assets / str(project_id)
-        project_path.mkdir(exist_ok=True)
-        return str(project_path)
+    monkeypatch.setattr(
+        data_routes,
+        "SqlAlchemyProjectRepository",
+        lambda db_client: FakeProjectRepository(projects),
+    )
 
     monkeypatch.setattr(
         data_routes,
-        "ProjectController",
-        lambda: SimpleNamespace(get_project_path=get_project_path),
+        "SqlAlchemyAssetRepository",
+        lambda db_client: FakeAssetRepository(assets),
     )
 
     process_controller = FakeProcessController(
@@ -592,7 +806,15 @@ async def test_markdown_upload_process_index_search_workflow(
     app.template_parser = TemplateParser(language="en")
 
     app.dependency_overrides[data_routes.get_settings] = (
-        lambda: SimpleNamespace(FILE_DEAFAULT_CHINK_SIZE=16)
+        lambda: SimpleNamespace(
+            FILE_DEAFAULT_CHUNK_SIZE=16,
+            FILE_ALLOWED_EXTENTIONS=[
+                "text/plain",
+                "text/markdown",
+                "text/x-markdown",
+            ],
+            FILE_MAX_SIZE_IN_MB=10,
+        )
     )
 
     markdown_content = b"""---

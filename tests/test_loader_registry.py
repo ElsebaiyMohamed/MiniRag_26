@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ingestion.exceptions import UnsupportedFileType
+from application.errors import UnsupportedUploadType
 from ingestion.loaders import (
     LoaderRegistry,
     create_default_loader_registry,
@@ -58,7 +58,7 @@ def test_duplicate_extension_registration_raises_error():
 def test_unknown_extension_raises_unsupported_file_type():
     registry = LoaderRegistry()
 
-    with pytest.raises(UnsupportedFileType):
+    with pytest.raises(UnsupportedUploadType):
         registry.for_path(Path("document.csv"))
 
 

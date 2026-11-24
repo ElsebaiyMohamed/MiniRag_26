@@ -2,15 +2,29 @@ import asyncio
 import logging
 import os
 import time
+from pathlib import Path
 
-import aiofiles
 from fastapi import APIRouter, Depends, UploadFile, status, Request
 from fastapi.responses import JSONResponse
 
-from controllers import DataController, ProjectController, ProcessController
+from application.errors import (
+    FileStorageError,
+    UnsupportedUploadType,
+    UploadTooLarge,
+)
+from application.use_cases.ingest_file import (
+    IngestFile,
+    IngestFileCommand,
+)
+from controllers import ProcessController
 from helpers import Settings, get_settings
+from infrastructure.adapters.file_storage import LocalFileStorage
+from infrastructure.adapters.repositories import (
+    SqlAlchemyAssetRepository,
+    SqlAlchemyProjectRepository,
+)
 from models import ProjectDataModel, ChunkDataModel, AssetDataModel
-from models.db_schemas import DataChunk, Asset
+from models.db_schemas import DataChunk
 from models.enums import ResponseSignal, AssetType, AssetStatus
 from models.schemas import ProcessRequest
 from utils.metrics import DOCUMENT_PROCESSING_DURATION
@@ -27,49 +41,64 @@ async def upload(
     file: UploadFile,
     app_settings: Settings = Depends(get_settings),
 ):
-    data_contoller = DataController(
-        loader_registry=request.app.loader_registry
+    use_case = IngestFile(
+        loader_registry=request.app.loader_registry,
+        file_storage=LocalFileStorage(
+            base_dir=Path(__file__).resolve().parents[1]
+        ),
+        project_repository=SqlAlchemyProjectRepository(
+            request.app.db_client
+        ),
+        asset_repository=SqlAlchemyAssetRepository(
+            request.app.db_client
+        ),
+        allowed_mime_types=set(
+            app_settings.FILE_ALLOWED_EXTENTIONS
+        ),
+        max_size_bytes=(
+            app_settings.FILE_MAX_SIZE_IN_MB * 1024 * 1024
+        ),
+        chunk_size=app_settings.FILE_DEAFAULT_CHUNK_SIZE,
     )
-    is_valid, signal = await data_contoller.validate(file)
 
-    if not is_valid:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"signal": signal}
-        )
-    project_model = await ProjectDataModel.create_instance(
-        db_client=request.app.db_client
-    )
-    project = await project_model.get_project_or_create_one(project_id=project_id)
-
-    project_dir_path = ProjectController().get_project_path(project_id=project_id)
-    file_id = data_contoller.gen_unique_filename(file.filename, project_dir_path)
-    file_path = data_contoller.join_path(project_dir_path, file_id)
     try:
-        async with aiofiles.open(file_path, "wb") as f:
-            while chunk := await file.read(app_settings.FILE_DEAFAULT_CHINK_SIZE):
-                await f.write(chunk)
-    except Exception as e:
-        log_it.error(f"Error while uploading file: \n {e}")
+        result = await use_case.execute(
+            IngestFileCommand(
+                project_id=project_id,
+                file=file,
+            )
+        )
+
+    except UnsupportedUploadType:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "signal": ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
+            },
+        )
+
+    except UploadTooLarge:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "signal": ResponseSignal.FILE_SIZE_EXCEEDED.value
+            },
+        )
+
+    except FileStorageError as exc:
+        log_it.error("Error while uploading file: %s", exc)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"signal": ResponseSignal.FILE_UPLOAD_FAILED.value},
+            content={
+                "signal": ResponseSignal.FILE_UPLOAD_FAILED.value
+            },
         )
-
-    asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
-    asset_resource = Asset(
-        asset_project_id=project.project_id,
-        asset_type=AssetType.FILE.value,
-        asset_name=file_id,
-        asset_size=file.size,
-        asset_status=AssetStatus.UPLOADED.value
-    )
-    asset_record = await asset_model.create_asset(asset_resource)
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
             "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-            "file_id": str(asset_record.asset_name),
+            "file_id": result.file_id,
         },
     )
 

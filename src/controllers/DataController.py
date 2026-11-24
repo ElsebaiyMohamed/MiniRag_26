@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import UploadFile
 
-from ingestion.exceptions import UnsupportedFileType
+from application.errors import UnsupportedUploadType
 from ingestion.loaders import LoaderRegistry
 from models.enums import ResponseSignal
 from .BaseController import BaseController
@@ -23,7 +23,7 @@ class DataController(BaseController):
             loader = self.loader_registry.for_path(
                 Path(file.filename or "")
             )
-        except UnsupportedFileType:
+        except UnsupportedUploadType:
             return False, ResponseSignal.FILE_TYPE_NOT_SUPPORTED.value
 
         mime_type = (file.content_type or "").split(";")[0].strip().lower()

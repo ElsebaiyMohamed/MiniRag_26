@@ -91,108 +91,123 @@ flowchart LR
 
 ### Code structure
 
-LLM providers sit behind an interface and factory, so generation and embedding providers can be selected independently through configuration. The vector-store interface currently has one implementation: pgvector.
+The application follows a ports-and-adapters structure for file ingestion.
 
-Document ingestion uses a dedicated loader registry. The registry resolves the appropriate loader based on the file extension. TXT files use Python's standard library, while PDF files are processed directly with PyMuPDF. Loaded documents are then passed to the selected chunking strategy.
+The upload route delegates validation and ingestion orchestration to the `IngestFile` use case. The use case depends on application-level ports rather than FastAPI, SQLAlchemy, or concrete storage implementations.
+
+The `LoaderRegistry` resolves the loader for the uploaded filename. The `FileStorage` port handles file persistence, while the project and asset repository ports handle project and asset records.
+
+Infrastructure adapters provide the concrete implementations: `LocalFileStorage` stores uploaded files on disk, and the SQLAlchemy repositories persist project and asset records.
+
+The existing processing flow remains separate: `ProcessController` loads stored files through the shared loader registry and passes the resulting documents to the configured chunker.
 
 ```mermaid
 flowchart TB
-    main["main.py<br/>lifespan builds clients on startup"]
+    main["main.py<br/>Application startup"]
 
     subgraph http["HTTP layer"]
-        routes["routes<br/>base, data, nlp"]
+        routes["FastAPI routes<br/>data, nlp"]
     end
 
-    subgraph logic["Controllers"]
-        dc["DataController<br/>validate uploads"]
-        pc["ProcessController<br/>load and chunk files"]
-        nc["NLPController<br/>index, search, answer"]
+    subgraph application["Application layer"]
+        ingest["IngestFile<br/>Upload orchestration"]
+        ports["Application ports<br/>FileStorage, ProjectRepository,<br/>AssetRepository, LoaderResolver"]
     end
 
-    subgraph ingestion["Ingestion"]
-        lr["LoaderRegistry<br/>resolve loader by extension"]
-        txt["TxtLoader<br/>Python standard library"]
-        pdf["PdfLoader<br/>PyMuPDF"]
-        cf["ChunkerFactory<br/>default newline chunker"]
-
-        lr --> txt
-        lr --> pdf
+    subgraph infrastructure["Infrastructure adapters"]
+        storage["LocalFileStorage"]
+        project_repo["SqlAlchemyProjectRepository"]
+        asset_repo["SqlAlchemyAssetRepository"]
     end
 
-    subgraph persistence["Models"]
-        dm["Data models<br/>Project, Asset, Chunk"]
-        orm[("SQLAlchemy + Alembic")]
+    subgraph ingestion["Document ingestion"]
+        registry["LoaderRegistry"]
+        loaders["TxtLoader / PdfLoader"]
+        chunker["ChunkerFactory"]
+        registry --> loaders
     end
 
-    subgraph stores["Stores"]
-        llmf["LLMProviderFactory"] --> llmi["LLMInterface"]
-        llmi --> cohere["CohereProvider"]
-        llmi --> openai["OpenAiProvider"]
-        vf["VectorDBProviderFactory"] --> vi["VectorDBInterface"]
-        vi --> pgv["PgVector"]
-        tpl["Prompt templates<br/>en, ar"]
+    subgraph persistence["Persistence"]
+        models["SQLAlchemy data models"]
+        db[("PostgreSQL")]
+        models --> db
     end
 
-    routes --> dc & pc & nc
-    pc --> lr
-    pc --> cf
-    dc & pc & nc --> dm --> orm
-    nc --> llmi & vi & tpl
-    main -.-> llmf & vf & cf
+    subgraph processing["Existing processing"]
+        process["ProcessController"]
+    end
+
+    routes --> ingest
+    ingest --> ports
+    ports --> storage
+    ports --> project_repo
+    ports --> asset_repo
+    ports --> registry
+
+    project_repo --> models
+    asset_repo --> models
+
+    routes --> process
+    process --> registry
+    process --> chunker
+    process --> models
+
+    main -.-> registry
 ```
 
 ### Ingestion flow
 
-The upload endpoint validates the file type and size before storing the file. During processing, `ProcessController` uses the shared loader registry to select the correct native loader. PDF extraction produces one loaded document per page, preserving page-level metadata. The resulting documents are passed to the configured chunker.
+File upload and document processing are separate application operations.
+
+During upload, the FastAPI route delegates to `IngestFile`. The use case resolves the appropriate loader through the shared `LoaderRegistry`, validates the MIME type and configured size limit, ensures the project exists, stores the uploaded file through the storage port, and creates its asset record through the asset repository.
+
+The infrastructure adapters implement local file storage and SQLAlchemy-backed project and asset persistence. The use case itself does not depend on FastAPI or SQLAlchemy.
+
+After upload, the existing process endpoint uses `ProcessController` to load the stored file and generate chunks using the configured chunking strategy.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor C as Client
     participant API as FastAPI
-    participant FS as File storage
+    participant UC as IngestFile
     participant LR as LoaderRegistry
-    participant TL as TxtLoader
-    participant PL as PdfLoader
-    participant CH as ChunkerFactory
+    participant PR as ProjectRepository
+    participant FS as FileStorage
+    participant AR as AssetRepository
     participant DB as PostgreSQL
-    participant EMB as Embedding provider
-    participant VDB as Vector store
 
     C ->> API: POST /data/upload/{project_id}
-    API ->> API: Validate type and size
-    API ->> FS: Stream file to disk
-    API ->> DB: Create Asset
-    API -->> C: file_id
+    API ->> UC: execute(IngestFileCommand)
+
+    UC ->> LR: Resolve loader by filename
+    LR -->> UC: Loader information
+
+    UC ->> UC: Validate MIME type and file size
+
+    UC ->> PR: get_or_create(project_id)
+    PR ->> DB: Get or create project
+    DB -->> PR: Project
+    PR -->> UC: Project ID
+
+    UC ->> FS: store(project_id, filename, file)
+    FS -->> UC: Stored filename
+
+    UC ->> AR: create(NewAsset)
+    AR ->> DB: Insert asset record
+    DB -->> AR: Created asset
+    AR -->> UC: AssetRecord
+
+    UC -->> API: IngestFileResult(file_id)
+    API -->> C: Upload success + file_id
 
     C ->> API: POST /data/process/{project_id}
-    API ->> FS: Read stored file
-    API ->> LR: Resolve loader by extension
-
-    alt TXT file
-        LR ->> TL: load(path)
-        TL -->> LR: LoadedDocument
-    else PDF file
-        LR ->> PL: load(path)
-        PL -->> LR: Page-level LoadedDocuments
-    end
-
+    API ->> API: ProcessController
+    API ->> LR: Resolve loader
     LR -->> API: Loaded documents
-    API ->> CH: Select strategy and chunk documents
-    CH -->> API: Ordered chunks with metadata
+    API ->> API: Chunk documents
     API ->> DB: Store chunks
     API -->> C: File and chunk counts
-
-    C ->> API: POST /nlp/index/push/{project_id}
-
-    loop Each page of chunks
-        API ->> DB: Read chunks
-        API ->> EMB: Embed batch as documents
-        EMB -->> API: Vectors
-        API ->> VDB: Insert vectors
-    end
-
-    API -->> C: Success
 ```
 
 ### Question answering flow
@@ -310,6 +325,12 @@ flowchart TB
 ```text
 src/
 ├── main.py          # App creation and startup/shutdown
+├── application/     # Business logic
+│   ├── errors.py
+│   ├── ports.py
+│   └── use_cases/
+├── infrastructure/
+│   └── adapters/
 ├── routes/          # HTTP endpoints (base, data, nlp)
 ├── controllers/     # Business logic (processing, NLP/RAG, projects)
 ├── ingestion/
@@ -442,9 +463,9 @@ All settings are environment variables (`.env.app`).
 | Variable | Description |
 |---|---|
 | `APP_NAME`, `APP_DESCRIPTION` | Shown at `GET /` |
-| `FILE_ALLOWED_EXTENTIONS` | Additional upload MIME-type allowlist, e.g. `["application/pdf", "text/plain"]`. The MIME type must also match a registered loader for the filename extension. |
+| `FILE_ALLOWED_EXTENTIONS` | Allowed upload MIME types, e.g. `["application/pdf", "text/plain"]`. The MIME type must also match the registered loader for the filename extension. |
 | `FILE_MAX_SIZE_IN_MB` | Maximum upload size (default example: `10`) |
-| `FILE_DEAFAULT_CHINK_SIZE` | Read size in bytes when streaming uploads to disk |
+| `FILE_DEAFAULT_CHUNK_SIZE` | Read size in bytes when streaming uploads to disk |
 | `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_MAIN_DATABASE` | PostgreSQL connection |
 | `VECTORDB_BACKEND` | `PGVECTOR` |
 | `VECTOR_DB_DISTANCE_METRIC` | `cosine` or `dot` |

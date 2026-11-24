@@ -1,7 +1,7 @@
 from pathlib import Path
 
+from application.errors import UnsupportedUploadType
 from .base import DocumentLoader
-from ..exceptions import UnsupportedFileType
 
 
 class LoaderRegistry:
@@ -30,7 +30,7 @@ class LoaderRegistry:
         loader = self._loaders.get(extension)
 
         if loader is None:
-            raise UnsupportedFileType(
+            raise UnsupportedUploadType(
                 f"No loader registered for extension: {extension}"
             )
 
