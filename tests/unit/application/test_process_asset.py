@@ -4,14 +4,13 @@ from pathlib import Path
 
 import pytest
 
-
+from application.errors import UnsupportedUploadType
+from application.ports import NewChunk
 from application.use_cases.process_asset import (
     ProcessAsset,
     ProcessAssetCommand,
     ProcessAssetResult,
 )
-from application.ports import NewChunk
-from application.errors import UnsupportedUploadType
 from ingestion.chunkers import Chunk
 from ingestion.loaders import LoadedDocument
 
@@ -180,10 +179,10 @@ def test_process_asset_returns_failure_for_missing_file(tmp_path):
 
     (
         use_case,
-        loader,
+        _loader,
         loader_registry,
-        chunker,
-        chunker_factory,
+        _chunker,
+        _chunker_factory,
         repository,
     ) = build_use_case(file_path)
 
@@ -208,10 +207,10 @@ def test_process_asset_returns_failure_for_empty_chunks(tmp_path):
 
     (
         use_case,
-        loader,
-        loader_registry,
-        chunker,
-        chunker_factory,
+        _loader,
+        _loader_registry,
+        _chunker,
+        _chunker_factory,
         repository,
     ) = build_use_case(file_path, chunks=[])
 
@@ -235,9 +234,9 @@ def test_process_asset_returns_failure_for_empty_documents(tmp_path):
     (
         use_case,
         loader,
-        loader_registry,
-        chunker,
-        chunker_factory,
+        _loader_registry,
+        _chunker,
+        _chunker_factory,
         repository,
     ) = build_use_case(file_path)
 
@@ -265,10 +264,10 @@ def test_process_asset_returns_failure_when_persistence_returns_zero(
 
     (
         use_case,
-        loader,
-        loader_registry,
-        chunker,
-        chunker_factory,
+        _loader,
+        _loader_registry,
+        _chunker,
+        _chunker_factory,
         repository,
     ) = build_use_case(
         file_path,
@@ -296,11 +295,11 @@ def test_process_asset_preserves_loader_and_chunker_options(tmp_path):
 
     (
         use_case,
-        loader,
-        loader_registry,
+        _loader,
+        _loader_registry,
         chunker,
         chunker_factory,
-        repository,
+        _repository,
     ) = build_use_case(file_path)
 
     asyncio.run(

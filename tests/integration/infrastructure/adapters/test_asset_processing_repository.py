@@ -1,6 +1,6 @@
 
 import pytest
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 
 from application.ports import NewChunk
 from infrastructure.adapters.repositories import (

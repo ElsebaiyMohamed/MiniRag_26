@@ -19,11 +19,11 @@ sys.path.insert(
 )
 
 from application.ports import AssetRecord
-from infrastructure.adapters.file_storage import (
-    LocalFileStorage as RealLocalFileStorage,
-)
 from infrastructure.adapters.asset_file_resolver import (
     LocalAssetFileResolver as RealLocalAssetFileResolver,
+)
+from infrastructure.adapters.file_storage import (
+    LocalFileStorage as RealLocalFileStorage,
 )
 from ingestion.loaders import create_default_loader_registry
 from models import AssetDataModel, ChunkDataModel, ProjectDataModel

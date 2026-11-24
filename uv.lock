@@ -829,7 +829,7 @@ wheels = [
 [[package]]
 name = "minirag"
 version = "1.3.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "alembic" },
