@@ -3,7 +3,7 @@
   "info": {
     "title": "MiniRag_26",
     "description": "Question Answering System",
-    "version": "1.2.0"
+    "version": "1.3.0"
   },
   "paths": {
     "/": {
@@ -69,6 +69,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The generated stored filename already exists for this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "const": "asset already exists"
+                    }
+                  },
+                  "required": [
+                    "signal"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The upload type or size is not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "enum": [
+                        "file type not supported",
+                        "file size exceeded"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "signal"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The uploaded file could not be stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "const": "file upload failed"
+                    }
+                  },
+                  "required": [
+                    "signal"
+                  ]
                 }
               }
             }
@@ -315,6 +375,25 @@
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Read Version",
+        "operationId": "read_version_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           }

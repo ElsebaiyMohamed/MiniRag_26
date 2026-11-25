@@ -9,7 +9,7 @@
 | **Database and ORM** | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white) ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.1.8-D71F00?logo=sqlalchemy&logoColor=white) ![Alembic](https://img.shields.io/badge/Alembic-1.20.1-6BA81E) ![asyncpg](https://img.shields.io/badge/asyncpg-0.32.0-4169E1) ![psycopg2](https://img.shields.io/badge/psycopg2-2.9.13-4169E1) |
 | **Vector search** | ![pgvector](https://img.shields.io/badge/pgvector-0.8.7-336791) |
 | **LLM providers** | ![Cohere](https://img.shields.io/badge/Cohere_SDK-7.3.1-39594D?logo=cohere&logoColor=white) ![OpenAI](https://img.shields.io/badge/OpenAI_SDK-3.48.0-412991?logo=openai&logoColor=white) ![Ollama](https://img.shields.io/badge/Ollama-local_models-000000?logo=ollama&logoColor=white) |
-| **Document processing** | Python standard library (TXT) ![PyMuPDF](https://img.shields.io/badge/PyMuPDF-2.1-CC2927) |
+| **Document processing** | Python standard library (TXT) ![PyMuPDF](https://img.shields.io/badge/PyMuPDF-2.1-CC2927) ![charset-normalizer](https://img.shields.io/badge/charset--normalizer-Markdown_loader-4B8BBE) |
 | **Serving** | ![Nginx](https://img.shields.io/badge/Nginx-1.30.5-009639?logo=nginx&logoColor=white) |
 | **Monitoring** | ![Prometheus](https://img.shields.io/badge/Prometheus-3.13.4-E6522C?logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-13.0-F46800?logo=grafana&logoColor=white) ![Node Exporter](https://img.shields.io/badge/Node_Exporter-1.12.1-E6522C?logo=prometheus&logoColor=white) ![Postgres Exporter](https://img.shields.io/badge/Postgres_Exporter-0.20.1-4169E1?logo=postgresql&logoColor=white) ![prometheus_client](https://img.shields.io/badge/prometheus__client-0.26.0-E6522C) |
 
@@ -131,7 +131,7 @@ flowchart TB
 
     subgraph ingestion["Document ingestion"]
         registry["LoaderRegistry"]
-        loaders["Document loaders<br/>TxtLoader / PdfLoader"]
+        loaders["Document loaders<br/>TxtLoader / PdfLoader / MarkdownLoader"]
         chunker["ChunkerFactory"]
         strategies["Chunking strategies"]
 
@@ -361,7 +361,7 @@ flowchart TB
 
     subgraph ingest["Ingestion pipeline"]
         direction LR
-        src["TXT and PDF upload<br/>Native loaders"]:::done
+        src["TXT, PDF, and Markdown upload<br/>Native loaders"]:::done
         newsrc["MD, CSV, Excel, Word, EPUB<br/>URL ingestion"]:::planned
         img["Images and embedded<br/>document images"]:::planned
         ocr["OCR"]:::planned
@@ -410,7 +410,7 @@ src/
 ├── routes/          # HTTP endpoints (base, data, nlp)
 ├── controllers/     # Business logic (processing, NLP/RAG, projects)
 ├── ingestion/
-│   ├── loaders/     # DocumentLoader, LoaderRegistry, TxtLoader, PdfLoader
+│   ├── loaders/     # DocumentLoader, LoaderRegistry, TxtLoader, PdfLoader, MarkdownLoader
 │   ├── chunkers/    # Chunker protocol, Chunk, strategies, and factory
 │   └── exceptions.py
 ├── models/          # SQLAlchemy models, Alembic migrations, schemas, enums
@@ -457,10 +457,9 @@ cp envv/.env.example.app                  envv/.env.app
 cp envv/.env.example.postgres             envv/.env.postgres
 cp envv/.env.example.postgresexporter     envv/.env.postgresexporter
 cp envv/.env.example.grafana              envv/.env.grafana
-cp minirag/alembic.example.ini            minirag/alembic.ini
 ```
 
-**3. Edit them.** Use the same database credentials everywhere:
+**3. Edit them.** Keep the PostgreSQL credentials consistent between the database, application, and exporter:
 
 | File | Set |
 |---|---|
@@ -468,7 +467,6 @@ cp minirag/alembic.example.ini            minirag/alembic.ini
 | `envv/.env.postgresexporter` | `DATA_SOURCE_USER=postgres`, `DATA_SOURCE_PASS=<password>` |
 | `envv/.env.app` | `POSTGRES_USERNAME=postgres`, `POSTGRES_PASSWORD=<password>`, `POSTGRES_HOST=pgvector`, `POSTGRES_PORT=5432`, `POSTGRES_MAIN_DATABASE=minirag26`, plus your LLM settings (see [Configuration](#configuration)) |
 | `envv/.env.grafana` | Change the admin password |
-| `minirag/alembic.ini` | `sqlalchemy.url = postgresql://postgres:<password>@pgvector:5432/minirag26` |
 
 **4. Start the stack**
 
@@ -476,7 +474,7 @@ cp minirag/alembic.example.ini            minirag/alembic.ini
 docker compose up -d --build
 ```
 
-Database migrations run automatically when the `fastapi` container starts.
+Database migrations run automatically when the `fastapi` container starts. Alembic uses the PostgreSQL settings from `envv/.env.app`; the Docker image copies the tracked `minirag/alembic.example.ini` into the image, so no host-side Alembic INI file is needed.
 
 **5. Check it**
 
@@ -515,7 +513,7 @@ cd src/models/db_schemas/minirag26
 cp alembic.ini.example alembic.ini
 ```
 
-Edit `alembic.ini` and set `sqlalchemy.url` to your database, for example `postgresql://postgres:<password>@localhost:5432/minirag26`.
+The Alembic INI file controls migration script location and logging. The database connection is read from the PostgreSQL variables in `src/.env.app` (`POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, and `POSTGRES_MAIN_DATABASE`); do not set credentials in `sqlalchemy.url`.
 
 **4. Run the migrations** (from the same directory)
 
@@ -539,7 +537,7 @@ All settings are environment variables (`.env.app`).
 | Variable | Description |
 |---|---|
 | `APP_NAME`, `APP_DESCRIPTION` | Shown at `GET /` |
-| `FILE_ALLOWED_EXTENTIONS` | Allowed upload MIME types, e.g. `["application/pdf", "text/plain"]`. The MIME type must also match the registered loader for the filename extension. |
+| `FILE_ALLOWED_EXTENTIONS` | Allowed upload MIME types, e.g. `["application/pdf", "text/plain", "text/markdown", "text/x-markdown"]`. The MIME type must also match the registered loader for the filename extension. |
 | `FILE_MAX_SIZE_IN_MB` | Maximum upload size (default example: `10`) |
 | `FILE_DEAFAULT_CHUNK_SIZE` | Read size in bytes when streaming uploads to disk |
 | `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_MAIN_DATABASE` | PostgreSQL connection |

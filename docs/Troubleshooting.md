@@ -15,13 +15,14 @@ Two endpoints help narrow things down quickly:
 
 ## API response signal troubleshooting
 
-The API returns a `signal` field describing the outcome. Use this table toidentify the likely cause and corrective action.
+The API returns a `signal` field describing the outcome. Use this table to identify the likely cause and corrective action.
 
 | Signal                                  | Likely cause                                                   | Fix                                                                                                               |
 |-----------------------------------------|----------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
-| `file type not supported`               | Unsupported MIME type or file extension                        | Use a supported `.txt` or `.pdf` file. Set the multipart content type correctly. Check `FILE_ALLOWED_EXTENTIONS`. |
+| `file type not supported`               | Unsupported MIME type or file extension                        | Use a supported `.txt`, `.pdf`, `.md`, or `.markdown` file. Set the multipart content type correctly. Check `FILE_ALLOWED_EXTENTIONS`. |
 | `file size exceeded`                    | Uploaded file exceeds the configured limit                     | Reduce the file size or increase `FILE_MAX_SIZE_IN_MB`. Check the Nginx upload limit too.                         |
 | `file upload failed`                    | The API could not write the uploaded file                      | Check the API logs, project storage directory permissions, and available disk space.                              |
+| `asset already exists`                   | The generated stored filename collided with an existing asset name in the same project | Retry the upload. The API removes the newly written file when this database conflict is detected. |
 | `project not found`                     | The requested project ID does not exist                        | Upload a file using that project ID first, then reuse the same ID.                                                |
 | `project is empty`                      | No file assets exist for the project                           | Upload at least one supported file before processing or indexing.                                                 |
 | `file chunking failed`                  | A processing operation failed to produce chunks                | Check the file contents and processing logs. The current process route does not emit this signal.                 |
@@ -45,22 +46,19 @@ The API returns a `signal` field describing the outcome. Use this table toidenti
 | `vectordb search success`                                               | Semantic search succeeded              | Review the returned results and similarity scores.                              |
 | `rag answer success`                                                    | RAG answer generation succeeded        | Use the returned answer. Enable `debug` to inspect the prompt and chat history. |
 
-**Note:** `file validated success` is declared in the enum but is not currentlyreturned as a successful upload response. `file chunking failed` is alsodeclared but is not currently emitted by the processing route.
+**Note:** `file validated success` is declared in the enum but is not currently returned as a successful upload response. `file chunking failed` is also declared but is not currently emitted by the processing route.
 
 ## Setup and startup
 
-### `docker compose build` fails: `alembic.ini` not found
+### Alembic configuration file is missing
 
-**Cause:** the repository ships `docker/minirag/alembic.example.ini`, not the real file. The Dockerfile copies `docker/minirag/alembic.ini`.
+If Alembic cannot find `alembic.ini` during local development, create it from the provided template:
 
-**Fix:**
-
-```bash
-cd docker
-cp minirag/alembic.example.ini minirag/alembic.ini
+```powershell
+Copy-Item `
+  src/models/db_schemas/minirag26/alembic.ini.example `
+  src/models/db_schemas/minirag26/alembic.ini
 ```
-
-Then set `sqlalchemy.url` inside it. See [Configuration](Configuration.md#config-files).
 
 ### `compose` complains that an env file is missing
 
@@ -79,7 +77,7 @@ Then set `sqlalchemy.url` inside it. See [Configuration](Configuration.md#config
 **Fix:** set `VECTORDB_BACKEND` exactly to `PGVECTOR` (uppercase).
 
 **Cause:** `GENERATION_BACKEND` is empty or not one of `OPENAI` or `COHERE`, so no 
-llms store could be created.
+LLM provider client could be created.
 
 **Fix:** set `GENERATION_BACKEND` exactly to `OPENAI` or `COHERE` (uppercase).
 
@@ -98,7 +96,7 @@ uv run alembic upgrade head
 
 **Cause and fix, by environment:**
 
-- **Docker:** `POSTGRES_HOST` must be `pgvector` and `POSTGRES_PORT` must be `5432`. The credentials in `.env.app`, `.env.postgres`, `.env.postgresexporter`, and `alembic.ini` must be identical.
+- **Docker:** `POSTGRES_HOST` must be `pgvector` and `POSTGRES_PORT` must be `5432`. The PostgreSQL credentials in `.env.app` and `.env.postgres` must match; `.env.postgresexporter` must use credentials that can connect to the same database. Alembic uses the PostgreSQL variables from `.env.app`, not `sqlalchemy.url` in its INI file.
 - **Local development:** `POSTGRES_HOST=localhost`, and Postgres must be running and reachable.
 - **Changed the password after first start:** the Postgres volume keeps the old credentials. Either change the password inside the database, or remove the volume (this **deletes all data**): `docker compose down -v`.
 
@@ -132,8 +130,7 @@ The stack publishes these host ports: `80` (Nginx), `8000` (API), `5432` (Postgr
 **Cause:** the filename extension has no registered loader, the MIME type does not match the selected loader, or the
 MIME type is not included in `FILE_ALLOWED_EXTENTIONS`.
 
-**Fix:** use a supported extension and its matching MIME type. For example, `.pdf` requires `application/pdf`, while
-`.txt` requires `text/plain`.
+**Fix:** use a supported extension and its matching MIME type. For example, `.pdf` requires `application/pdf`, `.txt` requires `text/plain`, and Markdown accepts `text/markdown`, `text/x-markdown`, or `text/plain`.
 
 ### Upload returns `file size exceeded`
 
@@ -153,9 +150,9 @@ MIME type is not included in `FILE_ALLOWED_EXTENTIONS`.
 
 **Fix:** upload at least one file to the same `project_id` first.
 
-### Process returns `file chuncking failed`
+### A file is not processed or produces no chunks
 
-**Cause:** a file produced no chunks. Typical reasons are a scanned PDF with no text layer, an empty file, or a `chunk_size` far larger than the document.
+**Cause:** the loader returned no usable text or chunking produced no chunks. Typical reasons are a scanned PDF with no text layer, an empty file, or a `chunk_size` far larger than the document. The current process route still returns `200` with `file chunking success` after processing attempts; inspect `no_files_success` and `no_records_added` to identify unsuccessful files. The enum signal `file chunking failed` is not currently emitted by this route.
 
 **Fix:** open the file and confirm it contains selectable text. Scanned documents need OCR, which is on the [roadmap](../README.md#roadmap).
 
@@ -264,7 +261,7 @@ Make sure Ollama listens on an address reachable from the container, and that yo
 
 ### Cannot log in to Grafana
 
-**Fix:** use the admin credentials from `envv/.env.app.grafana`. They are applied when the Grafana volume is first created; changing the file later does not change an existing password. Reset the password in the existing Grafana instance rather than deleting the volume, which also removes its persisted dashboards and settings.
+**Fix:** use the admin credentials from `envv/.env.grafana`. They are applied when the Grafana volume is first created; changing the file later does not change an existing password. Reset the password in the existing Grafana instance rather than deleting the volume, which also removes its persisted dashboards and settings.
 
 ## Still stuck?
 

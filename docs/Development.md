@@ -21,7 +21,7 @@ src/
 ├── routes/             # HTTP endpoints: base, data, nlp
 ├── controllers/        # Existing controller-based workflows
 ├── ingestion/          # Document loading and chunking
-│   ├── loaders/        # LoaderRegistry, PdfLoader, TxtLoader, LoadedDocument
+│   ├── loaders/        # LoaderRegistry, MarkdownLoader, PdfLoader, TxtLoader, LoadedDocument
 │   ├── chunkers/       # Chunker protocol, Chunk, strategies, and factory
 │   └── exceptions.py   # Ingestion-related exceptions
 ├── models/
@@ -66,6 +66,21 @@ docker compose up -d pgvector
 ```
 
 It is published on `localhost:5432`, so use `POSTGRES_HOST=localhost` in `src/.env.app`.
+
+### Alembic configuration
+
+The repository provides a shared Alembic configuration template:
+
+`src/models/db_schemas/minirag26/alembic.ini.example`
+
+Before running database migrations locally, create your local configuration file from this template.
+
+**PowerShell:**
+
+```powershell
+Copy-Item `
+  src/models/db_schemas/minirag26/alembic.ini.example `
+  src/models/db_schemas/minirag26/alembic.ini
 
 Run migrations once, then start the API with auto-reload:
 
@@ -146,8 +161,9 @@ The default loader registry currently supports:
 
 | Loader      | Format | Implementation                                         | Output                            |
 |-------------|--------|--------------------------------------------------------|-----------------------------------|
-| `TxtLoader` | `.txt` | Python standard library (`Path.read_text`) using UTF-8 | One `LoadedDocument` per file     |
-| `PdfLoader` | `.pdf` | PyMuPDF (`pymupdf`)                                    | One `LoadedDocument` per PDF page |
+| `TxtLoader` | `.txt` | Python standard library (`Path.read_text`) using UTF-8 | One `LoadedDocument` per file |
+| `PdfLoader` | `.pdf` | PyMuPDF (`pymupdf`) | One `LoadedDocument` per PDF page |
+| `MarkdownLoader` | `.md`, `.markdown` | `charset-normalizer` encoding detection | One `LoadedDocument` per file; strips YAML front matter and HTML comments while preserving Markdown text |
 
 Each `LoadedDocument` contains extracted text and metadata. PDF metadata includes the resolved source path, file path, zero-based page number, and total page count. Available PDF creation and modification dates are normalized to ISO format.
 
@@ -238,7 +254,7 @@ Types in use: `feat`, `fix`, `refactor`, `docs`, `chore`. Keep unrelated changes
 ## Releasing
 
 1. Move the *Unreleased* entries in `Changelog.md` under a new version heading with the date.
-2. Update the version in `pyproject.toml` and `APP_VERSION` in your example env files.
+2. Update the version in `pyproject.toml`. The application reads its version from package metadata, falling back to `pyproject.toml`; `APP_VERSION` is deprecated and ignored.
 3. Commit, then tag: `git tag vX.Y.Z && git push --tags`.
 4. Publish a GitHub release with the changelog section as the notes.
 

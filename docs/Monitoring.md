@@ -53,7 +53,7 @@ Grafana starts empty, with no data source and no dashboards.
 
 ### 1. Log in
 
-Open http://localhost:3000 and sign in with the admin user and password from `docker/envv/.env.app.grafana`.
+Open http://localhost:3000 and sign in with the admin user and password from `docker/envv/.env.grafana`.
 
 ### 2. Add the data source
 

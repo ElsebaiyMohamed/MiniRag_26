@@ -18,6 +18,7 @@ Base URL: `http://localhost:8000` (or `http://localhost` through Nginx).
 | `200` | Success                                                                   |
 | `400` | The request was understood but could not be completed. See the `signal`   |
 | `404` | The requested project or resource does not exist                          |
+| `409` | Conflict — an asset name already exists in the project                     |
 | `422` | The request body or parameters failed validation (FastAPI default format) |
 | `500` | Unexpected server error, for example a failed file write                  |
 | `502` | Bad Gateway — upstream LLM provider or vector database operation failed   |
@@ -37,6 +38,7 @@ the exact string values rather than relying on message wording.
 | `FILE_SIZE_EXCEEDED`                  | `file size exceeded`                                                    |
 | `FILE_UPLOAD_FAILED`                  | `file upload failed`                                                    |
 | `FILE_UPLOAD_SUCCESS`                 | `file upload success`                                                   |
+| `ASSET_ALREADY_EXISTS`                 | `asset already exists`                                                     |
 | `PROJECT_NOT_FOUND`                   | `project not found`                                                     |
 | `NO_FILES_ERROR`                      | `project is empty`                                                      |
 | `FILES_ALREADY_PROCESSED`             | `Project files are already up-to-date. No further processing required.` |
@@ -101,7 +103,7 @@ curl http://localhost:8000/
 ```json
 {
   "app_name": "MiniRag_26",
-  "version": "0.1",
+  "version": "1.3.0",
   "description": "Question Answering System"
 }
 ```
@@ -115,7 +117,7 @@ Returns the canonical application version declared in `pyproject.toml`.
 
 ```json
 {
-  "version": "0.1.0"
+  "version": "1.3.0"
 }
 ```
 
@@ -141,7 +143,7 @@ curl -X POST http://localhost:8000/api/v1/data/upload/1 \
 }
 ```
 
-`file_id` is the stored file name (a random prefix plus the cleaned original name).
+`file_id` is the stored file name (a random prefix plus the cleaned original name). Because the prefix is random, uploading the same original filename normally creates a different stored name. The `409` response is for an actual collision with an existing stored asset name in that project.
 
 **Errors**
 
@@ -149,6 +151,7 @@ curl -X POST http://localhost:8000/api/v1/data/upload/1 \
 |---|---|---|
 | `400` | `file type not supported` | MIME type or filename extension is not supported |
 | `400` | `file size exceeded` | File larger than the configured maximum |
+| `409` | `asset already exists` | The generated stored filename conflicts with an existing asset name in this project |
 | `500` | `file upload failed` | The file could not be written to disk |
 
 ---

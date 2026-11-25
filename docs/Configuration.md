@@ -8,30 +8,50 @@ Real environment variables take precedence over values in a `.env` file.
 
 The repository ships example configuration files, not populated secret files. Real files hold secrets and are git-ignored, so you create them by copying:
 
-| Real file (you create it) | Copy from | Used by |
-|---|---|---|
-| `src/.env.app` | `src/.env.example.app` | Local development |
-| `docker/envv/.env.app` | `docker/envv/.env.example.app` | `fastapi` container |
-| `docker/envv/.env.app.postgres` | `docker/envv/.env.example.postgres` | `pgvector` container |
-| `docker/envv/.env.app.postgresexporter` | `docker/envv/.env.example.postgresexporter` | `postgres-exporter` container |
-| `docker/envv/.env.app.grafana` | `docker/envv/.env.example.grafana` | `grafana` container |
-| `src/models/db_schemas/minirag26/alembic.ini` | `src/models/db_schemas/minirag26/alembic.ini.example` | Alembic, local development |
-| `docker/minirag/alembic.ini` | `docker/minirag/alembic.example.ini` | Alembic inside the Docker image |
+| Real file (you create it)                     | Copy from                                             | Used by                         |
+|-----------------------------------------------|-------------------------------------------------------|---------------------------------|
+| `src/.env.app`                                | `src/.env.example.app`                                | Local development               |
+| `docker/envv/.env.app`                        | `docker/envv/.env.example.app`                        | `fastapi` container             |
+| `docker/envv/.env.postgres`                   | `docker/envv/.env.example.postgres`                   | `pgvector` container            |
+| `docker/envv/.env.postgresexporter`           | `docker/envv/.env.example.postgresexporter`           | `postgres-exporter` container   |
+| `docker/envv/.env.grafana`                    | `docker/envv/.env.example.grafana`                    | `grafana` container             |
+| `src/models/db_schemas/minirag26/alembic.ini` | `src/models/db_schemas/minirag26/alembic.ini.example` | Alembic, local development      |
 
-The application settings file is anchored to `src/.env.app`, regardless of the current working directory. Real environment variables override values from that file.
+The application settings file is anchored to `src/.env.app`, regardless of the current working directory. Real environment variables override values from that file. `DatabaseSettings`, used by both the application and Alembic, reads the same PostgreSQL variables. Alembic does not use the `sqlalchemy.url` placeholder in its INI file: `src/models/db_schemas/minirag26/alembic/env.py` builds the connection URL from `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, and `POSTGRES_MAIN_DATABASE`.
+
+### Database configuration for Alembic
+
+Alembic uses the application's database settings rather than relying on a hardcoded database URL in `alembic.ini`.
+
+The database connection is resolved through the application's environment configuration.
+
+The connection host depends on where the application runs:
+
+| Environment       | Database host |
+|-------------------|---------------|
+| Local development | `localhost`   |
+| Docker Compose    | `pgvector`    |
+
+The repository includes one shared template:
+
+`src/models/db_schemas/minirag26/alembic.ini.example`
+
+For local development, copy this file to `alembic.ini` in the same directory. Docker uses the same template when building the application image.
+
+Do not commit your local `alembic.ini` or put environment-specific database credentials in the shared template.
 
 ### Database credentials must match everywhere
 
-In the Docker setup the same database credentials appear in four places. Keep them identical:
+In the Docker setup, keep the PostgreSQL application and server credentials consistent across these three files:
 
 | File | Keys |
 |---|---|
-| `envv/.env.app.postgres` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
-| `envv/.env.app.postgresexporter` | `DATA_SOURCE_USER`, `DATA_SOURCE_PASS` |
+| `envv/.env.postgres` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
+| `envv/.env.postgresexporter` | `DATA_SOURCE_USER`, `DATA_SOURCE_PASS` |
 | `envv/.env.app` | `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_MAIN_DATABASE` |
-| `minirag/alembic.ini` | `sqlalchemy.url` |
 
-Inside the Docker network the database host is `pgvector` and the port is `5432`.
+
+Inside the Docker network the database host is `pgvector` and the port is `5432`. The Alembic INI files configure migration-script location and logging; they are not where you set database credentials.
 
 ## Reference
 
