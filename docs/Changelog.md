@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Added an Alembic migration to enforce unique asset names per project, validate asset statuses, apply database-level cascading deletes, and add a composite chunk index.
+- Added migration pre-flight checks to report duplicate assets and invalid asset statuses before applying schema changes.
+- Added `tools/dedupe_assets.py` to identify and safely consolidate duplicate assets, re-pointing their chunks to the newest asset.
+- Added duplicate asset handling that returns HTTP 409 with the `ASSET_ALREADY_EXISTS` response signal and cleans up the uploaded file.
 - Add the application-layer `ProcessAsset` use case to coordinate per-asset document loading, chunking, and persistence.
 - Add `LocalAssetFileResolver` to resolve stored asset paths safely and prevent path traversal.
 - Add transactional asset processing persistence to insert chunks and update the asset status to `CHUNKED` atomically.
@@ -15,6 +19,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Synchronized API, OpenAPI, configuration, Docker, loader, migration, and troubleshooting documentation with the current implementation.
+- Updated asset and chunk relationships and database constraints to support cascading deletes.
+- Updated chunk pagination to use deterministic ordering by `chunk_id`.
+- Centralized database connection settings through `DatabaseSettings` and reused them in Alembic.
+- Updated Docker Alembic configuration to use environment-based database settings instead of a hardcoded connection URL.
+- Updated the Dockerfile to copy the tracked Alembic example config directly into the image.
 - Integrate `ProcessAsset` into the data processing route while preserving the existing API response contract and per-asset failure behavior.
 - Refactor file upload handling into an application-layer `IngestFile` use case, separating upload validation, file storage, and asset creation from the FastAPI route.
 - Introduce storage and repository ports with infrastructure adapters for local file storage and SQLAlchemy persistence.

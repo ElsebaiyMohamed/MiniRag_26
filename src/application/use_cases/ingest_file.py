@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from application.errors import (
+    AssetAlreadyExists,
     FileStorageError,
     UnsupportedUploadType,
     UploadTooLarge,
@@ -84,14 +85,31 @@ class IngestFile:
         except Exception as exc:
             raise FileStorageError from exc
 
-        asset = await self.asset_repository.create(
-            NewAsset(
-                project_id=project_id,
-                asset_type=AssetType.FILE.value,
-                asset_name=stored_filename,
-                asset_size=file.size,
-                asset_status=AssetStatus.UPLOADED.value,
+        try:
+            asset = await self.asset_repository.create(
+                NewAsset(
+                    project_id=project_id,
+                    asset_type=AssetType.FILE.value,
+                    asset_name=stored_filename,
+                    asset_size=file.size,
+                    asset_status=AssetStatus.UPLOADED.value,
+                )
             )
-        )
+        except AssetAlreadyExists:
+            try:
+                await self.file_storage.delete(
+                    project_id=project_id,
+                    stored_filename=stored_filename,
+                )
+            except Exception:
+                # Preserve the duplicate response even if cleanup fails.
+                import logging
+
+                logging.getLogger(__name__).exception(
+                    "Failed to remove duplicate upload file: %s",
+                    stored_filename,
+                )
+
+            raise
 
         return IngestFileResult(file_id=asset.asset_name)

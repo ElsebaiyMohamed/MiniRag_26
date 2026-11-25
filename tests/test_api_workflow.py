@@ -10,6 +10,7 @@ from typing import ClassVar
 import httpx
 import pytest
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from ingestion.chunkers import create_default_chunker_factory
 
@@ -18,6 +19,7 @@ sys.path.insert(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"))
 )
 
+from application.errors import AssetAlreadyExists
 from application.ports import AssetRecord
 from infrastructure.adapters.asset_file_resolver import (
     LocalAssetFileResolver as RealLocalAssetFileResolver,
@@ -81,10 +83,14 @@ class FakeProjectRepository:
 
 
 class FakeAssetRepository:
-    def __init__(self, assets):
+    def __init__(self, assets, error=None):
         self.assets = assets
+        self.error = error
 
     async def create(self, asset):
+        if self.error:
+            raise self.error
+
         db_asset = SimpleNamespace(
             asset_project_id=asset.project_id,
             asset_type=asset.asset_type,
@@ -443,12 +449,12 @@ def upload_api(tmp_path, monkeypatch, workflow_models):
         lambda: settings
     )
 
-    return app, settings
+    return app, settings, assets, tmp_path
 
 
 @pytest.mark.asyncio
 async def test_upload_route_success(upload_api):
-    app, _ = upload_api
+    app, _settings, _assets, _tmp_path = upload_api
 
     transport = httpx.ASGITransport(app=app)
 
@@ -477,7 +483,7 @@ async def test_upload_route_success(upload_api):
 
 @pytest.mark.asyncio
 async def test_upload_route_rejects_unsupported_type(upload_api):
-    app, _ = upload_api
+    app, _settings, _assets, _tmp_path = upload_api
 
     transport = httpx.ASGITransport(app=app)
 
@@ -504,7 +510,7 @@ async def test_upload_route_rejects_unsupported_type(upload_api):
 
 @pytest.mark.asyncio
 async def test_upload_route_rejects_oversized_file(upload_api):
-    app, settings = upload_api
+    app, settings, _assets, _tmp_path = upload_api
 
     # A zero-MB limit makes any non-empty upload oversized.
     settings.FILE_MAX_SIZE_IN_MB = 0
@@ -537,7 +543,7 @@ async def test_upload_route_handles_storage_failure(
     upload_api,
     monkeypatch,
 ):
-    app, _ = upload_api
+    app, _settings, _assets, _tmp_path = upload_api
 
     class FailingFileStorage:
         async def store(
@@ -577,6 +583,40 @@ async def test_upload_route_handles_storage_failure(
         "signal": ResponseSignal.FILE_UPLOAD_FAILED.value
     }
 
+@pytest.mark.asyncio
+async def test_upload_route_returns_conflict_for_duplicate_asset(
+    upload_api,
+    monkeypatch,
+):
+    app, _settings, assets, tmp_path = upload_api
+
+    monkeypatch.setattr(
+        data_routes,
+        "SqlAlchemyAssetRepository",
+        lambda db_client: FakeAssetRepository(
+            assets,
+            error=AssetAlreadyExists(),
+        ),
+    )
+
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/data/upload/1",
+        files={
+            "file": (
+                "source.txt",
+                b"duplicate content",
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["signal"] == ResponseSignal.ASSET_ALREADY_EXISTS.value
+
+    project_dir = tmp_path / "assets" / "files" / "1"
+    assert not list(project_dir.glob("*_source.txt"))
 
 @pytest.mark.asyncio
 async def test_upload_process_index_search_answer_workflow(

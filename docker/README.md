@@ -20,13 +20,12 @@ From the repository root, create the files referenced by `docker-compose.yml`:
 
 ```bash
 cp docker/envv/.env.example.app docker/envv/.env.app
-cp docker/envv/.env.example.postgres docker/envv/.env.app.postgres
-cp docker/envv/.env.example.postgresexporter docker/envv/.env.app.postgresexporter
-cp docker/envv/.env.example.grafana docker/envv/.env.app.grafana
-cp docker/minirag/alembic.example.ini docker/minirag/alembic.ini
+cp docker/envv/.env.example.postgres docker/envv/.env.postgres
+cp docker/envv/.env.example.postgresexporter docker/envv/.env.postgresexporter
+cp docker/envv/.env.example.grafana docker/envv/.env.grafana
 ```
 
-Edit the database credentials so they match in the app, PostgreSQL, exporter, and Alembic files. Set the LLM provider keys and Grafana admin password as well. See [Configuration](../docs/Configuration.md).
+Edit the database credentials so they match in the application, PostgreSQL, and exporter files. Set the LLM provider keys and Grafana admin password as well. Alembic reads the database connection settings from the same application environment variables; the Docker image includes its tracked Alembic example config. See [Configuration](../docs/Configuration.md).
 
 ### 2. Start the services
 
@@ -116,7 +115,7 @@ Prometheus is configured to scrape these metrics automatically.
 
 ### Visualizing Metrics in Grafana
 
-1. Log into Grafana at http://localhost:3000 using the admin credentials in `docker/envv/.env.app.grafana`.
+1. Log into Grafana at http://localhost:3000 using the admin credentials in `docker/envv/.env.grafana`.
 2. Add Prometheus as a data source (URL: http://prometheus:9090)
 3. Import dashboards for FastAPI, and PostgreSQL
 
@@ -147,7 +146,7 @@ If you see connection errors when starting the services:
    Solutions:
    - Start database services first, wait, then start the application
    - Check database logs: `docker compose logs pgvector`
-   - Ensure your database credentials in `.env.app` match those in `.env.app.postgres`
+   - Ensure your database credentials in `.env.app` match those in `.env.postgres`
 
 2. **Restart the FastAPI service** after databases are running:
    ```bash

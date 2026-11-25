@@ -4,6 +4,7 @@ import asyncio
 import pytest
 
 from application.errors import (
+    AssetAlreadyExists,
     FileStorageError,
     UnsupportedUploadType,
     UploadTooLarge,
@@ -53,6 +54,9 @@ class FakeFileStorage:
 
         return self.filename
 
+    async def delete(self, project_id, stored_filename):
+        self.deleted_files = getattr(self, "deleted_files", [])
+        self.deleted_files.append((project_id, stored_filename))
 
 class FakeProjectRepository:
     def __init__(self, project_id=10):
@@ -219,3 +223,25 @@ def test_ingest_file_translates_storage_failure():
     assert projects.calls == [5]
     assert len(storage.calls) == 1
     assert assets.assets == []
+
+def test_ingest_file_removes_stored_file_when_asset_already_exists():
+    use_case, storage, _projects, assets = build_use_case()
+
+    async def duplicate_asset(asset):
+        raise AssetAlreadyExists
+
+    assets.create = duplicate_asset
+
+    with pytest.raises(AssetAlreadyExists):
+        asyncio.run(
+            use_case.execute(
+                IngestFileCommand(
+                    project_id=5,
+                    file=FakeUpload(),
+                )
+            )
+        )
+
+    assert storage.deleted_files == [
+        (10, "stored_document.txt")
+    ]

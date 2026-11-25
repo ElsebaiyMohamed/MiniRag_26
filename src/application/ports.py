@@ -48,6 +48,13 @@ class FileStorage(Protocol):
     ) -> str:
         ...
 
+    async def delete(
+        self,
+        project_id: int,
+        stored_filename: str,
+    ) -> None:
+        ...
+
 
 class ProjectRepository(Protocol):
     """Ensures that a project exists."""

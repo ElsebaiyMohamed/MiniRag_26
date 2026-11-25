@@ -34,7 +34,7 @@ A published database port combined with a weak password is the most common way a
 
 ## Secrets
 
-- Real env files (`docker/envv/.env.*`, `src/.env.app`) and both `alembic.ini` files are git-ignored. Keep it that way, and never commit them.
+- Real env files (`docker/envv/.env.*`, `src/.env.app`) and the local `src/models/db_schemas/minirag26/alembic.ini` are git-ignored. Keep them that way and never commit them. The Docker image uses the tracked `docker/minirag/alembic.example.ini`; no host-side Docker Alembic INI file is needed.
 - Replace every placeholder password: Postgres, Grafana (`GF_SECURITY_ADMIN_PASSWORD`), and the postgres-exporter credentials.
 - Use one database password in all four places listed in [Configuration](Configuration.md#database-credentials-must-match-everywhere).
 - Treat `COHERE_API_KEY` and `OPENAI_API_KEY` as money. Restrict them in the provider's dashboard where possible, and rotate them if they leak.
@@ -159,6 +159,18 @@ git pull
 cd docker
 docker compose up -d --build
 ```
+
+### Database migrations in Docker
+
+The Docker image uses the canonical Alembic configuration template:
+
+`src/models/db_schemas/minirag26/alembic.ini.example`
+
+During image construction, the template is copied into the runtime image as `alembic.ini`.
+
+Alembic resolves the database connection using the application's environment settings. Under Docker Compose, the database host is `pgvector`, which is the PostgreSQL service name.
+
+This keeps the migration configuration consistent between local development and Docker deployments without maintaining separate Alembic templates.
 
 Read `Changelog.md` first. If a release changes the embedding setup, re-index your projects with `"do_reset": 1`.
 

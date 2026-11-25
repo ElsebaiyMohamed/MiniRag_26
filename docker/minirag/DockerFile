@@ -39,7 +39,7 @@ COPY src/ .
 
 
 
-COPY docker/minirag/alembic.ini /app/docker/models/db_schemas/minirag26/alembic.ini
+COPY src/models/db_schemas/minirag26/alembic.ini /app/docker/models/db_schemas/minirag26/alembic.ini
 COPY src/models/db_schemas/minirag26/alembic /app/docker/models/db_schemas/minirag26/alembic
 COPY docker/minirag/entrypoint.sh ./entrypoint.sh
 RUN chmod +x /app/entrypoint.sh

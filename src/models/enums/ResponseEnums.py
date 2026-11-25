@@ -10,6 +10,7 @@ class ResponseSignal(Enum):
     NO_FILES_ERROR = 'project is empty'
     FILES_ALREADY_PROCESSED="Project files are already up-to-date. No further processing required."
     PROCESSING_FAILED = 'file chunking failed'
+    ASSET_ALREADY_EXISTS = "asset already exists"
     PROCESSING_SUCCESS = 'file chunking success'
     FILES_NEED_CHUNKING = 'chunk files first before indexing'
     NO_FILES_TO_BE_INDEXED = 'project chunked files already indexed'
