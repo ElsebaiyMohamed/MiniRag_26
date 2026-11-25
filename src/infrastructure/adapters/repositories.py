@@ -1,5 +1,7 @@
 from sqlalchemy import update
+from sqlalchemy.exc import IntegrityError
 
+from application.errors import AssetAlreadyExists
 from application.ports import (
     AssetRecord,
     AssetRepository,
@@ -8,7 +10,6 @@ from application.ports import (
     AssetProcessingRepository,
     NewChunk,
 )
-
 from models.AssetDataModel import AssetDataModel
 from models.ProjectDataModel import ProjectDataModel
 from models.db_schemas import Asset, DataChunk
@@ -39,7 +40,21 @@ class SqlAlchemyAssetRepository(AssetRepository):
             asset_status=asset.asset_status,
         )
 
-        created_asset = await self.model.create_asset(db_asset)
+        try:
+            created_asset = await self.model.create_asset(db_asset)
+        except IntegrityError as exc:
+            original_error = exc.orig
+            diagnostics = getattr(original_error, "diag", None)
+            constraint_name = getattr(
+                diagnostics,
+                "constraint_name",
+                None,
+            )
+
+            if constraint_name == "uq_assets_project_asset_name":
+                raise AssetAlreadyExists from exc
+
+            raise
 
         return AssetRecord(asset_name=created_asset.asset_name)
 

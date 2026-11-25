@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, UploadFile, status, Request
 from fastapi.responses import JSONResponse
 
 from application.errors import (
+    AssetAlreadyExists,
     FileStorageError,
     UnsupportedUploadType,
     UploadTooLarge,
@@ -20,10 +21,10 @@ from application.use_cases.process_asset import (
     ProcessAssetCommand,
 )
 from helpers import Settings, get_settings
-from infrastructure.adapters.file_storage import LocalFileStorage
 from infrastructure.adapters.asset_file_resolver import (
     LocalAssetFileResolver,
 )
+from infrastructure.adapters.file_storage import LocalFileStorage
 from infrastructure.adapters.repositories import (
     SqlAlchemyAssetRepository,
     SqlAlchemyProjectRepository,
@@ -39,7 +40,68 @@ log_it = logging.getLogger("uvicorn.error")
 data_router = APIRouter(prefix="/api/v1/data", tags=["v1", "data"])
 
 
-@data_router.post("/upload/{project_id}")
+@data_router.post(
+    "/upload/{project_id}",
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "description": "The upload type or size is not supported.",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "signal": {
+                                "type": "string",
+                                "enum": [
+                                    "file type not supported",
+                                    "file size exceeded",
+                                ],
+                            }
+                        },
+                        "required": ["signal"],
+                    }
+                }
+            },
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": (
+                "The generated stored filename already exists "
+                "for this project."
+            ),
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "signal": {
+                                "type": "string",
+                                "const": "asset already exists",
+                            }
+                        },
+                        "required": ["signal"],
+                    }
+                }
+            },
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "The uploaded file could not be stored.",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "signal": {
+                                "type": "string",
+                                "const": "file upload failed",
+                            }
+                        },
+                        "required": ["signal"],
+                    }
+                }
+            },
+        },
+    },
+)
 async def upload(
     request: Request,
     project_id: int,
@@ -90,6 +152,13 @@ async def upload(
             },
         )
 
+    except AssetAlreadyExists:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "signal": ResponseSignal.ASSET_ALREADY_EXISTS.value
+            },
+        )
     except FileStorageError as exc:
         log_it.error("Error while uploading file: %s", exc)
         return JSONResponse(

@@ -13,3 +13,6 @@ class UploadTooLarge(IngestFileError):
 
 class FileStorageError(IngestFileError):
     """The uploaded file could not be stored."""
+
+class AssetAlreadyExists(IngestFileError):
+    """An asset with the same name already exists in the project."""

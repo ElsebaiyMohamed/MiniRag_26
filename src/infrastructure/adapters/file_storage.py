@@ -36,6 +36,20 @@ class LocalFileStorage:
 
         return stored_filename
 
+    async def delete(
+        self,
+        project_id: int,
+        stored_filename: str,
+    ) -> None:
+        file_path = (
+            self.base_dir
+            / "assets"
+            / "files"
+            / str(project_id)
+            / stored_filename
+        )
+        file_path.unlink(missing_ok=True)
+
     @staticmethod
     def _generate_unique_filename(
         original_filename: str,
