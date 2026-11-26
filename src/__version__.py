@@ -5,8 +5,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-PACKAGE_NAME = "minirag-26"
-
+PACKAGE_NAME = "minirag"
 
 def _version_from_pyproject() -> str:
     for parent in Path(__file__).resolve().parents:

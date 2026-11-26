@@ -3,6 +3,10 @@ name: Nightly Release
 on:
   push:
     branches: [dev]
+    paths-ignore:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'docs/Changelog.md'
   workflow_dispatch:
 
 permissions:
@@ -14,46 +18,224 @@ concurrency:
 
 jobs:
   release:
-    name: Build and Publish Nightly
+    name: Build and Publish Versioned Nightly
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout dev branch
         uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
 
       - name: Install uv and set up Python
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-          cache-dependency-glob: "uv.lock"
+          cache-dependency-glob: uv.lock
           python-version: "3.13.14"
 
-      - name: Build distributions
-        run: uv build
-
-      - name: Publish rolling nightly release
+      - name: Determine release version
+        id: release
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          if gh release view nightly >/dev/null 2>&1; then
-            echo "Updating existing nightly release..."
+          git fetch origin --tags
 
-            # Replace existing distribution assets.
-            gh release upload nightly dist/* --clobber
+          CURRENT_VERSION=$(python -c \
+            "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
 
-            # Move the rolling tag to the current dev commit.
-            git tag -f nightly "$GITHUB_SHA"
-            git push origin refs/tags/nightly --force
+          if [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.dev$ ]]; then
+            CURRENT_TAG="minirag-v${CURRENT_VERSION}"
+
+            if gh release view "$CURRENT_TAG" >/dev/null 2>&1; then
+              MODE="new"
+            elif git rev-parse --verify --quiet "refs/tags/$CURRENT_TAG" >/dev/null; then
+              MODE="resume"
+            else
+              MODE="bootstrap"
+            fi
           else
-            echo "Creating the first nightly release..."
-
-            git tag nightly "$GITHUB_SHA"
-            git push origin refs/tags/nightly
-
-            gh release create nightly dist/* \
-              --title "MiniRag_26 Nightly" \
-              --notes "Rolling nightly build from the dev branch. Not a stable release." \
-              --prerelease \
-              --verify-tag
+            MODE="new"
           fi
+
+          if [[ "$MODE" == "new" ]]; then
+            HAS_UNRELEASED=$(python - <<'PY'
+          import re
+          from pathlib import Path
+
+          content = Path("docs/Changelog.md").read_text(encoding="utf-8")
+          match = re.search(
+              r"(?ms)^## \[Unreleased\]\s*\n(.*?)(?=^## \[|\Z)",
+              content,
+          )
+          print("true" if match and match.group(1).strip() else "false")
+          PY
+            )
+
+            if [[ "$HAS_UNRELEASED" != "true" ]]; then
+              echo "No Unreleased changelog entries. Skipping release."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            NEXT_VERSION=$(python - <<'PY'
+          import re
+          import subprocess
+
+          tags = subprocess.check_output(
+              ["git", "tag", "--list"], text=True
+          ).splitlines()
+
+          stable_pattern = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+          dev_pattern = re.compile(
+              r"^minirag-v(\d+)\.(\d+)\.(\d+)\.dev$"
+          )
+
+          stable_versions = [
+              tuple(map(int, match.groups()))
+              for tag in tags
+              if (match := stable_pattern.fullmatch(tag))
+          ]
+
+          if not stable_versions:
+              raise SystemExit("No stable vX.Y.Z tag was found.")
+
+          major, minor, stable_patch = max(stable_versions)
+
+          dev_patches = [
+              int(match.group(3))
+              for tag in tags
+              if (match := dev_pattern.fullmatch(tag))
+              and int(match.group(1)) == major
+              and int(match.group(2)) == minor
+          ]
+
+          next_patch = max([stable_patch, *dev_patches]) + 1
+          print(f"{major}.{minor}.{next_patch}.dev")
+          PY
+            )
+
+            VERSION="$NEXT_VERSION"
+          else
+            VERSION="$CURRENT_VERSION"
+          fi
+
+          TAG="minirag-v${VERSION}"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+          echo "Current project version: $CURRENT_VERSION"
+          echo "Selected release version: $VERSION"
+          echo "Release mode: $MODE"
+
+      - name: Checkout tagged commit for release recovery
+        if: steps.release.outputs.mode == 'resume'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git checkout --detach "refs/tags/$TAG"
+
+      - name: Prepare changelog and release notes
+        if: steps.release.outputs.skip != 'true'
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          MODE: ${{ steps.release.outputs.mode }}
+        shell: bash
+        run: |
+          if [[ "$MODE" == "new" ]]; then
+            python tools/release_nightly.py \
+              --version "$VERSION" \
+              --notes-file release-notes.md
+          else
+            python - <<'PY'
+          import re
+          import os
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          content = Path("docs/Changelog.md").read_text(encoding="utf-8")
+
+          heading = f"## [{version}]"
+          start = content.find(heading)
+
+          if start == -1:
+              raise SystemExit(
+                  f"Could not find changelog section for {version}"
+              )
+
+          next_section = re.search(
+              r"(?m)^## \[",
+              content[start + len(heading):],
+          )
+
+          end = (
+              start + len(heading) + next_section.start()
+              if next_section
+              else len(content)
+          )
+
+          notes = content[start:end].strip() + "\n"
+          Path("release-notes.md").write_text(notes, encoding="utf-8")
+
+          print(f"Recovered release notes for {version}")
+          PY
+          fi
+
+      - name: Update lockfile and build distributions
+        if: steps.release.outputs.skip != 'true'
+        run: |
+          uv lock
+          uv lock --check
+          uv build
+
+      - name: Commit version and changelog updates
+        if: steps.release.outputs.skip != 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add pyproject.toml uv.lock docs/Changelog.md
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): prepare ${{ steps.release.outputs.version }}"
+            git push origin HEAD:dev
+          fi
+
+      - name: Create immutable version tag
+        if: steps.release.outputs.skip != 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          if ! git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            git tag "$TAG"
+            git push origin "refs/tags/$TAG"
+          else
+            echo "Tag $TAG already exists. Reusing it."
+          fi
+
+      - name: Publish prerelease
+        if: steps.release.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. Leaving it unchanged."
+            exit 0
+          fi
+
+          gh release create "$TAG" dist/* \
+            --title "MiniRag v$VERSION" \
+            --notes-file release-notes.md \
+            --prerelease \
+            --verify-tag
