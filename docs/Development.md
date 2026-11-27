@@ -12,12 +12,15 @@ src/
 │   ├── ports.py
 │   └── use_cases/
 │       ├── ingest_file.py
-│       └── process_asset.py
+│       ├── process_asset.py
+│       └── index_project.py
 ├── infrastructure/    # Implementations of application ports
 │   └── adapters/
 │       ├── asset_file_resolver.py
+│       ├── embedding_adapter.py
 │       ├── file_storage.py
-│       └── repositories.py
+│       ├── repositories.py
+│       └── vector_store_adapter.py
 ├── routes/             # HTTP endpoints: base, data, nlp
 ├── controllers/        # Existing controller-based workflows
 ├── ingestion/          # Document loading and chunking
@@ -43,10 +46,10 @@ docs/                   # This documentation
 Routes handle HTTP concerns and delegate application operations to the appropriate component.
 
 - **Routes** validate HTTP input, invoke the relevant use case or controller, and build the JSON response with a `signal`.
-- **Application layer** contains use cases and port definitions. `IngestFile` coordinates upload validation, project existence, file storage, and asset creation. `ProcessAsset` coordinates per-asset document loading, chunking, and persistence. Both use cases depend on application-level ports rather than FastAPI or SQLAlchemy.
-- **Infrastructure adapters** implement application ports. `LocalFileStorage` handles uploaded file storage, `LocalAssetFileResolver` resolves stored asset paths, and SQLAlchemy repositories handle database persistence.
+- **Application layer** contains use cases and port definitions. `IngestFile` coordinates upload validation, project existence, file storage, and asset creation. `ProcessAsset` coordinates per-asset document loading, chunking, and persistence. `IndexProject` coordinates project indexing by retrieving chunks in pages, generating embedding batches, inserting vectors, and maintaining per-asset indexing status. These use cases depend on application-level ports rather than FastAPI or SQLAlchemy.
+- **Infrastructure adapters** implement application ports. `LocalFileStorage` handles uploaded file storage, `LocalAssetFileResolver` resolves stored asset paths, and SQLAlchemy repositories handle database persistence. `LLMEmbedder` adapts the configured embedding client, while `PgVectorStoreAdapter` adapts the pgvector provider.
 - **Document ingestion** provides the shared `LoaderRegistry` and configured `ChunkerFactory`. The registry resolves the appropriate loader, and the factory provides the configured chunking strategy.
-- **Controllers** retain the existing controller-based workflows. `NLPController` handles indexing, semantic search, and RAG answer generation.
+- **Controllers** retain the existing controller-based workflows. `NLPController` handles vector collection information, semantic search, and RAG answer generation. Project indexing is handled separately by the `IndexProject` use case.
 - **Clients** (`app.generation_client`, `app.embedding_client`, `app.vectordb_client`, `app.db_client`, and `app.loader_registry`) are initialized during application startup and accessed through `request.app`.
 
 - The architecture diagrams are in the README.
@@ -130,6 +133,10 @@ Signal strings are part of the public API. Changing an existing one is a breakin
 Application use cases must not depend on FastAPI or SQLAlchemy. Infrastructure adapters are responsible for database and filesystem operations.
 
 For asset processing, `ProcessAsset` resolves the stored file path, selects a document loader and chunker, and delegates persistence to the asset processing repository. Synchronous document loading and chunking run in a worker thread. The repository handles chunk insertion and the asset status update within one database transaction.
+
+For project indexing, `IndexProject` retrieves chunks through `ChunkRepository` in pages, sends each page to `Embedder`, and inserts the resulting vectors through `VectorStore`. `AssetIndexRepository` provides project asset retrieval and indexing status updates. The infrastructure implementations are `SqlAlchemyAssetIndexRepository`, `SqlAlchemyChunkRepository`, `LLMEmbedder`, and `PgVectorStoreAdapter`.
+
+The indexing use case is independent of FastAPI and SQLAlchemy. The current route uses a page size of 10 and the configured pgvector backend. If any page fails for an asset, the use case removes that asset's vectors from the collection and leaves its status as `CHUNKED`; other assets can continue to be indexed.
 
 ### Add a setting
 
@@ -217,22 +224,24 @@ uv run pytest tests/ --cov=src --cov-report=term-missing
 uvx ruff check tests/
 \`\`\`
 
-The test suite includes application use-case unit tests, infrastructure adapter tests, API workflow tests, and provider tests.
+The test suite includes application use-case unit tests, infrastructure adapter tests, API workflow tests, repository integration tests, and provider tests.
 
-- Application use-case tests use fake implementations of the required ports. `ProcessAsset` tests cover successful processing, missing files, empty documents, empty chunks, unsupported loaders, loader failures, and persistence failures.
+- Application use-case tests use fake implementations of the required ports. ProcessAsset tests cover successful processing, missing files, empty documents, empty chunks, unsupported loaders, loader failures, and persistence failures.
+- `IndexProject` tests cover paginated chunk retrieval, successful indexing, partial insertion failures, embedding failures, projects without files, assets requiring chunking, collection creation failures, and reset/reindex behavior.
+- Indexing adapter tests verify SQLAlchemy asset and chunk mapping, embedding result mapping, and pgvector collection creation, asset-vector deletion, and insertion operations.
 - Asset file resolver tests cover stored path resolution and invalid or unsafe paths.
 - Asset processing repository integration tests verify chunk persistence and transactional asset status updates against PostgreSQL.
 - API workflow and provider tests use fakes or mocked SDK clients and do not require API keys or external network calls.
 - The pgvector integration tests use a real PostgreSQL database with the pgvector extension. They are skipped locally unless `PGVECTOR_TEST_DATABASE_URL` is set.
 - CI starts a PostgreSQL pgvector service for integration testing.
 
-The integration test fixture creates its database schema using SQLAlchemy metadata. It does not test Alembic migrations.
+This retains the existing testing instructions and coverage details while adding the `IndexProject` use-case and indexing-adapter tests introduced in #105.
 
 ## Code style
 
 Ruff is used in CI for the test suite. Until source-wide linting is enabled, match the style of the surrounding code, and keep these conventions:
 
-- Routes stay thin. Application operations such as file ingestion and asset processing belong in use cases. The existing NLP workflow remains in `NLPController`.
+- Routes stay thin. Application operations such as file ingestion, asset processing, and project indexing belong in use cases. The existing NLP controller handles collection information, semantic search, and RAG answer generation.
 - Application use cases depend on ports, not infrastructure implementations.
 - Infrastructure adapters implement application ports and contain database and filesystem-specific operations.
 - Provider-specific code stays inside `stores/`. Controllers talk to interfaces only.

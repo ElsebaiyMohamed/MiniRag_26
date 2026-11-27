@@ -76,7 +76,7 @@ UPLOADED -> CHUNKED -> INDEXED
 - `CHUNKED`: chunks are stored in PostgreSQL and waiting for indexing.
 - `INDEXED`: the asset's chunks have been indexed successfully.
 
-Normal processing handles only `UPLOADED` assets; normal indexing handles only `CHUNKED` assets. Use `do_reset: 1` to rebuild chunks or embeddings for the project.
+Normal processing handles only `UPLOADED` assets; normal indexing handles only `CHUNKED` assets. The `do_reset` flag is operation-specific: for processing, it rebuilds chunks; for indexing, it resets the vector collection and reindexes `CHUNKED` and `INDEXED` assets.
 
 ## Endpoints
 
@@ -87,7 +87,7 @@ Normal processing handles only `UPLOADED` assets; normal indexing handles only `
 | `GET`  | `/metrics`                              | Prometheus metrics (not in the OpenAPI schema) |
 | `POST` | `/api/v1/data/upload/{project_id}`      | Upload a file                                  |
 | `POST` | `/api/v1/data/process/{project_id}`     | Chunk the project's files                      |
-| `POST` | `/api/v1/nlp/index/push/{project_id}`   | Embed chunks and store the vectors             |
+| `POST` | `/api/v1/nlp/index/push/{project_id}` | Paginated project indexing: embed chunks and store vectors |
 | `GET`  | `/api/v1/nlp/index/info/{project_id}`   | Vector collection information                  |
 | `POST` | `/api/v1/nlp/index/search/{project_id}` | Semantic search                                |
 | `POST` | `/api/v1/nlp/index/answer/{project_id}` | RAG answer                                     |
@@ -210,13 +210,19 @@ If no assets are waiting for processing, the endpoint returns `200` with `FILES_
 
 ## `POST /api/v1/nlp/index/push/{project_id}`
 
-Embeds chunks from eligible assets and writes their vectors to the configured PgVector collection. Normally, only assets in the `CHUNKED` state are indexed. With `do_reset: 1`, the project collection is reset and assets currently marked `INDEXED` are returned to `CHUNKED` for reindexing.
+Indexes eligible project assets by retrieving their chunks in pages, generating embeddings in batches, and inserting the vectors into the project's PgVector collection.
+
+By default, only assets in the `CHUNKED` state are indexed. With `do_reset: 1`, the project's vector collection is reset and assets currently marked `CHUNKED` or `INDEXED` are selected for indexing.
+
+Each asset is indexed independently. If an asset encounters an embedding or insertion failure, all vectors for that asset are deleted and its status remains `CHUNKED`. Other assets can still be indexed successfully.
 
 **Body**
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `do_reset` | integer | `0` | `1` drops the project's vector collection and reindexes eligible chunked assets. Required after changing the embedding model |
+| `do_reset` | integer | `0` | `1` resets the project's vector collection and reindexes assets in `CHUNKED` or `INDEXED` states. Useful after changing the embedding model. |
+
+The use case retrieves chunks in pages of 10 and embeds each page as a batch.
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/nlp/index/push/1 \
@@ -246,21 +252,30 @@ curl -X POST http://localhost:8000/api/v1/nlp/index/push/1 \
 }
 ```
 
-`project_status_before_run` reports the asset counts used to determine the indexing work. On a reset call, indexed assets are changed to `CHUNKED` before these counts are assembled. `chunked_files` is the number selected for the current call. `call_status` reports this call's file and chunk outcomes. If any chunk insert for an asset fails, the asset is counted as failed and that asset's inserted vectors are deleted; the asset is not marked `INDEXED`.
+`project_status_before_run` reports the asset counts retrieved at the beginning of the operation, before reset changes any asset statuses.
 
-When there are no eligible `CHUNKED` assets:
+`call_status` reports the outcome of the current indexing attempt:
+
+- `file_success`: number of assets indexed successfully.
+- `file_failed`: number of assets that failed indexing.
+- `chunk_success`: number of chunks successfully indexed for assets that completed successfully.
+- `chunk_failed`: number of chunks counted as failed.
+
+If any page for an asset fails embedding or insertion, that asset is counted as failed. Its successfully inserted vectors from the current attempt are also deleted, and its status is not changed to `INDEXED`. Other assets continue to be processed.
+
+**When there are no eligible assets:**
 
 - If all file assets are already indexed, the endpoint returns `200` with signal `project chunked files already indexed`.
 - If one or more file assets are still uploaded and need processing, it returns `200` with signal `chunk files first before indexing`.
+- If the project contains no file assets, the endpoint returns `404` with signal `project is empty`.
 
 **Errors**
 
-| Status | `signal`                                | Cause                                                        |
-|--------|-----------------------------------------|--------------------------------------------------------------|
-| `404`  | `project not found`                     | The project does not exist                                   |
-| `404`  | `project is empty`                      | No files uploaded for this project                           |
-| `400`  | `failed to insert into vector database` | No asset was indexed successfully during an indexing attempt |
-
+| Status | `signal` | Cause |
+|---|---|---|
+| `404` | `project not found` | The project does not exist |
+| `404` | `project is empty` | No file assets exist in the project |
+| `400` | `failed to insert into vector database` | Collection creation failed or no asset was indexed successfully during the attempt |
 
 ---
 

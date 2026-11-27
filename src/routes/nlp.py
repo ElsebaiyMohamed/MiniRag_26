@@ -5,139 +5,125 @@ from fastapi import APIRouter, status, Request
 from fastapi.responses import JSONResponse
 
 from controllers import NLPController
-from models import ProjectDataModel, AssetDataModel, ChunkDataModel
-from models.enums import ResponseSignal, AssetType, AssetStatus
+from models import ProjectDataModel, AssetDataModel
+from models.enums import ResponseSignal, AssetType
 from models.schemas import PushRequest, SearchRequest
+
+
+from application.use_cases.index_project import (
+    IndexProject,
+    IndexProjectCommand,
+)
+from infrastructure.adapters import (
+    SqlAlchemyAssetIndexRepository,
+    SqlAlchemyChunkRepository,
+    LLMEmbedder,
+    PgVectorStoreAdapter,
+)
 
 log_it = logging.getLogger("uvicorn.error")
 
 nlp_router = APIRouter(prefix="/api/v1/nlp", tags=["v1", "nlp"])
 
 
+
 @nlp_router.post("/index/push/{project_id}")
 async def index_project(request: Request, project_id: int, push_request: PushRequest):
-    project_model = await ProjectDataModel.create_instance(db_client=request.app.db_client)
+    project_model = await ProjectDataModel.create_instance(
+        db_client=request.app.db_client
+    )
     project = await project_model.get_project(project_id=project_id)
+
     if not project:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"signal": ResponseSignal.PROJECT_NOT_FOUND.value},
         )
 
-    asset_model = await AssetDataModel.create_instance(db_client=request.app.db_client)
-
+    asset_model = await AssetDataModel.create_instance(
+        db_client=request.app.db_client
+    )
     all_project_files = await asset_model.get_all_project_assets(
-        asset_project_id=project.project_id, asset_type=AssetType.FILE.value
+        asset_project_id=project.project_id,
+        asset_type=AssetType.FILE.value,
     )
 
-    total_project_files_num = len(all_project_files)
-    if not total_project_files_num:
+    if not all_project_files:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"signal": ResponseSignal.NO_FILES_ERROR.value},
         )
-    chunk_model: ChunkDataModel = await ChunkDataModel.create_instance(db_client=request.app.db_client)
-    nlp_controller = NLPController(
-    vectordb_client=request.app.vectordb_client,
-    generation_client=request.app.generation_client,
-    embedding_client=request.app.embedding_client,
+
+    index_project_use_case = IndexProject(
+        asset_repository=SqlAlchemyAssetIndexRepository(
+            request.app.db_client
+        ),
+        chunk_repository=SqlAlchemyChunkRepository(
+            request.app.db_client
+        ),
+        embedder=LLMEmbedder(request.app.embedding_client),
+        vector_store=PgVectorStoreAdapter(request.app.vectordb_client),
     )
 
-    if push_request.do_reset:
-        log_it.info("reset all embedding at project")
-        for dummy_asset in all_project_files:
-            if dummy_asset.asset_status == AssetStatus.INDEXED.value:
-                await asset_model.set_asset_status(dummy_asset.asset_id, AssetStatus.CHUNKED.value)
-                dummy_asset.asset_status = AssetStatus.CHUNKED.value
-        no_deleted = await nlp_controller.reset_vectordb_collection(project)
-        project_files = [a for a in all_project_files if a.asset_status == AssetStatus.CHUNKED.value]
-    else:
-        project_files = [asset for asset in all_project_files if asset.asset_status == AssetStatus.CHUNKED.value]
-        index_status = {
-        "project_status_before_run": {
-            "total_files": len(all_project_files),
-            "uploaded_files": len([a for a in all_project_files if
-                                   a.asset_status == AssetStatus.UPLOADED.value]),
-            "chunked_files": len(project_files),
-            "indexed_files": len([a for a in all_project_files if
-                                  a.asset_status == AssetStatus.INDEXED.value]),
-        },
-        "call_status": {"file_success": 0, "file_failed": 0, "chunk_success": 0,
-                        "chunk_failed": 0},
+    result = await index_project_use_case.execute(
+        IndexProjectCommand(
+            project_id=project.project_id,
+            do_reset=bool(push_request.do_reset),
+            page_size=10,
+        )
+    )
+
+    index_status = {
+        "project_status_before_run": result.project_status_before_run,
+        "call_status": result.call_status,
     }
-    if (
-            index_status["project_status_before_run"]["chunked_files"] == 0
-            and index_status["project_status_before_run"]["uploaded_files"] == 0
-    ):
+
+    if result.outcome == "no_files":
         return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"signal": ResponseSignal.NO_FILES_TO_BE_INDEXED.value,
-                     "insertion_status": index_status},
-        )
-    if (
-            index_status["project_status_before_run"]["chunked_files"] == 0
-            and index_status["project_status_before_run"]["uploaded_files"] > 0
-    ):
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"signal": ResponseSignal.FILES_NEED_CHUNKING.value,
-                     "insertion_status": index_status},
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"signal": ResponseSignal.NO_FILES_ERROR.value},
         )
 
-    for asset in project_files:
-        has_records = True
-        page_no = 1
-        chunks_insertion_status = {"success": 0, "failed": 0}
+    if result.outcome == "nothing_to_index":
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "signal": ResponseSignal.NO_FILES_TO_BE_INDEXED.value,
+                "insertion_status": index_status,
+            },
+        )
 
-        while has_records:
-            page_chunks = await chunk_model.get_project_asset_chunks(
-                asset_id=asset.asset_id, page_no=page_no)
-            if not page_chunks or len(page_chunks) == 0:
-                has_records = False
-                break
-            page_no += 1
+    if result.outcome == "needs_chunking":
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "signal": ResponseSignal.FILES_NEED_CHUNKING.value,
+                "insertion_status": index_status,
+            },
+        )
 
-            insertion_status = await nlp_controller.index2vectordb(project=project,
-                                                                   chunks=page_chunks,
-                                                                   do_reset=False)
-            chunks_insertion_status = {
-                key: chunks_insertion_status[key] + insertion_status[key] for key in
-                chunks_insertion_status.keys()
-            }
-
-        if chunks_insertion_status["failed"] > 0 or chunks_insertion_status[
-            "success"] == 0:
-            log_it.error(f"file {asset.asset_name} failed to indexed ")
-            index_status["call_status"]["file_failed"] += 1
-            index_status["call_status"]["chunk_failed"] += (
-                    chunks_insertion_status["failed"] + chunks_insertion_status[
-                "success"]
-            )
-            _ = await nlp_controller.reset_vectordb_collection_asset_vectors(
-                project=project, asset=asset)
-        else:
-            await asset_model.set_asset_status(asset.asset_id,
-                                               AssetStatus.INDEXED.value)
-            index_status["call_status"]["file_success"] += 1
-            index_status["call_status"]["chunk_success"] += chunks_insertion_status[
-                "success"]
-            index_status["call_status"]["chunk_failed"] += chunks_insertion_status[
-                "failed"]
-
-    if index_status["call_status"]["file_success"] == 0:
-        log_it.error(ResponseSignal.INSERT_INTO_VECTORDB_ERROR.value)
-
+    if result.outcome in ("collection_error", "failed"):
+        log_it.error(
+            "Project %s indexing failed: %s",
+            project.project_id,
+            result.outcome,
+        )
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"signal": ResponseSignal.INSERT_INTO_VECTORDB_ERROR.value,
-                     "insertion_status": index_status},
+            content={
+                "signal": ResponseSignal.INSERT_INTO_VECTORDB_ERROR.value,
+                "insertion_status": index_status,
+            },
         )
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content={"signal": ResponseSignal.INSERT_INTO_VECTOR_DATABASE_SUCCESS.value,
-                 "insertion_status": index_status},
+        content={
+            "signal": ResponseSignal.INSERT_INTO_VECTOR_DATABASE_SUCCESS.value,
+            "insertion_status": index_status,
+        },
     )
+
 
 
 @nlp_router.get("/index/info/{project_id}")
@@ -220,8 +206,8 @@ async def index_search(request: Request, project_id: int, search_request: Search
             status_code=status.HTTP_200_OK,
             content={
                 "signal": ResponseSignal.VECTORDB_SEARCH_SUCCESS.value,
-                "result": [r.dict() for r in result],
-                "telemetry": embed_result.dict() if embed_result else None,
+                "result": [r.model_dump() for r in result],
+                "telemetry": embed_result.model_dump() if embed_result else None,
             },
         )
 
@@ -229,7 +215,7 @@ async def index_search(request: Request, project_id: int, search_request: Search
         status_code=status.HTTP_502_BAD_GATEWAY,
         content={
             "signal": ResponseSignal.VECTORDB_SEARCH_ERROR.value,
-            "telemetry": embed_result.dict() if embed_result else None,
+            "telemetry": embed_result.model_dump() if embed_result else None,
         },
     )
 
@@ -273,8 +259,8 @@ async def index_answer(request: Request, project_id: int, search_request: Search
             "answer": generation_result.content,
             # Extract the text string from LLMResult
             "telemetry": {
-                "generation_metrics": generation_result.dict(exclude={"content"}),
-                "embedding_metrics": embed_result.dict() if embed_result else None,
+                "generation_metrics": generation_result.model_dump(exclude={"content"}),
+                "embedding_metrics": embed_result.model_dump() if embed_result else None,
             },
         }
 
