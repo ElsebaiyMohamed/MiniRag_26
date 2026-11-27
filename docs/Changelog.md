@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [Unreleased]
+
 ### Added
 
 - Added an Alembic migration to enforce unique asset names per project, validate asset statuses, apply database-level cascading deletes, and add a composite chunk index.
@@ -16,6 +18,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Add `LocalAssetFileResolver` to resolve stored asset paths safely and prevent path traversal.
 - Add transactional asset processing persistence to insert chunks and update the asset status to `CHUNKED` atomically.
 - Add unit, adapter, repository integration, and API workflow tests for the asset processing flow.
+- Add the application-layer `IndexProject` use case to coordinate project indexing through application-level ports.
+- Add `AssetIndexRepository`, `ChunkRepository`, `Embedder`, and `VectorStore` ports for asset retrieval, paginated chunk retrieval, embedding generation, and vector storage.
+- Add SQLAlchemy repository adapters, `LLMEmbedder`, and `PgVectorStoreAdapter` to connect the indexing use case to the existing infrastructure.
+- Add unit tests for `IndexProject` covering pagination, successful indexing, partial insertion failures, embedding failures, empty projects, assets requiring chunking, collection creation failures, and reset/reindex behavior.
+- Add indexing adapter tests covering repository mapping, embedding result mapping, and pgvector collection creation, asset-vector deletion, and insertion operations.
 
 ### Changed
 
@@ -29,6 +36,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Refactor file upload handling into an application-layer `IngestFile` use case, separating upload validation, file storage, and asset creation from the FastAPI route.
 - Introduce storage and repository ports with infrastructure adapters for local file storage and SQLAlchemy persistence.
 - Add unit tests for the ingestion use case using fake dependencies.
+- Integrate `IndexProject` into the NLP indexing route, moving project indexing orchestration out of the route and into the application layer.
+- Retrieve chunks in pages and generate embeddings in batches before inserting vectors through the configured pgvector adapter.
+- Maintain indexing status independently per asset. If indexing fails for an asset, remove that asset's vectors and leave its status as `CHUNKED`, allowing other assets to continue.
+- Support reset and reindex operations for `CHUNKED` and `INDEXED` assets while preserving the existing indexing response structure and status signals.
+- Update README, API, and development documentation to describe the project-indexing use case, its adapters, reset behavior, and test coverage.
+
 
 ## [1.3.0]  - 2026-11-23
 

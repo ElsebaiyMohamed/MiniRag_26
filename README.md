@@ -37,6 +37,10 @@ It is now being developed beyond the course: new file formats, advanced chunking
   - No external document-loading framework is required.
 - **Project-based isolation:** each `project_id` has its own files, chunks and vector collection.
 - **Chunking:** a strategy-based interface with a registered `default` newline-based chunker and configurable chunk size.
+- **Project indexing:** paginated chunk retrieval, batched embedding generation, and pgvector insertion through an application-level use case.
+  - Tracks indexing status per asset.
+  - Handles asset-level failures independently, removing partial vectors when indexing fails.
+  - Supports resetting a project's vector collection and reindexing existing assets.
 - **Pluggable LLM providers:** Cohere and any OpenAI-compatible API (including local models via [Ollama](#using-a-local-model-with-ollama)).
 - **Vector search:** PostgreSQL + pgvector (the only supported vector backend today).
 - **Semantic search** and **RAG answering** with localized prompt templates (English and Arabic).
@@ -97,7 +101,9 @@ The HTTP layer exposes the base, data, and NLP routes. The data routes delegate 
 
 The infrastructure adapters implement file storage, asset file resolution, and database persistence. The shared `LoaderRegistry` resolves document loaders, while the configured `ChunkerFactory` provides the chunking strategy. The asset processing repository persists generated chunks and updates the asset status transactionally.
 
-The NLP routes retain the existing `NLPController` workflow for indexing, semantic search, and RAG answer generation. This workflow uses the configured embedding, vector database, and generation clients, backed by their respective provider interfaces and factories.
+The NLP indexing route delegates project indexing to the `IndexProject` application use case. The use case retrieves chunks in pages, generates embeddings in batches, and stores vectors through application-level ports. Infrastructure adapters connect these ports to the SQLAlchemy models, configured embedding client, and pgvector provider. Indexing status is maintained per asset, with failed asset indexing handled independently.
+
+The NLP routes retain the existing `NLPController` workflow for vector collection information, semantic search, and RAG answer generation. These operations use the configured embedding, vector database, and generation clients, backed by their respective provider interfaces and factories.
 
 The existing SQLAlchemy models and PostgreSQL database remain the persistence foundation for projects, assets, chunks, and vector data.
 
@@ -114,11 +120,13 @@ flowchart TB
     subgraph application["Application layer"]
         ingest["IngestFile<br/>Upload orchestration"]
         process["ProcessAsset<br/>Per-asset processing"]
-        ports["Application ports and DTOs<br/>FileStorage, ProjectRepository,<br/>AssetRepository, LoaderResolver,<br/>AssetFileResolver, ChunkerResolver,<br/>AssetProcessingRepository, NewChunk"]
+        index_project["IndexProject<br/>Paginated project indexing"]
+
+        ports["Application ports and DTOs<br/>FileStorage, ProjectRepository,<br/>AssetRepository, LoaderResolver,<br/>AssetFileResolver, ChunkerResolver,<br/>AssetProcessingRepository, NewChunk,<br/>AssetIndexRepository, ChunkRepository,<br/>Embedder, VectorStore"]
     end
 
     subgraph controllers["Controller layer"]
-        nlp_controller["NLPController<br/>Indexing, search, answer generation"]
+        nlp_controller["NLPController<br/>Collection info, search, answer generation"]
     end
 
     subgraph infrastructure["Infrastructure adapters"]
@@ -127,6 +135,10 @@ flowchart TB
         project_repo["SqlAlchemyProjectRepository"]
         asset_repo["SqlAlchemyAssetRepository"]
         processing_repo["SqlAlchemyAssetProcessingRepository"]
+        asset_index_repo["SqlAlchemyAssetIndexRepository"]
+        chunk_repo["SqlAlchemyChunkRepository"]
+        embedding_adapter["LLMEmbedder"]
+        vector_adapter["PgVectorStoreAdapter"]
     end
 
     subgraph ingestion["Document ingestion"]
@@ -160,22 +172,33 @@ flowchart TB
 
     data --> ingest
     data --> process
+    nlp --> index_project
     nlp --> nlp_controller
 
     ingest --> ports
     process --> ports
+    index_project --> ports
 
     storage -.-> ports
     file_resolver -.-> ports
     project_repo -.-> ports
     asset_repo -.-> ports
     processing_repo -.-> ports
+    asset_index_repo -.-> ports
+    chunk_repo -.-> ports
+    embedding_adapter -.-> ports
+    vector_adapter -.-> ports
     registry -.-> ports
     chunker -.-> ports
 
     project_repo --> models
     asset_repo --> models
     processing_repo --> models
+    asset_index_repo --> models
+    chunk_repo --> models
+
+    embedding_adapter --> embedding
+    vector_adapter --> vector_interface
 
     nlp_controller --> embedding
     nlp_controller --> vector_interface
@@ -393,7 +416,7 @@ flowchart TB
 
 ### Project layout
 
-```text
+
 src/
 ├── main.py          # App creation and startup/shutdown
 ├── application/     # Application use cases and ports
@@ -401,14 +424,17 @@ src/
 │   ├── ports.py
 │   └── use_cases/
 │       ├── ingest_file.py
-│       └── process_asset.py
+│       ├── process_asset.py
+│       └── index_project.py
 ├── infrastructure/  # Implementations of application ports
 │   └── adapters/
 │       ├── asset_file_resolver.py
+│       ├── embedding_adapter.py
 │       ├── file_storage.py
-│       └── repositories.py
+│       ├── repositories.py
+│       └── vector_store_adapter.py
 ├── routes/          # HTTP endpoints (base, data, nlp)
-├── controllers/     # Business logic (processing, NLP/RAG, projects)
+├── controllers/     # Existing controller workflows (NLP/RAG, projects)
 ├── ingestion/
 │   ├── loaders/     # DocumentLoader, LoaderRegistry, TxtLoader, PdfLoader, MarkdownLoader
 │   ├── chunkers/    # Chunker protocol, Chunk, strategies, and factory
@@ -421,7 +447,6 @@ src/
 └── utils/           # Prometheus metrics middleware
 docker/              # Compose stack, Dockerfile, Nginx, Prometheus config, env examples
 docs/                # Project documentation
-```
 
 ## Prerequisites
 

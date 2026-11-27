@@ -103,6 +103,48 @@ class FakeAssetRepository:
 
         return AssetRecord(asset_name=created_asset.asset_name)
 
+class FakeAssetIndexRepository:
+    def __init__(self, assets):
+        self.assets = assets
+
+
+    async def get_project_assets(self, project_id, asset_type):
+        return [
+            SimpleNamespace(
+                asset_id=asset.asset_id,
+                asset_name=asset.asset_name,
+                asset_status=asset.asset_status,
+            )
+            for asset in self.assets.assets
+        ]
+
+    async def set_status(self, asset_id, status):
+        await self.assets.set_asset_status(
+            asset_id=asset_id,
+            status=status,
+        )
+
+
+class FakeIndexChunkRepository:
+    def __init__(self, chunks):
+        self.chunks = chunks
+
+    async def get_page(self, asset_id, page_no, page_size):
+        page = await self.chunks.get_project_asset_chunks(
+            asset_id=asset_id,
+            page_no=page_no,
+        )
+
+        return [
+            SimpleNamespace(
+                chunk_id=chunk.chunk_id,
+                asset_id=chunk.chunk_asset_id,
+                text=chunk.chunk_text,
+                metadata=chunk.chunk_metadata or {},
+            )
+            for chunk in page
+        ]
+
 class FakeChunkModel:
     def __init__(self):
         self.chunks = []
@@ -301,6 +343,7 @@ class FakeVectorDB:
 
         self.distance_method = distance_method
         self.records = []
+        self.record_asset_ids = []
 
     async def create_collection(
         self,
@@ -310,6 +353,7 @@ class FakeVectorDB:
     ):
         if do_reset:
             self.records.clear()
+            self.record_asset_ids.clear()
         return True
 
     async def insert_many(
@@ -326,7 +370,32 @@ class FakeVectorDB:
             for text, vector in zip(texts, vectors)
         )
 
+        self.record_asset_ids.extend(asset_ids)
         return {"success": len(texts), "failed": 0}
+
+    async def delete_embeddings_by_asset_id(
+            self,
+            collection_name,
+            asset_id,
+    ):
+        remaining = [
+            (record, record_asset_id)
+            for record, record_asset_id in zip(
+                self.records,
+                self.record_asset_ids,
+            )
+            if record_asset_id != asset_id
+        ]
+
+        deleted_count = len(self.records) - len(remaining)
+
+        self.records = [record for record, _ in remaining]
+        self.record_asset_ids = [
+            record_asset_id
+            for _, record_asset_id in remaining
+        ]
+
+        return deleted_count
 
     def _calculate_score(self, first, second):
         dot_product = sum(
@@ -363,8 +432,6 @@ class FakeVectorDB:
             for text, record_vector in ranked_records[:limit]
         ]
 
-    async def delete_embeddings_by_asset_id(self, collection_name, asset_id):
-        return 0
 
     async def delete_collection(self, collection_name):
         self.records.clear()
@@ -451,6 +518,18 @@ def upload_api(tmp_path, monkeypatch, workflow_models):
 
     return app, settings, assets, tmp_path
 
+def patch_indexing_repositories(monkeypatch, assets, chunks):
+    monkeypatch.setattr(
+        nlp_routes,
+        "SqlAlchemyAssetIndexRepository",
+        lambda db_client: FakeAssetIndexRepository(assets),
+    )
+
+    monkeypatch.setattr(
+        nlp_routes,
+        "SqlAlchemyChunkRepository",
+        lambda db_client: FakeIndexChunkRepository(chunks),
+    )
 
 @pytest.mark.asyncio
 async def test_upload_route_success(upload_api):
@@ -626,7 +705,7 @@ async def test_upload_process_index_search_answer_workflow(
     settings_stub,
 ):
     projects, assets, chunks = workflow_models
-
+    patch_indexing_repositories(monkeypatch, assets, chunks)
     project_assets = tmp_path / "assets" / "files"
     project_assets.mkdir(parents=True)
 
@@ -823,7 +902,7 @@ async def test_markdown_upload_process_index_search_workflow(
     settings_stub,
 ):
     projects, assets, chunks = workflow_models
-
+    patch_indexing_repositories(monkeypatch, assets, chunks)
     project_assets = tmp_path / "assets" / "files"
     project_assets.mkdir(parents=True)
 

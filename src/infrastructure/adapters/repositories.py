@@ -9,9 +9,14 @@ from application.ports import (
     ProjectRepository,
     AssetProcessingRepository,
     NewChunk,
+    AssetIndexRepository,
+    ChunkRepository,
+    IndexableAsset,
+    IndexableChunk,
 )
 from models.AssetDataModel import AssetDataModel
 from models.ProjectDataModel import ProjectDataModel
+from models.ChunkDataModel import ChunkDataModel
 from models.db_schemas import Asset, DataChunk
 from models.enums.AssetTypeEnums import AssetStatus
 
@@ -107,3 +112,67 @@ class SqlAlchemyAssetProcessingRepository(
 
         except Exception:
             return 0
+
+class SqlAlchemyAssetIndexRepository(AssetIndexRepository):
+    """SQLAlchemy adapter for asset indexing operations."""
+
+    def __init__(self, db_client):
+        self.model = AssetDataModel(db_client)
+
+    async def get_project_assets(
+        self,
+        project_id: int,
+        asset_type: str,
+    ) -> list[IndexableAsset]:
+        assets = await self.model.get_all_project_assets(
+            asset_project_id=project_id,
+            asset_type=asset_type,
+        )
+
+        return [
+            IndexableAsset(
+                asset_id=asset.asset_id,
+                asset_name=asset.asset_name,
+                asset_status=asset.asset_status,
+            )
+            for asset in assets
+        ]
+
+    async def set_status(
+        self,
+        asset_id: int,
+        status: int,
+    ) -> None:
+        await self.model.set_asset_status(
+            asset_id=asset_id,
+            status=status,
+        )
+
+
+class SqlAlchemyChunkRepository(ChunkRepository):
+    """SQLAlchemy adapter for paginated chunk retrieval."""
+
+    def __init__(self, db_client):
+        self.model = ChunkDataModel(db_client)
+
+    async def get_page(
+        self,
+        asset_id: int,
+        page_no: int,
+        page_size: int,
+    ) -> list[IndexableChunk]:
+        chunks = await self.model.get_project_asset_chunks(
+            asset_id=asset_id,
+            page_no=page_no,
+            page_size=page_size,
+        )
+
+        return [
+            IndexableChunk(
+                chunk_id=chunk.chunk_id,
+                asset_id=chunk.chunk_asset_id,
+                text=chunk.chunk_text,
+                metadata=chunk.chunk_metadata or {},
+            )
+            for chunk in chunks
+        ]

@@ -137,3 +137,111 @@ class AssetProcessingRepository(Protocol):
         chunks: list[NewChunk],
     ) -> int:
         ...
+
+
+@dataclass(frozen=True)
+class IndexableAsset:
+    """Framework-independent asset representation for indexing."""
+
+    asset_id: int
+    asset_name: str
+    asset_status: int
+
+
+@dataclass(frozen=True)
+class IndexableChunk:
+    """Framework-independent chunk representation for vector indexing."""
+
+    chunk_id: int
+    asset_id: int
+    text: str
+    metadata: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class EmbeddingResult:
+    """Application-level result returned by an embedding provider."""
+
+    vectors: list[list[float]]
+    success: bool
+    error: str | None = None
+
+
+@dataclass(frozen=True)
+class VectorInsertResult:
+    """Application-level result returned by a vector store insertion."""
+
+    success: int
+    failed: int
+
+
+class AssetIndexRepository(Protocol):
+    """Retrieves project assets and updates their indexing status."""
+
+    async def get_project_assets(
+        self,
+        project_id: int,
+        asset_type: str,
+    ) -> list[IndexableAsset]:
+        ...
+
+    async def set_status(
+        self,
+        asset_id: int,
+        status: int,
+    ) -> None:
+        ...
+
+
+class ChunkRepository(Protocol):
+    """Retrieves an asset's chunks in pages."""
+
+    async def get_page(
+        self,
+        asset_id: int,
+        page_no: int,
+        page_size: int,
+    ) -> list[IndexableChunk]:
+        ...
+
+
+class Embedder(Protocol):
+    """Generates embeddings without exposing provider-specific result types."""
+
+    embedding_size: int
+
+    async def embed(
+        self,
+        texts: list[str],
+    ) -> EmbeddingResult:
+        ...
+
+
+class VectorStore(Protocol):
+    """Provides the vector operations required by project indexing."""
+
+    async def create_collection(
+        self,
+        project_id: int,
+        embedding_size: int,
+        do_reset: bool = False,
+    ) -> bool:
+        ...
+
+    async def delete_asset_vectors(
+        self,
+        project_id: int,
+        asset_id: int,
+    ) -> int:
+        ...
+
+    async def insert_many(
+        self,
+        project_id: int,
+        texts: list[str],
+        vectors: list[list[float]],
+        chunk_ids: list[int],
+        asset_ids: list[int],
+        metadatas: list[dict[str, Any]],
+    ) -> VectorInsertResult:
+        ...
